@@ -1,0 +1,545 @@
+import logging
+import math
+import uuid
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+from backend.config import Settings, settings
+from backend.answers import distinct_answers, is_valid_response_json, parse_context_analysis, parse_generation, split_alternatives
+from backend.knowledge import read_knowledge_with_sources
+from backend.language import classify_language, detect_language
+from backend.lm_studio import LMStudioClient, LMStudioError
+from backend.memory import MemoryStore, normalize_alias
+from backend.prompt import build_context_analysis_messages, build_suggestion_messages
+from backend.schemas import NoteInput, SuggestRequest, SuggestResponse, SuggestionDiagnostics, TranslationRequest, TranslationRetryResponse
+from backend.translation import translate_and_review, translation_failure_message
+
+logger = logging.getLogger(__name__)
+
+
+def _estimate_prompt_tokens(messages: list[dict[str, str]]) -> int:
+    """Conservative planning estimate; LM Studio's loaded tokenizer is not exposed by /v1/models."""
+    text = "\n".join(item.get("content", "") for item in messages)
+    non_ascii = sum(ord(char) > 127 for char in text)
+    ascii_chars = len(text) - non_ascii
+    rough = math.ceil(ascii_chars / 3) + non_ascii
+    return math.ceil(rough * 1.15) + 32
+
+
+def _drop_oldest_context_line(context: str) -> str:
+    lines = context.splitlines()
+    return "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+
+
+def _message_row_count(context: str) -> int:
+    return sum(1 for line in context.splitlines() if line.lstrip().startswith(("- Interlocutor", "- Usuario")))
+
+
+def _analysis_rejection(analysis: dict | None) -> str:
+    if not isinstance(analysis, dict):
+        return "missing_context_analysis"
+    required = {
+        "current_topic", "message_meaning", "likely_intent", "intent_confidence", "references",
+        "observed_tone", "active_topics", "relevant_memory", "explicit_facts", "inferences", "unknowns",
+        "money_or_tip_relevant", "adult_or_domination_supported",
+    }
+    if not required.issubset(analysis):
+        return "incomplete_context_analysis"
+    confidence = analysis.get("intent_confidence")
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
+        return "invalid_context_confidence"
+    if any(not isinstance(analysis.get(key), list) for key in ("references", "active_topics", "relevant_memory", "explicit_facts", "inferences", "unknowns")):
+        return "invalid_context_analysis_format"
+    if not isinstance(analysis.get("money_or_tip_relevant"), bool) or not isinstance(analysis.get("adult_or_domination_supported"), bool):
+        return "invalid_context_analysis_format"
+    if any(not isinstance(analysis.get(key), str) or not analysis[key].strip() for key in ("current_topic", "message_meaning", "likely_intent", "observed_tone")):
+        return "invalid_context_analysis_format"
+    for key in ("references", "active_topics", "relevant_memory", "explicit_facts", "inferences", "unknowns"):
+        if any(not isinstance(item, str) for item in analysis[key]):
+            return "invalid_context_analysis_format"
+    return ""
+
+
+def _context_review_rejection(generation: dict) -> str:
+    checks = generation.get("checks")
+    check_fields = {"on_topic", "correct_language", "perspective_consistent", "unrequested_money", "unsupported_adult_or_domination", "unsupported_claim"}
+    if not isinstance(checks, list) or len(checks) != 1 or any(
+        not isinstance(item, dict) or not check_fields.issubset(item)
+        or any(not isinstance(item.get(key), bool) for key in check_fields)
+        for item in checks
+    ):
+        return "invalid_context_review_format"
+    if any(not item["on_topic"] for item in checks):
+        return "contextually_irrelevant"
+    if any(not item["correct_language"] for item in checks):
+        return "review_language_mismatch"
+    if any(not item["perspective_consistent"] for item in checks):
+        return "perspective_mismatch"
+    if any(item["unrequested_money"] for item in checks):
+        return "unrequested_money"
+    if any(item["unsupported_adult_or_domination"] for item in checks):
+        return "unsupported_adult_or_domination"
+    if any(item["unsupported_claim"] for item in checks):
+        return "unsupported_claim"
+    return ""
+
+
+def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
+    logging.basicConfig(level=getattr(logging, config.log_level, logging.INFO))
+    client = llm or LMStudioClient(config.lm_studio_base_url, config.lm_studio_model, config.lm_studio_timeout, config.lm_studio_output_tokens)
+    store = memory or MemoryStore(config.database_path, config.memory_max_notes)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+
+    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.0.0", lifespan=lifespan)
+    app.state.llm, app.state.memory = client, store
+    # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type"])
+
+    def error_code(status_code: int, detail: object) -> tuple[str, str]:
+        text = detail if isinstance(detail, str) else ""
+        lowered = text.casefold()
+        if status_code == 422:
+            return "invalid_request", "La solicitud no cumple el formato esperado. Revisa el mensaje y vuelve a intentarlo."
+        if status_code == 413:
+            return "request_too_large", text or "La solicitud supera el límite configurado."
+        if status_code == 502:
+            return "generation_validation_failed", text or "LM Studio no devolvió una respuesta que superara la validación."
+        if status_code == 503:
+            if "devolvió una respuesta no válida" in lowered:
+                return "lm_studio_invalid_response", text
+            if "lm studio devolvió http" in lowered:
+                return "lm_studio_http_error", text
+            if "lm studio" in lowered:
+                return "lm_studio_unavailable", text
+            return "backend_unavailable", text or "El servicio local no está disponible."
+        if status_code == 404:
+            return "not_found", text or "No se encontró el recurso solicitado."
+        return "http_error", text or f"La solicitud falló (HTTP {status_code})."
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_error(request: Request, exc: HTTPException):
+        code, message = error_code(exc.status_code, exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={
+            "api_version": "1.0", "detail": message,
+            "error": {"code": code, "category": code, "message": message},
+            "diagnostics": {"http_status": exc.status_code, "source": "backend"},
+        }, headers=exc.headers)
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_request_validation_error(request: Request, exc: RequestValidationError):
+        invalid_json = any(item.get("type") == "json_invalid" for item in exc.errors())
+        code = "invalid_json" if invalid_json else "invalid_request"
+        message = "El backend no pudo interpretar el JSON de la solicitud." if invalid_json else "La solicitud no cumple el formato esperado. Revisa el mensaje y vuelve a intentarlo."
+        issues = [{
+            "path": [str(part)[:80] for part in item.get("loc", [])[:8]],
+            "reason": str(item.get("type", "validation_error"))[:80],
+        } for item in exc.errors()[:12]]
+        return JSONResponse(status_code=422, content={
+            "api_version": "1.0", "detail": message,
+            "error": {"code": code, "category": "validation", "message": message},
+            "diagnostics": {"http_status": 422, "source": "backend", "issues": issues},
+        })
+
+    @app.get("/api/health")
+    async def health():
+        return {"status": "ok", "service": "personal-chat-ai", "host": config.host, "port": config.port}
+
+    @app.get("/api/diagnostics/lm-studio")
+    async def diagnostics():
+        try:
+            models = await client.models()
+            return {"available": True, "models": models, "configured_model": config.lm_studio_model or None}
+        except LMStudioError as exc:
+            return {"available": False, "models": [], "error": str(exc)}
+
+    @app.post("/api/suggestions", response_model=SuggestResponse)
+    async def suggest(request: SuggestRequest):
+        if len(request.message) > config.max_message_chars or len(request.additional_context) > 4000:
+            raise HTTPException(422, "El mensaje o contexto supera el límite configurado.")
+        alias = " ".join((request.interlocutor or "").split()) or None
+        notes = store.list_notes(alias)
+        knowledge, source_status = read_knowledge_with_sources(config.knowledge_path)
+        incoming_context = "\n".join(part for part in (request.context, request.additional_context) if part.strip())
+        language_decision = detect_language(request.message, incoming_context, config.default_language)
+        language = language_decision.name
+        input_context_chars = len(request.context) + len(request.additional_context)
+        context = request.context
+        additional_context = request.additional_context
+        knowledge_budget = 8000
+        conversation_analysis = None
+        analysis_budget_shape = {
+            "current_topic": "x" * 80, "message_meaning": "x" * 100, "likely_intent": "x" * 80,
+            "intent_confidence": 0.5, "references": ["x" * 60, "x" * 60], "observed_tone": "x" * 60,
+            "active_topics": ["x" * 60, "x" * 60], "relevant_memory": ["x" * 60],
+            "explicit_facts": ["x" * 60, "x" * 60], "inferences": ["x" * 60], "unknowns": ["x" * 60, "x" * 60],
+            "money_or_tip_relevant": False, "adult_or_domination_supported": False,
+        }
+        truncation_reasons = []
+        if request.client_context_truncated_by_window or request.dom_extracted_message_count > request.client_context_window:
+            truncation_reasons.append("ventana seleccionada en la extensión")
+        if request.client_context_truncated_by_characters:
+            truncation_reasons.append("límite de caracteres de la extensión")
+        if request.dom_extracted_unclassified_count:
+            truncation_reasons.append("filas con dirección no clasificada")
+        if len(context) + len(additional_context) > config.max_context_chars:
+            if "límite MAX_CONTEXT_CHARS del backend" not in truncation_reasons:
+                truncation_reasons.append("límite MAX_CONTEXT_CHARS del backend")
+            while len(context) + len(additional_context) > config.max_context_chars and context:
+                context = _drop_oldest_context_line(context)
+            while len(context) + len(additional_context) > config.max_context_chars and additional_context:
+                additional_context = _drop_oldest_context_line(additional_context)
+        available_prompt_tokens = config.lm_studio_context_tokens - config.lm_studio_output_tokens - 128
+        if available_prompt_tokens < 128:
+            raise HTTPException(503, "El presupuesto de contexto configurado en el backend es menor que el espacio reservado para respuestas.")
+
+        def build_messages():
+            return build_suggestion_messages(
+                message=request.message,
+                context=context,
+                additional_context=additional_context,
+                interlocutor=alias,
+                notes=notes,
+                knowledge=knowledge,
+                language=language,
+                count=request.count,
+                knowledge_budget=knowledge_budget,
+                conversation_analysis=conversation_analysis or analysis_budget_shape,
+                conversation_id=request.conversation_id,
+                target_message_id=request.target_message_id,
+            )
+
+        messages = build_messages()
+        estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        # Preserve at least the newest visible chat row while optional sources are trimmed.
+        while estimated_prompt_tokens > available_prompt_tokens and len(context.splitlines()) > 1:
+            context = _drop_oldest_context_line(context)
+            if "presupuesto estimado del modelo: historial DOM" not in truncation_reasons:
+                truncation_reasons.append("presupuesto estimado del modelo: historial DOM")
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        while estimated_prompt_tokens > available_prompt_tokens and additional_context:
+            additional_context = _drop_oldest_context_line(additional_context)
+            if "presupuesto estimado del modelo: contexto manual" not in truncation_reasons:
+                truncation_reasons.append("presupuesto estimado del modelo: contexto manual")
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        while estimated_prompt_tokens > available_prompt_tokens and knowledge_budget > 0:
+            knowledge_budget = max(0, knowledge_budget - 1000)
+            if "presupuesto estimado del modelo: fuentes personales" not in truncation_reasons:
+                truncation_reasons.append("presupuesto estimado del modelo: fuentes personales")
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        while estimated_prompt_tokens > available_prompt_tokens and context:
+            context = _drop_oldest_context_line(context)
+            if "presupuesto estimado del modelo: historial DOM" not in truncation_reasons:
+                truncation_reasons.append("presupuesto estimado del modelo: historial DOM")
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        if estimated_prompt_tokens > available_prompt_tokens:
+            raise HTTPException(413, "El mensaje y las instrucciones base superan el presupuesto estimado del modelo. Reduce el mensaje o aumenta LM_STUDIO_CONTEXT_TOKENS según la configuración real del modelo.")
+        # If budget trimming removed history used for a short/ambiguous target, recompute
+        # the fallback language from exactly the context that will reach the model.
+        included_context = "\n".join(part for part in (context, additional_context) if part.strip())
+        final_language_decision = detect_language(request.message, included_context, config.default_language)
+        if final_language_decision.code != language_decision.code:
+            language_decision = final_language_decision
+            language = language_decision.name
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+            while estimated_prompt_tokens > available_prompt_tokens and knowledge_budget > 0:
+                knowledge_budget = max(0, knowledge_budget - 1000)
+                if "presupuesto estimado del modelo: fuentes personales" not in truncation_reasons:
+                    truncation_reasons.append("presupuesto estimado del modelo: fuentes personales")
+                messages = build_messages()
+                estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+            while estimated_prompt_tokens > available_prompt_tokens and context:
+                context = _drop_oldest_context_line(context)
+                if "presupuesto estimado del modelo: historial DOM" not in truncation_reasons:
+                    truncation_reasons.append("presupuesto estimado del modelo: historial DOM")
+                messages = build_messages()
+                estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+            if estimated_prompt_tokens > available_prompt_tokens:
+                raise HTTPException(413, "El prompt del idioma detectado excede el presupuesto del modelo. Aumenta LM_STUDIO_CONTEXT_TOKENS según la configuración real del modelo.")
+        analysis_messages = build_context_analysis_messages(
+            message=request.message,
+            context="\n".join(part for part in (context, additional_context) if part.strip()),
+            interlocutor=alias,
+            notes=notes,
+            language=language,
+        )
+        analysis = None
+        analysis_rejection = ""
+        for analysis_attempt in range(2):
+            attempt_analysis_messages = analysis_messages
+            if analysis_attempt:
+                attempt_analysis_messages = [
+                    *analysis_messages,
+                    {"role": "user", "content": "El análisis anterior faltaba o no cumplía el esquema. Devuelve solo JSON válido y completo con todos los campos solicitados; no redactes sugerencias."},
+                ]
+            try:
+                analyze = getattr(client, "analyze", None)
+                analysis_answers = await analyze(attempt_analysis_messages) if analyze else await client.chat(attempt_analysis_messages, 1)
+            except LMStudioError as exc:
+                logger.warning("conversation_analysis_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(analysis_attempt), str(exc))
+                raise HTTPException(503, str(exc)) from exc
+            analysis = next((parse_context_analysis(answer) for answer in analysis_answers if answer), None) if analysis_answers else None
+            analysis_rejection = _analysis_rejection(analysis)
+            logger.info(
+                "conversation_analysis_attempt attempt=%d http_status=200 extracted=%s rejection=%s retry_used=%s",
+                analysis_attempt + 1, bool(analysis), analysis_rejection or "none", bool(analysis_attempt),
+            )
+            if not analysis_rejection:
+                break
+        if analysis_rejection:
+            logger.warning("conversation_analysis_rejected reason=%s retry_used=true", analysis_rejection)
+            detail = {
+                "missing_context_analysis": "LM Studio no devolvió el análisis contextual estructurado tras un reintento.",
+                "incomplete_context_analysis": "LM Studio devolvió un análisis contextual incompleto tras un reintento.",
+                "invalid_context_confidence": "LM Studio devolvió una confianza de análisis inválida tras un reintento.",
+                "invalid_context_analysis_format": "LM Studio devolvió el análisis contextual con formato inválido tras un reintento.",
+            }.get(analysis_rejection, "LM Studio no pudo analizar el contexto de forma válida tras un reintento.")
+            raise HTTPException(502, f"{detail} Puedes intentarlo de nuevo.")
+        conversation_analysis = analysis
+        messages = build_messages()
+        estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        while estimated_prompt_tokens > available_prompt_tokens and knowledge_budget > 0:
+            knowledge_budget = max(0, knowledge_budget - 1000)
+            if "presupuesto estimado del modelo: fuentes personales" not in truncation_reasons:
+                truncation_reasons.append("presupuesto estimado del modelo: fuentes personales")
+            messages = build_messages()
+            estimated_prompt_tokens = _estimate_prompt_tokens(messages)
+        if estimated_prompt_tokens > available_prompt_tokens:
+            raise HTTPException(413, "El análisis contextual y las instrucciones superan el presupuesto estimado. Aumenta LM_STUDIO_CONTEXT_TOKENS o reduce el historial.")
+        alternatives: list[str] = []
+        response_language_codes: list[str] = []
+        language_retry_used = False
+        rejection_reason = ""
+        for attempt in range(2):
+            attempt_messages = messages
+            if attempt:
+                language_retry_used = True
+                retry_language_error = any(
+                    code is not None and code != language_decision.code
+                    for code, _ in (classify_language(text) for text in alternatives)
+                )
+                retry_reason = (
+                    "la respuesta se detectó en un idioma distinto"
+                    if retry_language_error else
+                    "la revisión contextual detectó contenido fuera de tema o no respaldado: " + rejection_reason
+                    if rejection_reason in {
+                        "contextually_irrelevant", "unrequested_money", "unsupported_adult_or_domination",
+                        "unsupported_claim", "multiple_responses", "missing_context_analysis", "incomplete_context_analysis",
+                        "invalid_context_confidence", "invalid_context_analysis_format", "invalid_context_review_format",
+                        "perspective_mismatch",
+                    } else
+                    "la respuesta anterior no contenía un borrador válido"
+                )
+                attempt_messages = [
+                    *messages,
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Reintento controlado: {retry_reason}. RESPONSE_LANGUAGE: {language}. "
+                            'Usa el análisis contextual previo y el historial disponible. Regenera una sola respuesta exclusivamente en ese idioma. '
+                            "Cumple el contrato JSON de responses y checks con una entrada. "
+                            "Redacta desde la perspectiva del usuario y corrige cualquier inversión de emisor o pronombres. "
+                            "Corrige en especial el motivo indicado; no añadas dinero, propinas, sexualidad, dominación o hechos sin respaldo. "
+                            "No incluyas alternativas ni traducción. No añadas explicaciones."
+                        ),
+                    },
+                ]
+            try:
+                # Generate one original draft; retry once only when it fails validation.
+                answers = await client.chat(attempt_messages, 1)
+            except LMStudioError as exc:
+                logger.warning("suggestion_generation_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(attempt), str(exc))
+                raise HTTPException(503, str(exc)) from exc
+            candidates = [
+                part
+                for answer in answers
+                for part in (split_alternatives(answer) if answer else [])
+            ]
+            generation = parse_generation(answers[0]) if answers else parse_generation("")
+            malformed_structured_output = any(
+                answer.lstrip().startswith(("{", "```"))
+                and not is_valid_response_json(answer)
+                and len(split_alternatives(answer)) == 1
+                for answer in answers
+            )
+            alternatives = distinct_answers(candidates, 1)
+            format_name = generation.get("format", "empty")
+            response_language_codes = [
+                classify_language(text)[0] or "undetermined" for text in alternatives
+            ]
+            wrong_language = len(candidates) == 1 and any(
+                code != language_decision.code
+                for code, _ in (classify_language(text) for text in alternatives)
+            )
+            context_rejection = _context_review_rejection(generation) if len(alternatives) == 1 else ""
+            rejection_reason = (
+                "multiple_responses" if len(candidates) > 1 else
+                "wrong_language" if wrong_language else
+                context_rejection if context_rejection else
+                "duplicate_or_near_duplicate" if len(candidates) > len(alternatives) else
+                "empty_or_unrecognized_format" if not alternatives or malformed_structured_output else
+                "only_one_valid_response" if len(alternatives) != 1 else ""
+            )
+            logger.info(
+                "suggestion_generation_attempt attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s",
+                attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
+            )
+            if len(alternatives) == 1 and len(candidates) == 1 and not wrong_language and not context_rejection:
+                break
+        context_failure_reasons = {
+            "contextually_irrelevant", "unrequested_money", "unsupported_adult_or_domination", "unsupported_claim", "multiple_responses",
+            "missing_context_analysis", "incomplete_context_analysis", "invalid_context_confidence",
+            "invalid_context_analysis_format", "invalid_context_review_format", "review_language_mismatch", "perspective_mismatch",
+        }
+        if len(alternatives) != 1 or rejection_reason in context_failure_reasons:
+            logger.warning("suggestion_generation_rejected reason=%s retry_used=%s accepted=%d", rejection_reason or "not_one_response", language_retry_used, len(alternatives))
+            detail = {
+                "duplicate_or_near_duplicate": "LM Studio devolvió una respuesta repetida tras un reintento.",
+                "multiple_responses": "LM Studio devolvió más de una respuesta original tras un reintento.",
+                "empty_or_unrecognized_format": "LM Studio devolvió una respuesta vacía o con JSON incompleto/no reconocido tras un reintento.",
+                "only_one_valid_response": "LM Studio no devolvió una respuesta válida tras un reintento.",
+                "wrong_language": f"LM Studio siguió respondiendo en un idioma distinto de {language_decision.name} tras un reintento.",
+                "contextually_irrelevant": "La revisión de LM Studio detectó respuestas fuera del tema actual tras un reintento.",
+                "unrequested_money": "La revisión detectó propinas o dinero no solicitados tras un reintento.",
+                "unsupported_adult_or_domination": "La revisión detectó contenido sexual o dominante no respaldado tras un reintento.",
+                "unsupported_claim": "La revisión detectó afirmaciones sin respaldo en el contexto tras un reintento.",
+                "perspective_mismatch": "La respuesta invirtió la perspectiva del usuario y el interlocutor incluso después de un reintento.",
+                "missing_context_analysis": "LM Studio no devolvió el análisis contextual estructurado tras un reintento.",
+                "incomplete_context_analysis": "LM Studio devolvió un análisis contextual incompleto tras un reintento.",
+                "invalid_context_confidence": "LM Studio devolvió una confianza de análisis inválida tras un reintento.",
+                "invalid_context_analysis_format": "LM Studio devolvió el análisis contextual con formato inválido tras un reintento.",
+                "invalid_context_review_format": "LM Studio devolvió una revisión contextual inválida tras un reintento.",
+                "review_language_mismatch": "La revisión contextual detectó un idioma incorrecto tras un reintento.",
+            }.get(rejection_reason, "LM Studio no pudo producir una respuesta válida tras un reintento.")
+            raise HTTPException(
+                502,
+                f"{detail} Puedes intentarlo de nuevo.",
+            )
+        if any(code != language_decision.code for code, _ in (classify_language(text) for text in alternatives)):
+            raise HTTPException(
+                502,
+                f"LM Studio siguió respondiendo en un idioma distinto de {language_decision.name} tras un reintento. No se mostraron esas respuestas; puedes intentarlo de nuevo.",
+            )
+        original_response = alternatives[0]
+        spanish_translation = None
+        notice = None
+        translation_failure_reason = None
+        translation_http_status = None
+        if language_decision.code != "es":
+            translation = await translate_and_review(
+                client, original=original_response, language=language_decision.name,
+            )
+            spanish_translation = translation.text
+            translation_failure_reason = translation.failure_reason
+            translation_http_status = translation.http_status
+            if translation.failure_reason:
+                notice = f"Respuesta original lista; traducción al español no disponible: {translation_failure_message(translation.failure_reason, translation.http_status)} Puedes reintentarla."
+        full_prompt = "\n".join(message["content"] for message in messages)
+        for name, source in source_status.items():
+            source["included_in_prompt"] = f"<{name}>" in full_prompt
+        context_input_message_count = _message_row_count(incoming_context)
+        context_message_count = _message_row_count(context + "\n" + additional_context)
+        return SuggestResponse(
+            conversation_id=request.conversation_id,
+            target_message_id=request.target_message_id,
+            generation_id=uuid.uuid4().hex,
+            language=language_decision.code, original_response=original_response,
+            spanish_translation=spanish_translation, interlocutor=alias, notice=notice,
+            memory_available=bool(alias),
+            diagnostics=SuggestionDiagnostics(
+                knowledge_sources=source_status,
+                memory_available=bool(alias),
+                memory_note_count=len(notes),
+                detected_language=language_decision.code,
+                language_rule=language_decision.rule,
+                language_confidence=language_decision.confidence,
+                context_message_count=context_message_count,
+                last_incoming_found=request.target_is_incoming and bool(request.message.strip()),
+                context_sent=bool(incoming_context.strip()),
+                response_count=len(alternatives),
+                response_language_codes=response_language_codes,
+                language_retry_used=language_retry_used,
+                dom_extracted_message_count=request.dom_extracted_message_count,
+                dom_extracted_incoming_count=request.dom_extracted_incoming_count,
+                dom_extracted_outgoing_count=request.dom_extracted_outgoing_count,
+                dom_extracted_unclassified_count=request.dom_extracted_unclassified_count,
+                context_input_message_count=context_input_message_count,
+                context_input_chars=input_context_chars,
+                context_included_chars=len(context) + len(additional_context),
+                client_context_window=request.client_context_window,
+                context_truncation_reason=truncation_reasons,
+                estimated_prompt_tokens=estimated_prompt_tokens,
+                configured_model_context_tokens=config.lm_studio_context_tokens,
+                configured_output_tokens=config.lm_studio_output_tokens,
+                lm_studio_result="success",
+                translation_status="not_needed" if language_decision.code == "es" else "available" if spanish_translation else "unavailable",
+                translation_failure_reason=translation_failure_reason,
+                translation_http_status=translation_http_status,
+                translation_retry_available=language_decision.code != "es" and spanish_translation is None,
+            ),
+        )
+
+    @app.post("/api/translation/retry", response_model=TranslationRetryResponse)
+    async def retry_translation(request: TranslationRequest):
+        if request.language.strip().casefold() in {"es", "español", "spanish"}:
+            raise HTTPException(422, "La respuesta original ya está en español; no requiere traducción.")
+        outcome = await translate_and_review(
+            client, original=request.original_response, language=request.language,
+        )
+        if outcome.text:
+            return TranslationRetryResponse(available=True, spanish_translation=outcome.text)
+        return TranslationRetryResponse(
+            available=False,
+            failure_reason=outcome.failure_reason,
+            failure_message=translation_failure_message(outcome.failure_reason, outcome.http_status),
+            http_status=outcome.http_status,
+        )
+
+    def require_alias(alias: str | None):
+        if not normalize_alias(alias):
+            raise HTTPException(422, "Indica un alias para consultar o guardar memoria.")
+
+    @app.get("/api/memory/{alias}")
+    async def get_memory(alias: str):
+        return {"interlocutor": alias, "notes": store.list_notes(alias)}
+
+    @app.post("/api/memory/{alias}/notes")
+    async def create_note(alias: str, payload: NoteInput, response: Response):
+        require_alias(alias)
+        note = store.add_note(alias, payload.text)
+        response.status_code = 201
+        return note
+
+    @app.put("/api/memory/{alias}/notes/{note_id}")
+    async def update_note(alias: str, note_id: int, payload: NoteInput):
+        note = store.edit_note(alias, note_id, payload.text)
+        if not note:
+            raise HTTPException(404, "No se encontró esa nota para este interlocutor.")
+        return note
+
+    @app.delete("/api/memory/{alias}/notes/{note_id}", status_code=204)
+    async def delete_note(alias: str, note_id: int):
+        if not store.delete_note(alias, note_id):
+            raise HTTPException(404, "No se encontró esa nota para este interlocutor.")
+        return Response(status_code=204)
+
+    @app.delete("/api/memory/{alias}")
+    async def clear_memory(alias: str):
+        require_alias(alias)
+        return {"deleted": store.clear(alias)}
+
+    return app
+
+
+app = create_app()

@@ -1,0 +1,220 @@
+#pcai-root {
+  position: fixed !important;
+  z-index: 2147483646 !important;
+  right: 18px;
+  bottom: 18px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  isolation: isolate !important;
+  color: #182235 !important;
+  font: 13px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  color-scheme: light;
+}
+
+#pcai-root *,
+#pcai-root *::before,
+#pcai-root *::after {
+  box-sizing: border-box;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#pcai-toggle {
+  position: relative !important;
+  z-index: 2;
+  display: grid !important;
+  width: 50px !important;
+  height: 50px !important;
+  place-items: center !important;
+  border: 1px solid #ffffff80 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, #7668f4, #5145cd) !important;
+  color: #fff !important;
+  font-size: 23px !important;
+  line-height: 1 !important;
+  box-shadow: 0 8px 24px #15143c55, inset 0 1px #ffffff50 !important;
+  cursor: grab !important;
+  pointer-events: auto !important;
+  touch-action: none;
+  user-select: none;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+#pcai-toggle:hover { transform: translateY(-2px); box-shadow: 0 11px 28px #15143c66, inset 0 1px #ffffff50 !important; }
+#pcai-toggle:active { cursor: grabbing !important; }
+#pcai-toggle:focus-visible,
+#pcai-panel button:focus-visible,
+#pcai-panel select:focus-visible,
+#pcai-panel input:focus-visible,
+#pcai-panel textarea:focus-visible { outline: 3px solid #a99fff; outline-offset: 2px; }
+
+#pcai-panel {
+  position: fixed !important;
+  z-index: 1;
+  right: 18px;
+  bottom: 78px;
+  display: flex;
+  width: min(350px, calc(100vw - 24px));
+  max-height: min(72vh, 640px);
+  flex-direction: column;
+  overflow: auto;
+  padding: 0 12px 10px;
+  border: 1px solid #dce1ed;
+  border-radius: 17px;
+  background: #f8f9fc;
+  color: #182235;
+  box-shadow: 0 18px 55px #10162940, 0 3px 12px #10162918;
+  pointer-events: auto;
+  scrollbar-color: #c3c8d5 transparent;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+#pcai-panel[hidden] { display: none !important; }
+
+#pcai-panel .pcai-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 -12px 8px;
+  padding: 8px 13px;
+  border-bottom: 1px solid #e7e9f0;
+  background: #f8f9fcf2;
+  backdrop-filter: blur(12px);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+#pcai-panel .pcai-header:active { cursor: grabbing; }
+.pcai-brand { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.pcai-brand > span:last-child { display: grid; gap: 1px; }
+.pcai-brand strong { color: #202844; font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.pcai-brand small { color: #798198; font-size: 10px; font-weight: 500; }
+.pcai-brand-icon { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 10px; background: #eeecff; color: #5c50d7; font-size: 17px; }
+.pcai-header-controls { display: flex; align-items: center; gap: 3px; }
+
+#pcai-panel button {
+  min-height: 31px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid #d7dbe6;
+  border-radius: 8px;
+  background: #fff;
+  color: #303a53;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+#pcai-panel button:hover { border-color: #b7b2ed; background: #f7f6ff; }
+#pcai-panel button:active { transform: translateY(1px); }
+#pcai-panel button:disabled { cursor: wait; opacity: .55; }
+#pcai-panel button[hidden] { display: none !important; }
+#pcai-panel .pcai-icon-button { width: 30px; min-height: 30px; padding: 0; border-color: transparent; background: transparent; color: #737b8f; font-size: 21px; }
+#pcai-panel .pcai-icon-button:hover { background: #eceef4; color: #303a53; }
+
+.pcai-status {
+  display: flex;
+  min-height: 29px;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  color: #68728a;
+  font-size: 10px;
+  font-weight: 550;
+}
+
+.pcai-status::before { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #d7a43d; content: ""; }
+.pcai-status.is-ok::before { background: #2da875; box-shadow: 0 0 0 3px #2da87520; }
+.pcai-status.is-warn::before { background: #d49a29; box-shadow: 0 0 0 3px #d49a2920; }
+.pcai-status.is-error { color: #a33b48; }
+.pcai-status.is-error::before { background: #d4515f; box-shadow: 0 0 0 3px #d4515f20; }
+
+.pcai-conversation-card { padding: 11px 12px; border: 1px solid #e1e4ed; border-radius: 12px; background: #fff; }
+.pcai-conversation-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pcai-conversation-heading strong { overflow: hidden; color: #252e46; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.pcai-mode-badge { flex: none; padding: 3px 7px; border-radius: 999px; background: #f0efff; color: #5c50c8; font-size: 9px; font-weight: 700; }
+.pcai-detection { margin-top: 4px; color: #838ba0; font-size: 10px; line-height: 1.4; }
+
+#pcai-panel .pcai-mode-control { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin: 8px 0; color: #58627a; font-size: 10px; font-weight: 650; }
+#pcai-panel select { width: 158px; min-height: 32px; padding: 5px 9px; border: 1px solid #d8dce7; border-radius: 8px; background: #fff; color: #27324a; font-size: 11px; }
+#pcai-panel .pcai-mode-control select { width: auto; min-width: 0; min-height: 29px; flex: 1; padding: 4px 7px; }
+
+.pcai-context-section,
+.pcai-suggestions-section { margin-top: 13px; }
+.pcai-section-heading { display: flex; min-height: 22px; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.pcai-section-heading h2 { margin: 0; color: #313b54; font-size: 11px; font-weight: 750; letter-spacing: .01em; }
+#pcai-panel button.pcai-text-button { min-height: 22px; padding: 2px 5px; border: 0; background: transparent; color: #6358cc; font-size: 10px; }
+.pcai-local-tag { color: #8a91a3; font-size: 9px; }
+
+.pcai-context { display: grid; max-height: 185px; gap: 5px; overflow: auto; padding: 1px 2px; scrollbar-width: thin; }
+.pcai-context-details { margin-top: 7px; }
+.pcai-context-details summary { color: #777f93; font-size: 9px; cursor: pointer; }
+.pcai-context-details[open] .pcai-context { margin-top: 6px; }
+.pcai-last-message { display: grid; gap: 2px; margin-top: 7px; color: #414b62; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.pcai-last-message strong { color: #777f93; font-size: 9px; }
+.pcai-last-message small { color: #9299aa; font-size: 9px; }
+.pcai-own-reference { margin-top: 5px; color: #777f93; font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+.pcai-own-reference strong { margin-right: 4px; }
+.pcai-context > div { max-width: 91%; padding: 7px 9px; border: 1px solid #e3e6ee; border-radius: 10px 10px 10px 3px; background: #fff; color: #44506a; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.pcai-context > .pcai-context-outgoing { justify-self: end; border-color: #dedaff; border-radius: 10px 10px 3px 10px; background: #f0efff; color: #48427d; }
+.pcai-context:empty::after { padding: 11px; border: 1px dashed #dfe3ec; border-radius: 9px; color: #8a92a6; content: "Aún no hay mensajes visibles en esta conversación."; font-size: 10px; text-align: center; }
+
+#pcai-results { display: grid; gap: 7px; }
+#pcai-results:empty::after { padding: 10px; border: 1px dashed #dfe3ec; border-radius: 10px; color: #8a92a6; content: "Pulsa «Generar respuesta» o espera un mensaje nuevo en modo Automático."; font-size: 10px; text-align: center; }
+#pcai-results article { padding: 9px; border: 1px solid #e2e5ed; border-radius: 11px; background: #fff; box-shadow: 0 2px 5px #202a3a08; }
+.pcai-suggestion-meta { margin-bottom: 5px; color: #8790a4; font-size: 9px; overflow-wrap: anywhere; }
+#pcai-results .pcai-translation { margin-top: 9px; padding: 8px; border-left: 2px solid #dedaff; border-radius: 0 7px 7px 0; background: #f7f6ff; color: #626b80; }
+#pcai-results .pcai-translation strong { display: block; margin-bottom: 4px; color: #777f93; font-size: 9px; font-weight: 700; }
+#pcai-results .pcai-translation p { margin: 0; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+#pcai-results .pcai-suggestion textarea { display: block; width: 100%; min-height: 55px; resize: vertical; padding: 7px 8px; border: 1px solid #edf0f5; border-radius: 7px; background: #fbfcfe; color: #263149; font-size: 11px; line-height: 1.45; }
+#pcai-results .pcai-suggestion button { display: block; min-height: 26px; margin: 6px 0 0 auto; padding: 4px 9px; border-color: #dcd9fb; background: #f4f2ff; color: #574cc0; font-size: 10px; }
+.pcai-result-state { margin: 0; padding: 9px 10px; border-radius: 9px; background: #f0f1f6; color: #58627a; font-size: 10px; overflow-wrap: anywhere; }
+#pcai-panel button.pcai-generate-main { width: 100%; min-height: 37px; margin-top: 8px; font-size: 11px; }
+#pcai-panel button.pcai-generate-main:disabled { cursor: wait; }
+
+#pcai-panel .pcai-advanced-shell { margin-top: 12px; padding-top: 8px; border-top: 1px solid #e6e9f0; }
+#pcai-panel .pcai-advanced-shell > summary { color: #858da0; font-size: 9px; cursor: pointer; }
+.pcai-advanced-content { padding-top: 4px; }
+#pcai-panel .pcai-advanced { margin-top: 9px; padding: 9px 0 0; border-top: 1px solid #e6e9f0; }
+#pcai-panel .pcai-advanced summary { color: #626c82; font-size: 10px; font-weight: 700; cursor: pointer; list-style-position: inside; }
+#pcai-panel .pcai-advanced p { color: #848da1; font-size: 10px; }
+#pcai-panel label { display: block; margin: 9px 0; color: #525d75; font-size: 10px; font-weight: 650; }
+#pcai-panel textarea,
+#pcai-panel input { display: block; width: 100%; min-width: 0; margin-top: 5px; padding: 8px 9px; border: 1px solid #dce0e9; border-radius: 8px; background: #fff; color: #27324a; font-size: 11px; }
+#pcai-message { min-height: 70px; resize: vertical; }
+.pcai-actions { display: flex; justify-content: space-between; gap: 7px; }
+#pcai-panel button.primary { border-color: #5b50d1; background: #5b50d1; color: #fff; }
+#pcai-panel button.primary:hover { border-color: #4940b7; background: #4940b7; }
+.pcai-note { display: flex; align-items: center; gap: 5px; padding: 7px 0; border-bottom: 1px solid #eceef3; }
+.pcai-note input { flex: 1; min-width: 0; }
+
+#pcai-selector-diagnostic,
+.pcai-detection { overflow-wrap: anywhere; }
+.pcai-selector-purpose,
+.pcai-selector-state { display: block; margin-top: 3px; color: #818a9e; font-size: 9px; font-weight: 400; overflow-wrap: anywhere; }
+.pcai-selector-input { display: flex; align-items: center; gap: 5px; }
+.pcai-selector-input input { flex: 1; min-width: 0; }
+.pcai-selector-input button { flex: none; padding: 5px 7px !important; font-size: 9px !important; }
+#pcai-test-selectors,
+#pcai-save-selectors { margin-top: 7px !important; }
+#pcai-selector-diagnostic { margin-top: 8px; padding: 8px; border-radius: 8px; background: #f0f1f6; color: #535e76; font-size: 10px; }
+#pcai-panel .pcai-check-control { display: flex; align-items: flex-start; gap: 7px; line-height: 1.45; }
+#pcai-panel .pcai-check-control input { display: inline-block; width: auto; min-width: auto; margin: 1px 0 0; }
+.pcai-auto-diagnostic { margin-top: 8px; padding: 8px; border-radius: 8px; background: #f0f1f6; color: #535e76; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 480px) {
+  #pcai-panel { width: calc(100vw - 16px); max-height: 84vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pcai-toggle,
+  #pcai-panel button { transition: none; }
+}
