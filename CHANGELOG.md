@@ -1,5 +1,17 @@
 # Cambios
 
+## 1.1.0-rc.1 (2026-10-21; revisión local en develop)
+
+- Perfiles locales validados: creación, edición, activación, eliminación y restauración. ChubbyKriz predeterminado, desacoplado del generador.
+- Detección reforzada de francés y controles verificables de mezclas en generación y traducción.
+- Rechazo de ecos del mensaje y de borradores recientes; historial temporal acotado sin persistir conversaciones.
+- Modo configurado e inicio de generación diferenciados en API y panel, manteniendo clientes anteriores.
+- Recuperación de notas por relevancia y borrado seguro de registros SQLite, sin migraciones destructivas.
+- Pruebas adicionales de perfiles, idiomas, modos, persistencia, inyección externa y controles del panel. Prueba previa corregida para CRLF de Windows.
+- Pendiente: validación real en Chrome/Stripchat y LM Studio; no se publica ni declara estable.
+
+Las entradas inferiores se conservan como historial de etapas anteriores; no representan el estado actual del remoto.
+
 ## 1.0.0 (candidato; publicación pendiente)
 
 - Fijado el backend a `127.0.0.1`; el inicio rechaza configuraciones `BACKEND_HOST` externas o ambiguas.

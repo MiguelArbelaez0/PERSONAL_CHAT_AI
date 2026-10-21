@@ -147,6 +147,8 @@
           maxChars: this.getContextCharBudget(),
         });
         const data = await this.request({
+          configured_mode: mode,
+          generation_trigger: automatic ? 'automatic' : 'manual',
           message: text.slice(0, 4000), interlocutor: alias,
           target_message: text.slice(0, 4000),
           target_message_id: targetFingerprint || null,
@@ -182,6 +184,7 @@
         const spanishTranslation = language === 'es' || typeof data.spanish_translation !== 'string'
           ? '' : data.spanish_translation.trim();
         this.onSuccess({
+          configuredMode: mode, generationTrigger: automatic ? 'automatic' : 'manual',
           originalResponse, spanishTranslation, language, automatic, initial, alias, message: text,
           notice: typeof data.notice === 'string' ? data.notice : '',
           httpStatus: data.__httpStatus || null, diagnostics: data?.diagnostics || null,

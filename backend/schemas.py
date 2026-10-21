@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field, model_validator
+from typing import Literal
 
 
 class SuggestRequest(BaseModel):
+    configured_mode: Literal["auto", "manual", "off"] = "manual"
+    generation_trigger: Literal["automatic", "manual"] = "manual"
     message: str = Field(default="", min_length=1, max_length=4000)
     target_message: str | None = Field(default=None, max_length=4000)
     target_message_id: str | None = Field(default=None, max_length=240)
@@ -103,6 +106,9 @@ class SuggestionDiagnostics(BaseModel):
 
 
 class SuggestResponse(BaseModel):
+    configured_mode: str = "manual"
+    generation_trigger: str = "manual"
+    active_profile_id: str | None = None
     api_version: str = "1.0"
     conversation_id: str | None = None
     target_message_id: str | None = None

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const SuggestionFlow = require('../extension/suggestion-flow.js');
-const contentSource = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8');
+const contentSource = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8').replace(/\r\n/g, '\n');
 
 function fixture({ mode = 'manual', response, request, latestIncomingFingerprint = null } = {}) {
   let currentMode = mode;
@@ -36,6 +36,8 @@ test('manual form generation sends the selected message to the backend', async (
   assert.equal(f.view.requests, 1);
   assert.equal(f.view.payload.message, 'Hola');
   assert.equal(f.view.payload.interlocutor, 'Alias manual');
+  assert.equal(f.view.payload.configured_mode, 'manual');
+  assert.equal(f.view.payload.generation_trigger, 'manual');
   assert.equal(f.view.state, 'success');
 });
 
@@ -43,6 +45,8 @@ test('automatic new incoming message generates in auto mode', async () => {
   assert.match(contentSource, /onIncoming:[\s\S]*?queueAutomaticSuggestion\(\{ message: incomingMessage/);
   const f = fixture({ mode: 'auto' });
   await f.flow.generate('Nuevo mensaje', f.snapshot, true);
+  assert.equal(f.view.payload.configured_mode, 'auto');
+  assert.equal(f.view.payload.generation_trigger, 'automatic');
   assert.equal(f.view.requests, 1);
   assert.equal(f.view.state, 'success');
   assert.equal((await f.flow.generate('Incoming', f.snapshot, true)).state, 'success');

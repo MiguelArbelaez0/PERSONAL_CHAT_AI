@@ -27,4 +27,10 @@ El backend solo inicia con `BACKEND_HOST=127.0.0.1`; valores externos o ambiguos
 
 ## Versiones
 
-El manifiesto declara `1.0.0`, que corresponde al objetivo de esta versión. La etiqueta y la publicación aún no se han creado.
+El manifiesto declara `1.1.0` y `version_name=1.1.0-rc.1 (validación pendiente)`. La API conserva la versión de contrato `1.0`. No hay publicación de esta candidata.
+
+## Perfiles y validación en v1.1
+
+`profiles.py` mantiene perfiles y selección activa en una base local independiente de las notas. `prompt.py` recibe el perfil como parámetro; no contiene la identidad predeterminada. `validation.py` comprueba idioma, mezcla reconocible, eco y repetición con un registro temporal acotado de borradores. La revisión semántica del modelo sigue comprobando pertinencia, perspectiva y hechos respaldados.
+
+Se añaden `/api/profiles` (GET, POST), `/api/profiles/{id}` (PUT, DELETE), `/api/profiles/{id}/activate` (POST) y `/api/profiles/restore` (POST). Las sugerencias aceptan y devuelven `configured_mode` y `generation_trigger` con valores predeterminados compatibles con clientes anteriores. Consultar [validación](V1_1_VALIDATION.md) para límites y pruebas.

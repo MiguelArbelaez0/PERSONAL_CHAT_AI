@@ -10,6 +10,10 @@ Los archivos Markdown de conocimiento pueden contener perfil o preferencias pers
 
 ## Minimización y control
 
+Desde v1.1, los perfiles y la selección activa se guardan en `personalities.sqlite3`, junto a la base de notas configurada. Solo los últimos cinco borradores de hasta 128 conversaciones/perfiles se conservan en RAM; desaparecen al reiniciar el backend y los de un alias al eliminar su memoria. No se convierten automáticamente en hechos persistentes.
+
+Las bases no están cifradas; el hash del alias no anonimiza el texto ni el nombre guardado. El borrado de notas usa `secure_delete` de SQLite, sin garantizar la eliminación de copias externas. La API local carece de autenticación. Proteja el acceso a su cuenta y carpeta de Windows.
+
 - Usa solo el contexto necesario para generar la respuesta.
 - Verifica manualmente cualquier respuesta antes de copiarla a Stripchat.
 - No guardes una inferencia o texto producido por IA como recuerdo confirmado.

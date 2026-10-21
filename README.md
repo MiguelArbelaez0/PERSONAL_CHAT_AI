@@ -2,7 +2,7 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado de publicación:** instantánea limpia candidata `v1.0.0`, aún no publicada. El backend está fijado a `127.0.0.1`. Esta copia no contiene el historial anterior; las referencias antiguas del repositorio público siguen activas hasta que se autorice y complete su migración.
+> **Estado:** `v1.1.0-rc.1`, candidata a revisión en `develop`; no es una versión estable. La validación real en Chrome/Stripchat y LM Studio está pendiente. Backend local en `127.0.0.1:8765`, sin cambios en los puertos ni en el contrato API v1 existente.
 
 ## Qué ofrece
 
@@ -11,6 +11,7 @@ Asistente local para preparar y revisar borradores de respuesta a conversaciones
 - Contexto reciente de mensajes entrantes y propios disponible en el DOM activo.
 - Una respuesta original en el idioma detectado del último mensaje entrante y una traducción secundaria al español cuando corresponde.
 - Notas locales por alias y archivos Markdown para preferencias de tono y estilo.
+- Perfiles editables y persistentes; ChubbyKriz como predeterminado configurable.
 - Edición y copia de la respuesta original; la traducción se muestra por separado.
 - Procesamiento local mediante el backend FastAPI y LM Studio; no incluye envío automático.
 
@@ -101,9 +102,18 @@ La app estima tokens sin conocer el tokenizador ni la ventana real del modelo. A
 
 La respuesta original se genera primero. Si su idioma no es español, el backend solicita una traducción independiente y revisa el idioma y la fidelidad. Si falla la traducción, conserva el original y permite reintentar solo esa traducción. Hay un reintento interno acotado, pero los resultados automatizados usan modelos simulados: los fallos intermitentes observados no se deben considerar resueltos hasta probar con LM Studio real.
 
+Se prioriza el idioma del mensaje entrante objetivo. Para mensajes ambiguos se usan mensajes entrantes recientes y, finalmente, `DEFAULT_LANGUAGE`. Los controles locales rechazan idiomas incorrectos, mezclas reconocibles y repeticiones; permiten un solo reintento de generación. El detector es heurístico: expresiones desconocidas pueden escapar a sus controles o rechazarse por ambigüedad.
+
+## Personalidades
+
+En el panel abre **Personalidad**. Selecciona un perfil y pulsa **Activar**. Con **Nuevo** puedes definir nombre, descripción, tono, estilo y reglas; pulsa **Guardar perfil** y después **Activar**. También puedes editar o eliminar perfiles personalizados. **Restaurar predeterminado** restaura y activa ChubbyKriz conservando tus perfiles personalizados.
+
+Los perfiles se guardan en `personalities.sqlite3`, junto a la base de notas configurada (por defecto en `data/`). La selección activa se comparte entre las pestañas que usan ese backend; pulsa **Actualizar** para reflejar cambios realizados en otra pestaña. Los archivos `knowledge/local/` se conservan como fuentes complementarias: el perfil elegido determina la voz, y ninguna preferencia puede sustituir las reglas de idioma, perspectiva o veracidad.
+
 ## Contexto, memoria y privacidad
 
 - El contexto de chat se procesa para la solicitud y no se guarda automáticamente en SQLite.
+- Los últimos cinco borradores de hasta 128 conversaciones se mantienen en RAM para evitar repeticiones. Se eliminan al reiniciar el backend; eliminar la memoria de un alias también retira sus borradores temporales.
 - Solo las notas que el usuario guarda explícitamente se almacenan en `data/personal_chat_ai.sqlite3`, separadas por una clave derivada del alias.
 - Los archivos de personalización se leen desde `knowledge/local/`; la carpeta está excluida de Git. Los archivos versionados de `knowledge/` son valores genéricos.
 - La extensión conserva claves de mensajes procesados para deduplicar el modo Automático.
@@ -141,4 +151,4 @@ La licencia está **pendiente de decisión del propietario**. El archivo `LICENS
 
 ## Estado y hoja de ruta
 
-El candidato `v1.0.0` aún no se ha publicado. La hoja de ruta de futuras versiones es orientativa y no implica compromisos: [docs/ROADMAP.md](docs/ROADMAP.md). Las notas del candidato están en [RELEASE_NOTES.md](RELEASE_NOTES.md); el historial de desarrollo está en [CHANGELOG.md](CHANGELOG.md).
+La candidata `v1.1.0-rc.1` requiere las pruebas manuales de [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).

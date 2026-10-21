@@ -27,3 +27,7 @@ La memoria por interlocutor consiste en notas guardadas explícitamente. Las pre
 - Si no se detecta el mensaje o alias correcto, recarga la página y vuelve a seleccionar el chat. Los selectores dependen del DOM de Stripchat.
 
 Para reportar un error, comparte el mensaje de diagnóstico y el resultado de salud, pero elimina alias, mensajes, notas, rutas de usuario y credenciales.
+
+## Perfiles en v1.1.0-rc.1
+
+En el panel abre **Personalidad**, selecciona un perfil y pulsa **Activar**. **Nuevo** permite definir nombre, descripción, tono, estilo y reglas; **Guardar perfil** conserva los datos sin activar un perfil nuevo. Puedes editar perfiles, eliminar los personalizados y restaurar ChubbyKriz conservando los personalizados. La selección se comparte entre pestañas del mismo backend; **Actualizar** sincroniza el panel. Los perfiles se guardan localmente sin reemplazar tus notas o archivos privados. Consulta [validación y límites](V1_1_VALIDATION.md).

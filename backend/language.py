@@ -45,6 +45,37 @@ _STRONG = {
 _TOKEN = re.compile(r"[^\W\d_]+", re.UNICODE)
 _INCOMING_LINE = re.compile(r"(?im)^\s*-\s*Interlocutor(?:\s*\([^)]*\))?\s*:\s*(.+?)\s*$")
 
+# Distinctive evidence only; common words (tu, me, como, bien) cannot
+# establish a language switch on their own. Names are deliberately excluded.
+_EXCLUSIVE = {
+    "en": {"hello", "thanks", "please", "your", "with", "because", "would", "hearing"},
+    "es": {"hola", "gracias", "quiero", "estoy", "encanta", "cuentame", "disfruto", "conocerte"},
+    "fr": {"bonsoir", "bonjour", "merci", "aimerais", "connaitre", "connais", "vas", "apprendre", "plaisir", "aussi"},
+    "pt": {"obrigado", "obrigada", "voce", "nao", "gostaria", "conhecer", "tambem", "tudo", "bem"},
+}
+for _code, _words in _EXCLUSIVE.items():
+    _WORDS[_code].update(_words)
+_STRONG["fr"].update({"bonsoir", "aimerais", "connaitre"})
+
+
+def has_language_conflict(text: str, expected: str) -> bool:
+    """Reject foreign clauses and distinctive foreign vocabulary within a clause.
+
+    This intentionally favors precision: names and isolated shared words do not
+    prove mixing. Unknown vocabulary remains a documented detection limitation.
+    """
+    tokens = set(_TOKEN.findall(_plain(text)))
+    for code, words in _EXCLUSIVE.items():
+        if code != expected and len(tokens & words) >= 2:
+            return True
+    for clause in re.split(r"[.!?;\n]+", text):
+        if len(_TOKEN.findall(clause)) < 3:
+            continue
+        code, confidence = classify_language(clause)
+        if code and code != expected and confidence >= 0.75:
+            return True
+    return False
+
 
 @dataclass(frozen=True)
 class LanguageDecision:

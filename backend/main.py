@@ -14,6 +14,8 @@ from backend.knowledge import read_knowledge_with_sources
 from backend.language import classify_language, detect_language
 from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.memory import MemoryStore, normalize_alias
+from backend.profiles import ProfileInput, ProfileStore
+from backend.validation import RecentDrafts, response_rejection
 from backend.prompt import build_context_analysis_messages, build_suggestion_messages
 from backend.schemas import NoteInput, SuggestRequest, SuggestResponse, SuggestionDiagnostics, TranslationRequest, TranslationRetryResponse
 from backend.translation import translate_and_review, translation_failure_message
@@ -92,12 +94,14 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     logging.basicConfig(level=getattr(logging, config.log_level, logging.INFO))
     client = llm or LMStudioClient(config.lm_studio_base_url, config.lm_studio_model, config.lm_studio_timeout, config.lm_studio_output_tokens)
     store = memory or MemoryStore(config.database_path, config.memory_max_notes)
+    profiles = ProfileStore(config.database_path.parent / "personalities.sqlite3")
+    recent_drafts = RecentDrafts()
 
     @asynccontextmanager
     async def lifespan(app):
         yield
 
-    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.1.0-rc.1", lifespan=lifespan)
     app.state.llm, app.state.memory = client, store
     # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
     app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type"])
@@ -161,10 +165,20 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
 
     @app.post("/api/suggestions", response_model=SuggestResponse)
     async def suggest(request: SuggestRequest):
+        if request.configured_mode == "off" or (request.generation_trigger == "automatic" and request.configured_mode != "auto"):
+            raise HTTPException(422, "El modo configurado no permite esta generación.")
+        # Manual pasted text is not a DOM row; the extension marks it false.
+        if request.generation_trigger == "automatic" and not request.target_is_incoming:
+            raise HTTPException(422, "Selecciona un mensaje entrante para responder.")
         if len(request.message) > config.max_message_chars or len(request.additional_context) > 4000:
             raise HTTPException(422, "El mensaje o contexto supera el límite configurado.")
         alias = " ".join((request.interlocutor or "").split()) or None
-        notes = store.list_notes(alias)
+        profile = profiles.active()
+        draft_key = (normalize_alias(alias)[0] if alias else request.conversation_id, profile["id"])
+        if not draft_key[0]:
+            draft_key = None
+        previous_responses = recent_drafts.get(draft_key)
+        notes = store.relevant_notes(alias, request.message) if hasattr(store, "relevant_notes") else store.list_notes(alias)
         knowledge, source_status = read_knowledge_with_sources(config.knowledge_path)
         incoming_context = "\n".join(part for part in (request.context, request.additional_context) if part.strip())
         language_decision = detect_language(request.message, incoming_context, config.default_language)
@@ -213,6 +227,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 conversation_analysis=conversation_analysis or analysis_budget_shape,
                 conversation_id=request.conversation_id,
                 target_message_id=request.target_message_id,
+                profile=profile,
+                previous_responses=previous_responses,
             )
 
         messages = build_messages()
@@ -330,8 +346,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                     for code, _ in (classify_language(text) for text in alternatives)
                 )
                 retry_reason = (
-                    "la respuesta se detectó en un idioma distinto"
-                    if retry_language_error else
+                    "la respuesta se detectó en un idioma distinto o mezcló idiomas"
+                    if retry_language_error or rejection_reason == "wrong_language" else
+                    "la respuesta repitió el mensaje entrante o un borrador previo; redacta con palabras nuevas"
+                    if rejection_reason == "repeated_response" else
                     "la revisión contextual detectó contenido fuera de tema o no respaldado: " + rejection_reason
                     if rejection_reason in {
                         "contextually_irrelevant", "unrequested_money", "unsupported_adult_or_domination",
@@ -383,8 +401,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 for code, _ in (classify_language(text) for text in alternatives)
             )
             context_rejection = _context_review_rejection(generation) if len(alternatives) == 1 else ""
+            draft_rejection = response_rejection(alternatives[0], request.message, language_decision.code, previous_responses) if alternatives else ""
             rejection_reason = (
                 "multiple_responses" if len(candidates) > 1 else
+                draft_rejection if draft_rejection else
                 "wrong_language" if wrong_language else
                 context_rejection if context_rejection else
                 "duplicate_or_near_duplicate" if len(candidates) > len(alternatives) else
@@ -395,14 +415,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "suggestion_generation_attempt attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s",
                 attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
             )
-            if len(alternatives) == 1 and len(candidates) == 1 and not wrong_language and not context_rejection:
+            if len(alternatives) == 1 and len(candidates) == 1 and not rejection_reason:
                 break
-        context_failure_reasons = {
-            "contextually_irrelevant", "unrequested_money", "unsupported_adult_or_domination", "unsupported_claim", "multiple_responses",
-            "missing_context_analysis", "incomplete_context_analysis", "invalid_context_confidence",
-            "invalid_context_analysis_format", "invalid_context_review_format", "review_language_mismatch", "perspective_mismatch",
-        }
-        if len(alternatives) != 1 or rejection_reason in context_failure_reasons:
+        if len(alternatives) != 1 or rejection_reason:
             logger.warning("suggestion_generation_rejected reason=%s retry_used=%s accepted=%d", rejection_reason or "not_one_response", language_retry_used, len(alternatives))
             detail = {
                 "duplicate_or_near_duplicate": "LM Studio devolvió una respuesta repetida tras un reintento.",
@@ -410,6 +425,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "empty_or_unrecognized_format": "LM Studio devolvió una respuesta vacía o con JSON incompleto/no reconocido tras un reintento.",
                 "only_one_valid_response": "LM Studio no devolvió una respuesta válida tras un reintento.",
                 "wrong_language": f"LM Studio siguió respondiendo en un idioma distinto de {language_decision.name} tras un reintento.",
+                "repeated_response": "LM Studio repitió el mensaje entrante o un borrador previo tras un reintento.",
+                "invalid_draft": "LM Studio devolvió un borrador demasiado largo o con encabezados tras un reintento.",
                 "contextually_irrelevant": "La revisión de LM Studio detectó respuestas fuera del tema actual tras un reintento.",
                 "unrequested_money": "La revisión detectó propinas o dinero no solicitados tras un reintento.",
                 "unsupported_adult_or_domination": "La revisión detectó contenido sexual o dominante no respaldado tras un reintento.",
@@ -432,6 +449,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 f"LM Studio siguió respondiendo en un idioma distinto de {language_decision.name} tras un reintento. No se mostraron esas respuestas; puedes intentarlo de nuevo.",
             )
         original_response = alternatives[0]
+        recent_drafts.add(draft_key, original_response)
         spanish_translation = None
         notice = None
         translation_failure_reason = None
@@ -451,6 +469,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         context_input_message_count = _message_row_count(incoming_context)
         context_message_count = _message_row_count(context + "\n" + additional_context)
         return SuggestResponse(
+            configured_mode=request.configured_mode,
+            generation_trigger=request.generation_trigger,
+            active_profile_id=profile["id"],
             conversation_id=request.conversation_id,
             target_message_id=request.target_message_id,
             generation_id=uuid.uuid4().hex,
@@ -489,6 +510,42 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 translation_retry_available=language_decision.code != "es" and spanish_translation is None,
             ),
         )
+
+    @app.get("/api/profiles")
+    async def get_profiles():
+        return profiles.snapshot()
+
+    @app.post("/api/profiles", status_code=201)
+    async def create_profile(payload: ProfileInput):
+        return profiles.save(payload)
+
+    @app.put("/api/profiles/{profile_id}")
+    async def edit_profile(profile_id: str, payload: ProfileInput):
+        try:
+            return profiles.save(payload, profile_id)
+        except KeyError:
+            raise HTTPException(404, "Perfil no encontrado.")
+
+    @app.post("/api/profiles/{profile_id}/activate")
+    async def activate_profile(profile_id: str):
+        try:
+            return profiles.select(profile_id)
+        except KeyError:
+            raise HTTPException(404, "Perfil no encontrado.")
+
+    @app.delete("/api/profiles/{profile_id}", status_code=204)
+    async def delete_profile(profile_id: str):
+        try:
+            profiles.delete(profile_id)
+        except KeyError:
+            raise HTTPException(404, "Perfil no encontrado.")
+        except ValueError as exc:
+            raise HTTPException(422, str(exc))
+        return Response(status_code=204)
+
+    @app.post("/api/profiles/restore")
+    async def restore_profiles():
+        return profiles.restore()
 
     @app.post("/api/translation/retry", response_model=TranslationRetryResponse)
     async def retry_translation(request: TranslationRequest):
@@ -537,6 +594,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     @app.delete("/api/memory/{alias}")
     async def clear_memory(alias: str):
         require_alias(alias)
+        recent_drafts.clear_subject(normalize_alias(alias)[0])
         return {"deleted": store.clear(alias)}
 
     return app

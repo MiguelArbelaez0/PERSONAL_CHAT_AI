@@ -1,5 +1,11 @@
 # Problemas conocidos y estado de auditoría
 
+## Estado actual: v1.1.0-rc.1
+
+La candidata se implementó localmente en `develop`, conservando `main`. Consulta [V1_1_VALIDATION.md](V1_1_VALIDATION.md) para diagnóstico, cambios y validaciones manuales pendientes. La detección de idiomas es heurística y la revisión semántica depende del modelo. La API local no autentica clientes y SQLite no cifra el contenido. No se ha consultado ni cambiado la configuración remota durante este trabajo.
+
+Los apartados siguientes son registros históricos de la preparación de v1.0.0; sus afirmaciones sobre ramas, versiones, servicios y cifras de pruebas no describen necesariamente el estado actual.
+
 ## Bloqueos para `v1.0.0`
 
 1. **Migración de referencias públicas:** esta instantánea local parte de una historia limpia, pero el repositorio remoto antiguo no se ha modificado y su rama de desarrollo continúa activa. Solo el propietario puede autorizar la sustitución y retirada de esas referencias; copias externas podrían persistir.
