@@ -1,5 +1,7 @@
 # Privacidad
 
+Actualización de rc.1: el contexto DOM de otro alias no se reutiliza al cambiar manualmente el interlocutor. La referencia entrante para traducción puede conservarse en RAM en el estado de reparación, limitado a 128 entradas durante 600 segundos y ligado al original exacto; no se guarda en SQLite. Los informes versionables del benchmark contienen únicamente conversaciones sintéticas. Véase [verificación actual](STABILIZATION_2026_10_21.md). La sección final sobre migración del repositorio es histórica.
+
 ## Datos que procesa
 
 La extensión lee el DOM de la página de Stripchat en las conversaciones configuradas para identificar el chat y preparar contexto reciente. Ese texto se envía al backend local y después al endpoint LM Studio configurado. La privacidad depende de que el endpoint permanezca local y de la política del modelo y del servidor elegidos.

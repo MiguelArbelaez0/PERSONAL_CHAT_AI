@@ -378,6 +378,7 @@
         invalid_request: 'El backend rechazó el formato de la solicitud.',
         generation_validation_failed: 'LM Studio respondió, pero la respuesta no superó la validación.',
         lm_studio_http_error: 'LM Studio devolvió un error HTTP.',
+        lm_studio_timeout: 'LM Studio agotó el tiempo de espera.',
         lm_studio_invalid_response: 'LM Studio devolvió un formato no válido.',
         invalid_json: 'El backend respondió con JSON no válido.',
         render_error: 'La respuesta llegó, pero el panel no pudo mostrarla.',
@@ -387,7 +388,7 @@
       detection.textContent = `Falló la generación: ${error.message || 'error del backend'}. Puedes reintentar.`;
       detection.hidden = false;
       const safeIssues = (error.diagnostics?.issues || []).map((item) => `${Array.isArray(item.path) ? item.path.join('.') : 'solicitud'}:${String(item.reason || 'validation_error')}`).slice(0, 6).join(', ');
-      const technicalSummary = `${error.code || 'error'} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
+      const technicalSummary = `${error.reasonCode || error.code || 'error'} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
       renderAutoDiagnostic({ generation: 'fallida', http: httpStatus ? `HTTP ${httpStatus}` : 'sin respuesta HTTP', backendError: technicalSummary.slice(0, 180), lmCount: 'sin resultado' });
       showTechnicalError(technicalSummary);
       if (automatic) detection.textContent = 'Falló la generación automática; puedes reintentar desde Respuestas sugeridas.';

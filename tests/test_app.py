@@ -328,7 +328,9 @@ def test_model_context_budget_discards_oldest_dom_rows_and_reports_truncation(tm
     llm = FakeLLM()
     config = Settings(
         database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge",
-        lm_studio_context_tokens=8192, lm_studio_output_tokens=500, max_context_chars=20000,
+        # The compact prompt fits this history at 8192; force a real budget
+        # overflow while preserving all assertions about trimming/diagnostics.
+        lm_studio_context_tokens=6000, lm_studio_output_tokens=500, max_context_chars=20000,
     )
     app = create_app(config, llm=llm)
     endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/suggestions")
@@ -598,7 +600,7 @@ def test_unfaithful_or_non_spanish_translation_is_hidden_without_losing_original
     result = _direct_suggestions_endpoint(build(tmp_path, InvalidTranslation()), {"message": "I'm glad to hear that"})
     assert result.original_response
     assert result.spanish_translation is None
-    assert result.diagnostics.translation_failure_reason == "invalid_format"
+    assert result.diagnostics.translation_failure_reason == "generator_fidelity_failed"
 
 
 def test_failed_semantic_translation_review_hides_translation_but_keeps_original(tmp_path):

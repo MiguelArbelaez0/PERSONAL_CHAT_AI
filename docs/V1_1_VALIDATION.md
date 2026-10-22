@@ -1,3 +1,7 @@
+# Registro histórico de validación previa
+
+La verificación vigente de la tarea integral está en [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md) y [benchmarks/RESULTS.md](benchmarks/RESULTS.md). Las cifras y afirmaciones inferiores describen etapas anteriores, conservadas como evidencia. Chrome/Stripchat real continúa pendiente.
+
 # v1.1.0-rc.1: auditoría y validación
 
 Actualización posterior a las pruebas manuales: consultar [RC1_REAL_CASES.md](RC1_REAL_CASES.md) para las cuatro correcciones, los resultados vigentes (199 Python / 58 JavaScript) y los riesgos reales todavía abiertos. Las cifras inferiores documentan la implementación inicial de la candidata.

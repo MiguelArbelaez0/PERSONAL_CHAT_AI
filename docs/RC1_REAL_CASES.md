@@ -1,3 +1,7 @@
+# Registro histórico de casos y correcciones previas
+
+Las ejecuciones y cifras de este documento son anteriores a la estabilización integral. El estado vigente, las regresiones adicionales y las repeticiones reales están en [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md) y [benchmarks/RESULTS.md](benchmarks/RESULTS.md). No interpretar los resultados históricos como certificación del código actual.
+
 # Corrección de los cuatro casos manuales de v1.1.0-rc.1
 
 Nota de cierre: este informe conserva los resultados de la etapa anterior al respaldo autorizado. El estado vigente y los pasos para continuar están en [ESTADO_ACTUAL.md](ESTADO_ACTUAL.md).

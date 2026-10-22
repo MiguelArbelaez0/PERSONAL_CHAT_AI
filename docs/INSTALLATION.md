@@ -20,8 +20,8 @@ Esta guía describe la instalación local en Windows. La publicación oficial es
    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
-3. Copia `.env.example` a `.env` y ajusta la URL, el identificador del modelo y otros valores según la instalación local. Mantén `BACKEND_HOST=127.0.0.1`.
-4. En LM Studio, inicia el servidor local compatible con Chat Completions.
+3. Solo si no existe `.env`, copia `.env.example` a `.env`. Conserva siempre configuraciones y bases existentes. Mantén `BACKEND_HOST=127.0.0.1`, `BACKEND_PORT=8765`, `LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1` y `LM_STUDIO_MODEL=qwen/qwen3-4b-2507`.
+4. En LM Studio, carga `qwen/qwen3-4b-2507` e inicia el servidor local compatible con Chat Completions en `127.0.0.1:1234`. No expongas el servidor a la red.
 5. Inicia el backend con `INICIAR_PERSONAL_CHAT_AI.bat` o:
 
    ```powershell

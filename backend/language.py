@@ -57,6 +57,8 @@ for _code, _words in _EXCLUSIVE.items():
     _WORDS[_code].update(_words)
 _STRONG["fr"].update({"bonsoir", "aimerais", "connaitre"})
 _WORDS["en"].update({"which", "did", "mean", "missed", "talking", "doing", "well"})
+_WORDS["en"].update({"let", "us", "talk", "then", "alright", "got", "into", "some", "tunes", "music", "definitely"})
+_STRONG["en"].update({"alright", "definitely"})
 
 
 def has_language_conflict(text: str, expected: str) -> bool:
@@ -122,6 +124,7 @@ def _score(text: str) -> tuple[str | None, float]:
     normalized = re.sub(r"\b(i)\s*'\s*m\b", "i am", normalized)
     normalized = re.sub(r"\b(it|that|he|she|you|we|they)\s*'\s*s\b", r"\1 is", normalized)
     normalized = re.sub(r"\b(im)\b", "i am", normalized)
+    normalized = re.sub(r"\blet\s*'\s*s\b", "let us", normalized)
     tokens = _TOKEN.findall(normalized)
     if not tokens:
         return None, 0.0

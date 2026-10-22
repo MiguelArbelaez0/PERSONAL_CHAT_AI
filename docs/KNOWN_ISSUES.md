@@ -1,5 +1,15 @@
 # Problemas conocidos y estado de auditoría
 
+## Cierre vigente
+
+Véase [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md): 253 Python/61 JavaScript aprobadas, falso duplicado de emoji corregido y referencia de traducción restringida a elipsis. Persisten límites del modelo, rechazos seguros, errores de naturalidad y pruebas humanas pendientes. El respaldo autorizado a develop no constituye aprobación estable. Las secciones siguientes son históricas.
+
+## Verificación integral vigente — 21 de octubre de 2026
+
+La [estabilización integral](STABILIZATION_2026_10_21.md) y sus [métricas reales](benchmarks/RESULTS.md) sustituyen las cifras de los apartados inferiores. 237 pruebas Python y 61 JavaScript aprobadas. No es estable: persisten rechazos del modelo, posible aceptación de errores fuera de los controles deterministas, matices de traducción y validación humana Chrome/Stripchat pendiente. HTTP 502 indica contenido/revisión rechazados y ahora incluye motivo y etapa; conexión/HTTP inválido usan 503 y timeout 504.
+
+API local sin autenticación, SQLite sin cifrar y ausencia de límite global de frecuencia siguen siendo límites operativos. El límite de cuerpo de 256 KiB no los sustituye. La licencia de distribución requiere decisión del titular. Todo lo que sigue es un registro histórico y puede describir estados anteriores del remoto.
+
 ## Estado actual: v1.1.0-rc.1
 
 Después de las pruebas manuales se añadieron controles y regresiones para cuatro fallos reales. Los resultados y límites actualizados están en [RC1_REAL_CASES.md](RC1_REAL_CASES.md): 199 pruebas Python y 58 JavaScript aprobadas, pero con rechazos intermitentes y posibles matices incorrectos de traducción con el modelo real. Esta candidata no está lista para declararse estable.

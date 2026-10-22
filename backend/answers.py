@@ -18,7 +18,9 @@ def _normalize(text: str) -> str:
 def _is_duplicate(candidate: str, previous: str) -> bool:
     left, right = _normalize(candidate), _normalize(previous)
     if not left or not right:
-        return True
+        # Emoji/punctuation-only targets have no word tokens. They are not
+        # duplicates of every textual reply; still reject an exact emoji echo.
+        return candidate.strip() == previous.strip()
     if left == right:
         return True
     # Text similarity is only a duplicate signal at a very high threshold:

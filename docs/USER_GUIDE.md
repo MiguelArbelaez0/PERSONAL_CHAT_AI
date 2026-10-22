@@ -1,5 +1,11 @@
 # Guía de uso
 
+Estado actual y validación pendiente: [cierre de rc.1](CLOSURE_2026_10_21.md). La IA puede producir errores incluso tras la revisión automática; no es una versión estable.
+
+Si cambias manualmente el alias, el historial DOM del alias anterior se excluye de esa solicitud. Añade solo contexto que corresponda al nuevo interlocutor. Las notas no etiquetadas describen al interlocutor; para registrar un hecho propio explícito usa una etiqueta como `Propietario:`. El perfil define voz y estilo, no prueba hechos.
+
+Un error 502 muestra el motivo de rechazo sin publicar la respuesta inválida. Los errores 503/504 indican transporte o tiempo de espera. El reintento de traducción conserva la original; su estado de reparación dura hasta 10 minutos y se pierde al reiniciar. Una solicitud superior a 256 KiB se rechaza con 413.
+
 ## Preparar sugerencias
 
 1. Inicia el backend local y LM Studio.
@@ -31,3 +37,5 @@ Para reportar un error, comparte el mensaje de diagnóstico y el resultado de sa
 ## Perfiles en v1.1.0-rc.1
 
 En el panel abre **Personalidad**, selecciona un perfil y pulsa **Activar**. **Nuevo** permite definir nombre, descripción, tono, estilo y reglas; **Guardar perfil** conserva los datos sin activar un perfil nuevo. Puedes editar perfiles, eliminar los personalizados y restaurar ChubbyKriz conservando los personalizados. La selección se comparte entre pestañas del mismo backend; **Actualizar** sincroniza el panel. Los perfiles se guardan localmente sin reemplazar tus notas o archivos privados. Consulta [validación y límites](V1_1_VALIDATION.md).
+
+La referencia entrante solo acompaña traducciones con una elipsis admitida. `generator_fidelity_failed` identifica una negativa de fidelidad del modelo; `invalid_format` identifica una salida no interpretable.

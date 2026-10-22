@@ -36,9 +36,54 @@ def _repair_known_greetings(original, translation):
         translation = re.sub(r"^(\s*¡?(?:muy\s+)?)buenas\s+tardes\b", r"\1Buenas noches", translation, count=1, flags=re.IGNORECASE)
     if re.search(r"(?:^|[.!])\s*tudo\s+bem\s*,\s*obrigad[oa]\b", original, re.IGNORECASE):
         translation = re.sub(r"¿\s*todo\s+bien\s*\?\s*", "Todo bien. ", translation, count=1, flags=re.IGNORECASE)
+    # An affectionate address does not assert parenthood. Only repair an
+    # opening vocative when the source has that exact non-familial address;
+    # preserve every other clause, then run ALL semantic checks below.
+    if re.match(r"\s*(?:hey|hi|hello)[, ]+(?:sweetie|sweetheart)\b", original, re.I):
+        translation = re.sub(r"^(\s*¡?hola[, ]+)(?:hij[oa]|hijit[oa])(?:\s+m[ií][oa])?\b", r"\1cariño", translation, count=1, flags=re.I)
+    if re.search(r"\bthinking of me\b", original, re.I):
+        translation = re.sub(r"\bpiensas de m[ií]\b", "piensas en mí", translation, flags=re.I)
+    if re.search(r"\b(?:the|that) joke landed well\b", original, re.I):
+        translation = re.sub(r"(\b(?:el|ese) chiste\s+(?:ha|haya|había)\s+)aterrizado\s+bien\b", r"\1funcionado bien", translation, flags=re.I)
     # Correct an unambiguous opening/closing punctuation mismatch, without
     # adding a question or changing its words. Question guards still run below.
     return re.sub(r"¡([^¡¿!?]+)\?", r"¿\1?", translation)
+
+
+def _perspective_conflict(original, translation, source_context=""):
+    """Narrow, explicit object reversals missed by the same model's review.
+
+    Do not infer roles from a bare infinitive. The Portuguese elliptical form
+    requires an incoming request explicitly addressed to the account owner.
+    Other constructions remain subject to full semantic review.
+    """
+    owner_made_other_laugh = bool(re.search(r"\bi (?:made|have made) you laugh\b", original, re.I))
+    other_made_owner_laugh = bool(re.search(r"\b(?:you (?:made|have made) me laugh|voc[eê] me fez rir)\b", original, re.I))
+    if owner_made_other_laugh and re.search(r"\bme (?:hiciste|has hecho|hayas hecho|haces) re[ií]r\b", translation, re.I):
+        return True
+    if other_made_owner_laugh and re.search(r"\bte (?:hice|he hecho|haya hecho|hago) re[ií]r\b", translation, re.I):
+        return True
+    if (re.search(r"\b(?:sweetie|sweetheart)\b", original, re.I)
+            and not re.search(r"\b(?:son|daughter|child)\b", original, re.I)
+            and re.search(r"\b(?:hij[oa]s?|hijit[oa]s?)\b", translation, re.I)):
+        return True
+    other_as_object = bool(re.search(r"\b(?:te\s+conna[iî]tre|conhecer\s+voc[eê]|te\s+conhecer)\b", original, re.I))
+    if other_as_object and re.search(r"\bconocerme\b", translation, re.I):
+        return True
+    owner_as_object = bool(re.search(r"\b(?:me\s+conhecer|conhecer-me|me\s+conna[iî]tre)\b", original, re.I))
+    elliptical_owner = (bool(re.search(r"\bobrigad[oa]\s+por\s+querer\s+conhecer\s+melhor\b", original, re.I))
+                        and bool(re.search(r"\b(?:conhecer\s+voc[eê]|te\s+conhecer)\b", source_context, re.I)))
+    return (owner_as_object or elliptical_owner) and bool(re.search(r"\bconocerte\b", translation, re.I))
+
+
+def _translation_reference(original, source_context):
+    """Use incoming reference only for the supported elliptical object case.
+
+    Explicit I/you, me/te/você already resolve the agents. Sending the incoming
+    utterance too caused the small model to answer/translate that other speaker.
+    Keep the cached reference for a retry, but never add it to an unambiguous task.
+    """
+    return source_context if re.search(r"\bobrigad[oa]\s+por\s+querer\s+conhecer\s+melhor\b", original, re.I) else ""
 
 
 @dataclass(frozen=True)
@@ -124,7 +169,7 @@ def _failure_code(error: LMStudioError) -> str:
     return "lm_studio_error"
 
 
-async def translate_and_review(client, *, original: str, language: str, manual_retry=False, retry_state=None) -> TranslationOutcome:
+async def translate_and_review(client, *, original: str, language: str, manual_retry=False, retry_state=None, source_context="") -> TranslationOutcome:
     translate = getattr(client, "translate", None)
     if not translate:
         return TranslationOutcome(None, "translation_not_supported")
@@ -133,6 +178,8 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
         return TranslationOutcome(None, "review_not_supported")
 
     state = retry_state or {}
+    source_context = (source_context or state.get("source_context", ""))[:4000]
+    reference = _translation_reference(original, source_context)
     previous_failure = state.get("reason")
     rejected_translation = state.get("candidate")
     review_issues = state.get("issues", [])
@@ -144,7 +191,11 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
         try:
             answers = await translate(build_translation_messages(
                 original=original, language=language, retry=retry, failure_reason=previous_failure,
-                rejected_translation=rejected_translation, review_issues=review_issues,
+                # A self-refused mixed/invalid candidate is not a correction
+                # template: feeding it back made Qwen copy the same corruption.
+                rejected_translation=None if previous_failure == "generator_fidelity_failed" else rejected_translation,
+                review_issues=review_issues,
+                source_context=reference,
             ))
         except LMStudioError as exc:
             reason, http_status = _failure_code(exc), exc.http_status
@@ -162,7 +213,15 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                     rejected_translation = translation[:4000]
                     review_issues = []
                 if not translation:
-                    reason = "invalid_format"
+                    rejected = next((_json_object(answer) for answer in answers if _json_object(answer)), None)
+                    if rejected and isinstance(rejected.get("translation"), str) and (rejected.get("faithful") is False or rejected.get("adds_or_omits_information") is True):
+                        reason = "generator_fidelity_failed"
+                        rejected_translation = rejected["translation"][:4000]
+                    else:
+                        reason = "invalid_format"
+                elif _perspective_conflict(original, translation, source_context):
+                    reason = "perspective_mismatch"
+                    review_issues = [{"category": "perspective", "source_quote": original[:400], "translation_quote": translation[:400]}]
                 elif re.match(r"\s*bonsoir\b", original, re.IGNORECASE) and not re.search(r"\bbuenas\s+noches\b", translation, re.IGNORECASE):
                     reason = "greeting_mismatch"
                 elif ((not _may_be_question(original) and any(mark in translation for mark in ("?", "？", "¿")))
@@ -178,7 +237,7 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                         stage = "review"
                         try:
                             review_answers = await review(build_translation_review_messages(
-                                original=original, translation=translation, language=language,
+                                original=original, translation=translation, language=language, source_context=reference,
                             ))
                         except LMStudioError as exc:
                             reason, http_status = f"review_{_failure_code(exc)}", exc.http_status
@@ -205,7 +264,7 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
             logger.info("translation_retry scheduled=true next_attempt=2 reason=%s", reason)
             continue
         return TranslationOutcome(None, reason, http_status, attempts=attempt + 1, failure_stage=stage,
-                                  retry_state={"candidate": rejected_translation, "reason": reason, "issues": review_issues})
+                                  retry_state={"candidate": rejected_translation, "reason": reason, "issues": review_issues, "source_context": source_context})
 
     return TranslationOutcome(None, "translation_failed")
 
@@ -215,10 +274,12 @@ def translation_failure_message(reason: str | None, http_status: int | None = No
         "translation_not_supported": "El cliente de LM Studio no permite traducir.",
         "empty_response": "LM Studio no devolvió contenido para la traducción.",
         "invalid_format": "La respuesta de LM Studio no contenía una traducción en el formato esperado.",
+        "generator_fidelity_failed": "El modelo no pudo producir una traducción que considerase fiel.",
         "truncated": "LM Studio cortó la respuesta antes de terminar la traducción.",
         "wrong_language": "LM Studio devolvió una traducción que no está en español.",
         "added_question": "La traducción introdujo una pregunta ausente en el original.",
         "greeting_mismatch": "La traducción no conservó el saludo nocturno del original.",
+        "perspective_mismatch": "La traducción alteró los participantes o su relación.",
         "invalid_response": "LM Studio devolvió un cuerpo de respuesta no válido.",
         "language_unverified": "No se pudo confirmar que la traducción esté en español.",
         "fidelity_review_failed": "La revisión detectó cambios u omisiones en la traducción.",

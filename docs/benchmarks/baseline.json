@@ -1,0 +1,1115 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "commit": "9fb0ba4bba9779f71478a285762ff4fe1689371f",
+  "started_utc": "2026-10-22T00:36:29.686916+00:00",
+  "model": "qwen/qwen3-4b-2507",
+  "records": [
+    {
+      "case": "greeting-0",
+      "operation": "generation",
+      "input": {
+        "message": "Hey daddy, how are you today?",
+        "interlocutor": "Synthetic-en-0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-greeting-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 12.249,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-greeting-0",
+        "generation_id": "2de2dde7b1ab48d283e641b121569ef1",
+        "language": "en",
+        "original_response": "Hey, I'm good thanks! How about you?",
+        "spanish_translation": "Hola, estoy bien, gracias¿Y tú cómo estás?",
+        "interlocutor": "Synthetic-en-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.9500000000000001,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4753,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "reconnect-0",
+      "operation": "generation",
+      "input": {
+        "message": "I missed talking to you.",
+        "interlocutor": "Synthetic-en-0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-reconnect-0",
+        "configured_mode": "manual",
+        "context": "- Interlocutor: Hey daddy, how are you today?"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 6.977,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-reconnect-0",
+        "generation_id": "894c9bbfe5b04faebf1bf142eddc8863",
+        "language": "en",
+        "original_response": "I'm doing well, thanks. Glad to hear from you—how have you been?",
+        "spanish_translation": "Estoy bien, gracias. Me alegra saber de ti — ¿cómo has estado?",
+        "interlocutor": "Synthetic-en-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 45,
+          "context_included_chars": 45,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4818,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "french-0",
+      "operation": "generation",
+      "input": {
+        "message": "Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître.",
+        "interlocutor": "Synthetic-fr-0",
+        "conversation_id": "Synthetic-fr-0",
+        "target_message_id": "message-french-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "fr",
+      "status": 200,
+      "latency_seconds": 7.591,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-fr-0",
+        "target_message_id": "message-french-0",
+        "generation_id": "a64e765fb1c34c7590efe3d31a2955bd",
+        "language": "fr",
+        "original_response": "Bonsoir ! Je vais bien, merci. Content de commencer cette petite conversation de connaissance 😊",
+        "spanish_translation": "¡Buenas noches! Estoy bien, gracias. Contento de comenzar esta pequeña conversación de conocimiento 😊",
+        "interlocutor": "Synthetic-fr-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "fr",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "fr"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4652,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "portuguese-0",
+      "operation": "generation",
+      "input": {
+        "message": "Oi, tudo bem? Gostaria de conhecer você melhor.",
+        "interlocutor": "Synthetic-pt-0",
+        "conversation_id": "Synthetic-pt-0",
+        "target_message_id": "message-portuguese-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "pt",
+      "status": 200,
+      "latency_seconds": 6.714,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-pt-0",
+        "target_message_id": "message-portuguese-0",
+        "generation_id": "423c3a3de294483e8fa9976988eafe24",
+        "language": "pt",
+        "original_response": "Oi! Tudo bem, obrigado por querer conhecer melhor. Fico feliz em conversar com você.",
+        "spanish_translation": "¡Hola! Todo bien. Gracias por querer conocerte mejor. Me alegra conversar contigo.",
+        "interlocutor": "Synthetic-pt-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "pt",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "pt"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4605,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "spanish-0",
+      "operation": "generation",
+      "input": {
+        "message": "Hola, ¿cómo estás?",
+        "interlocutor": "Synthetic-es-0",
+        "conversation_id": "Synthetic-es-0",
+        "target_message_id": "message-spanish-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 4.883,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-es-0",
+        "target_message_id": "message-spanish-0",
+        "generation_id": "51700bd3e9794b80bcdb72c920b5ec71",
+        "language": "es",
+        "original_response": "Hola, bien, gracias por preguntar 😊",
+        "spanish_translation": null,
+        "interlocutor": "Synthetic-es-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 0,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "es",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "es"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4474,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "not_needed",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "greeting-1",
+      "operation": "generation",
+      "input": {
+        "message": "Hey daddy, how are you today?",
+        "interlocutor": "Synthetic-en-1",
+        "conversation_id": "Synthetic-en-1",
+        "target_message_id": "message-greeting-1",
+        "configured_mode": "manual"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 6.013,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-1",
+        "target_message_id": "message-greeting-1",
+        "generation_id": "763903c2bee64c8cb8fec82985e34ec2",
+        "language": "en",
+        "original_response": "Hey, I'm doing great, thanks for asking! How about you?",
+        "spanish_translation": "Hola, estoy bien, gracias por preguntar ¿Y tú cómo estás?",
+        "interlocutor": "Synthetic-en-1",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.9500000000000001,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4670,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "reconnect-1",
+      "operation": "generation",
+      "input": {
+        "message": "I missed talking to you.",
+        "interlocutor": "Synthetic-en-1",
+        "conversation_id": "Synthetic-en-1",
+        "target_message_id": "message-reconnect-1",
+        "configured_mode": "manual",
+        "context": "- Interlocutor: Hey daddy, how are you today?"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 7.717,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-1",
+        "target_message_id": "message-reconnect-1",
+        "generation_id": "6cd6b3b9ce484d0eb9c917b2e677588d",
+        "language": "en",
+        "original_response": "I'm glad to hear that—how’s things on your end?",
+        "spanish_translation": "Me alegra oír eso — ¿cómo va todo por tu lado?",
+        "interlocutor": "Synthetic-en-1",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": true,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 45,
+          "context_included_chars": 45,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4764,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "french-1",
+      "operation": "generation",
+      "input": {
+        "message": "Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître.",
+        "interlocutor": "Synthetic-fr-1",
+        "conversation_id": "Synthetic-fr-1",
+        "target_message_id": "message-french-1",
+        "configured_mode": "manual"
+      },
+      "expected_language": "fr",
+      "status": 200,
+      "latency_seconds": 7.671,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-fr-1",
+        "target_message_id": "message-french-1",
+        "generation_id": "1900c3b2731749bea7a02efc255e1877",
+        "language": "fr",
+        "original_response": "Bonsoir ! Je vais bien, merci. Content de t’entendre et de mieux te connaître.",
+        "spanish_translation": "Buenas noches¡ Voy bien, gracias. Me alegra escucharte y conocerte mejor.",
+        "interlocutor": "Synthetic-fr-1",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "fr",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "fr"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4676,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "portuguese-1",
+      "operation": "generation",
+      "input": {
+        "message": "Oi, tudo bem? Gostaria de conhecer você melhor.",
+        "interlocutor": "Synthetic-pt-1",
+        "conversation_id": "Synthetic-pt-1",
+        "target_message_id": "message-portuguese-1",
+        "configured_mode": "manual"
+      },
+      "expected_language": "pt",
+      "status": 200,
+      "latency_seconds": 7.031,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-pt-1",
+        "target_message_id": "message-portuguese-1",
+        "generation_id": "dbec690f7747433b9d1fcab31bbfdbfb",
+        "language": "pt",
+        "original_response": "Oi! Tudo bem, obrigado por querer conhecer melhor. Como está o seu dia?",
+        "spanish_translation": "¡Hola! Todo bien. Gracias por querer conocerte mejor. ¿Cómo está su día?",
+        "interlocutor": "Synthetic-pt-1",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "pt",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "pt"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4613,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    },
+    {
+      "case": "spanish-1",
+      "operation": "generation",
+      "input": {
+        "message": "Hola, ¿cómo estás?",
+        "interlocutor": "Synthetic-es-1",
+        "conversation_id": "Synthetic-es-1",
+        "target_message_id": "message-spanish-1",
+        "configured_mode": "manual"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 4.793,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-es-1",
+        "target_message_id": "message-spanish-1",
+        "generation_id": "d28de88d1a014629b7f145df4fa5fdca",
+        "language": "es",
+        "original_response": "Hola, estoy bien, gracias. ¿Y tú?",
+        "spanish_translation": null,
+        "interlocutor": "Synthetic-es-1",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "translation_attempts": 0,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "es",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "es"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 4467,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "not_needed",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending"
+    }
+  ],
+  "fidelity_assessment": "Manual review required; model approval is not ground truth.",
+  "metrics": {
+    "generation_total": 10,
+    "generation_accepted": 10,
+    "generation_rejected": 0,
+    "acceptance_rate": 1.0,
+    "translation_available": 8,
+    "detected_inconsistencies": 0,
+    "median_latency_seconds": 7.004,
+    "p95_latency_seconds": 12.249
+  },
+  "finished_utc": "2026-10-22T00:37:41.498136+00:00",
+  "report_stage": "baseline",
+  "sanitization": "Synthetic data only. Ephemeral translation retry tokens removed; all records, input, output text and failures retained."
+}

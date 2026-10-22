@@ -1,3 +1,39 @@
+# Estado vigente — 21 de octubre de 2026
+
+**Fecha:** 21 de octubre de 2026. **PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo; no aprobada como estable.**
+
+Cierre vigente: [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md). Se conserva todo el trabajo local anterior y se respalda exclusivamente en `develop` bajo autorización expresa. El commit de entrega se identifica con `git log -1 --oneline` y en el informe final; la base anterior es `9fb0ba4bba9779f71478a285762ff4fe1689371f`. `main` permanece en `d4ba4df447765708bb2a79c430222fe3f3e49fe0`. Sin PR, tags, releases ni publicación estable.
+
+**Pruebas:** 253 Python y 61 JavaScript aprobadas, cero fallidas u omitidas; 1020 advertencias de deprecación FastAPI. Sintaxis, manifiesto V3, diff y revisión de secretos se verifican antes de confirmar. Funciones cubiertas: ChubbyKriz predeterminado, perfiles persistentes, memoria por alias, cuatro idiomas, tres modos, copia/edición y traducción independiente. Ningún modo envía mensajes automáticamente. Chrome/Stripchat real continúa pendiente.
+
+**LM Studio real:** 109 operaciones sintéticas durante este cierre, conservando también fallos y etapas intermedias. Última evaluación: 18/23 generaciones aceptadas; cinco rechazos de contenido, sin transporte fallido. Traducción disponible en 15/15 originales aceptadas no españolas; cuatro originales anteriores antes fallidas traducidas 4/4. Cuatro traducciones patrón conservan significado, con puntuación defectuosa en una. Disponibilidad no significa fidelidad perfecta. Una prueba adicional con dos fallos inyectados y recuperación real verifica el reintento con token sin regenerar la original.
+
+**Correcciones adicionales:** falso duplicado por emoji normalizado vacío; reconocimiento inglés incompleto; atribución de notas del visitante al propietario; preferencias/intenciones y repetición; separación entre formato inválido y negativa de fidelidad; referencia entrante solo para elipsis; correcciones de vocativos/modismos siempre revisadas. Los validadores siguen activos. No se cambiaron modelo, servicios, puertos, permisos o dependencias.
+
+**Pendientes:** el modelo sigue inventando preferencias/intenciones en borradores que se rechazan, puede inferir contenido excesivo del emoji, produce español poco natural y no garantiza variación suficiente. La aceptación de generación descendió de 20/23 a 18/23 al bloquear errores; no se presenta como mejora de disponibilidad. API local sin autenticación y SQLite sin cifrado siguen siendo límites conocidos. Licencia y aprobación humana pendientes.
+
+**Primer paso para continuar:** conservar `.env`, `data/` y conocimiento privado; cargar `qwen/qwen3-4b-2507`, reiniciar con `.\.venv\Scripts\python.exe -m backend` y recargar extensión/pestaña. Seguir los siete pasos concretos de Chrome/Stripchat del informe vigente; comprobar especialmente agentes, matices, cambios rápidos de chat, reintentos, copia y ausencia de envío automático. No proponer integrar main antes de resolver calidad y validación humana.
+
+Referencias: [informe previo](STABILIZATION_2026_10_21.md), [casos reales](RC1_REAL_CASES.md), [validación previa](V1_1_VALIDATION.md), [resultados anteriores](benchmarks/RESULTS.md). **Todo el contenido inferior es histórico**, incluidas cifras, estado sin commit y respaldos anteriores.
+
+---
+
+**PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo. Todavía bloqueada para aprobación como estable.**
+
+Trabajo integral local sobre `develop`, base `9fb0ba4bba9779f71478a285762ff4fe1689371f`; sin commit ni push en esta tarea y sin modificar `main`. El respaldo anterior sigue en `origin/develop`; las correcciones actuales están pendientes en el directorio de trabajo.
+
+Implementado y cubierto por pruebas: perfiles persistentes con ChubbyKriz predeterminado, memoria por alias, tres modos, prioridad del objetivo, cancelación/descarte de respuestas obsoletas, copia y edición, traducción separada y reintento sin regenerar la original. Ningún modo envía mensajes automáticamente. Se corrigieron el cruce de historial por alias manual, contratos contradictorios, preferencias/actividades inventadas, falsos positivos acotados de evidencia y traducciones con participantes invertidos; se compactó el prompt y se añadieron motivos de error y límite HTTP.
+
+Verificación: línea base 199 Python/58 JavaScript; estado actual **237 Python/61 JavaScript aprobadas, cero fallidas u omitidas**, con 1005 advertencias de deprecación de FastAPI. Sintaxis, manifiesto y revisión de seguridad se detallan en el [informe integral](STABILIZATION_2026_10_21.md). LM Studio real se ejecutó repetidamente con datos exclusivamente sintéticos; los resultados completos, incluidos los fallos, están en [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
+
+Pendientes: errores intermitentes de generación/HTTP 502 y límites semánticos del modelo, traducciones fuera de las construcciones protegidas, validación manual Chrome/Stripchat y licencia del titular. 503 distingue transporte y 504 timeout. No se certifica fidelidad general ni funcionamiento real del DOM a partir de tests simulados.
+
+**Primer paso para continuar:** leer los resultados finales, conservar `.env` y bases privadas, cargar `qwen/qwen3-4b-2507`, reiniciar backend con `.\.venv\Scripts\python.exe -m backend` y recargar extensión/pestaña. Ejecutar los ocho pasos concretos de validación humana en [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md), repetir el benchmark si cambia el código y resolver los fallos antes de proponer aprobación. Referencias previas: [V1_1_VALIDATION.md](V1_1_VALIDATION.md) y [RC1_REAL_CASES.md](RC1_REAL_CASES.md).
+
+---
+
+El cierre de jornada siguiente es **histórico**, anterior a la tarea integral; sus cifras y estado limpio describen aquel respaldo, no los cambios locales actuales.
+
 # Estado actual y cierre de jornada
 
 **Fecha:** 21 de octubre de 2026.

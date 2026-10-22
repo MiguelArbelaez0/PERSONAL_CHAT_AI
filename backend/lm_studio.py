@@ -92,7 +92,7 @@ class LMStudioClient:
                     response.raise_for_status()
                 except httpx.HTTPStatusError as exc:
                     logger.warning("lm_studio_response operation=%s http_status=%d format=http_error empty=false", operation, response.status_code)
-                    raise LMStudioError(f"LM Studio devolvió HTTP {response.status_code}.", response.status_code) from exc
+                    raise LMStudioError(f"LM Studio devolvió HTTP {response.status_code}.", response.status_code, "http_error") from exc
                 data = response.json()
                 choices = data.get("choices")
                 if not isinstance(choices, list):
@@ -122,10 +122,10 @@ class LMStudioClient:
                     return []
                 return answers[:count]
         except httpx.TimeoutException as exc:
-            raise LMStudioError("LM Studio tardó demasiado en responder. Comprueba el modelo cargado.") from exc
+            raise LMStudioError("LM Studio tardó demasiado en responder. Comprueba el modelo cargado.", reason_code="timeout") from exc
         except httpx.ConnectError as exc:
-            raise LMStudioError("No se pudo conectar con LM Studio. Inicia el servidor local en LM Studio.") from exc
+            raise LMStudioError("No se pudo conectar con LM Studio. Inicia el servidor local en LM Studio.", reason_code="unavailable") from exc
         except httpx.HTTPStatusError as exc:
-            raise LMStudioError(f"LM Studio devolvió HTTP {exc.response.status_code}.", exc.response.status_code) from exc
+            raise LMStudioError(f"LM Studio devolvió HTTP {exc.response.status_code}.", exc.response.status_code, "http_error") from exc
         except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError) as exc:
-            raise LMStudioError("LM Studio devolvió una respuesta no válida.") from exc
+            raise LMStudioError("LM Studio devolvió una respuesta no válida.", reason_code="invalid_response") from exc

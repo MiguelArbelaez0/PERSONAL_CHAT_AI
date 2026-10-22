@@ -1,5 +1,21 @@
 # Cambios
 
+## Cierre adicional de 1.1.0-rc.1 (2026-10-21; respaldo de desarrollo autorizado)
+
+- Corregidos falsos duplicados de emoji, reconocimiento inglés incompleto y uso de notas del visitante como evidencia del propietario.
+- Controles de preferencias/intenciones, preguntas genéricas aisladas y variación de reconocimientos de ayuda.
+- Traducción con referencia entrante limitada a objetos implícitos; negativa de fidelidad separada de JSON inválido; reparación estrecha de vocativos/modismos siempre revisada.
+- 253 pruebas Python y 61 JavaScript aprobadas. Evaluaciones completas y limitaciones en el [cierre vigente](docs/CLOSURE_2026_10_21.md). No es estable. Las entradas siguientes son históricas.
+
+## Estabilización integral de 1.1.0-rc.1 (2026-10-21; cambios locales sin publicar)
+
+- Prompt jerarquizado y compacto, identidad del objetivo en el análisis y rechazo de contratos contradictorios.
+- Aislamiento del historial cuando cambia el alias manual; descarte de respuestas con otro alias.
+- Controles de actividades/preferencias propias inventadas y reparación por eliminación con validación y auditoría obligatorias.
+- Referencia sintáctica separada para traducción y su reintento; controles de objetos, agentes y parentescos invertidos.
+- Diagnósticos por motivo/etapa/intentos; errores de transporte 503/504 separados de rechazos 502; cuerpo HTTP limitado a 256 KiB.
+- 237 pruebas Python y 61 JavaScript aprobadas. Integración real repetida, incluidos todos los fallos: [informe actual](docs/STABILIZATION_2026_10_21.md). No se declara estable. Las entradas inferiores describen etapas históricas.
+
 ## Correcciones manuales de 1.1.0-rc.1 (sin publicar)
 
 - Controles de copia parcial, expresiones repetidas, actividades inventadas y apelativos invertidos; auditoría separada con evidencia citada.

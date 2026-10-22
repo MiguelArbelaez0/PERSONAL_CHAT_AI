@@ -28,6 +28,29 @@ function fixture({ mode = 'manual', response, request, latestIncomingFingerprint
   return { flow, view, snapshot: { conversationKey, alias: 'Ana', messages: [] }, setMode: (v) => { currentMode = v; }, setConversation: (v) => { conversationKey = v; }, setLatestIncoming: (v) => { latestIncomingFingerprint = v; } };
 }
 
+test('manual alias change cannot reuse a different interlocutor DOM history', async () => {
+  const f = fixture();
+  const snapshot = { ...f.snapshot, messages: [
+    { direction: 'outgoing', text: 'Private synthetic fact from Ana', fingerprint: 'old' },
+  ] };
+  await f.flow.generate('Hello Bob', snapshot, false, 'Bob');
+  assert.equal(f.view.payload.context, '');
+  assert.equal(f.view.payload.dom_extracted_message_count, 0);
+  assert.equal(f.view.payload.interlocutor, 'Bob');
+});
+
+test('explicit backend alias mismatch discards an otherwise current response', async () => {
+  const f = fixture({ response: { interlocutor: 'Bob', language: 'en', original_response: 'Hello there' } });
+  await f.flow.generate('Hello', f.snapshot);
+  assert.deepEqual(f.view.suggestions, []);
+});
+
+test('structured rejection reason survives API normalization', () => {
+  const error = SuggestionFlow.normalizeApiError({ error: { code: 'lm_studio_error', reason_code: 'unsupported_claim', message: 'Rejected' } }, 502);
+  assert.equal(error.reasonCode, 'unsupported_claim');
+  assert.equal(error.httpStatus, 502);
+});
+
 test('manual form generation sends the selected message to the backend', async () => {
   assert.match(contentSource, /id="pcai-generate"[^>]*>Generar respuesta</);
   assert.match(contentSource, /\$\('#pcai-generate'\)\.onclick[\s\S]*?latestIncoming\.text, currentSnapshot, false/);

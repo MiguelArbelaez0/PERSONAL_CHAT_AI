@@ -16,8 +16,10 @@ from backend.language import classify_language, detect_language
 from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.memory import MemoryStore, normalize_alias
 from backend.profiles import ProfileInput, ProfileStore
-from backend.validation import RecentDrafts, response_rejection
+from backend.validation import RecentDrafts, response_rejection, remove_unsupported_clauses, owner_notes
 from backend.grounding import review_messages, review_rejection
+from backend.errors import PipelineFailure, transport_failure
+from backend.request_limits import RequestLimitsMiddleware
 from backend.prompt import build_context_analysis_messages, build_suggestion_messages, _bounded_notes
 from backend.schemas import NoteInput, SuggestRequest, SuggestResponse, SuggestionDiagnostics, TranslationRequest, TranslationRetryResponse
 from backend.translation import translate_and_review, translation_failure_message, TranslationRetries
@@ -106,6 +108,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
 
     app = FastAPI(title="PERSONAL_CHAT_AI", version="1.1.0-rc.1", lifespan=lifespan)
     app.state.llm, app.state.memory = client, store
+    app.add_middleware(RequestLimitsMiddleware)
     # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
     app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type"])
 
@@ -126,6 +129,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             if "lm studio" in lowered:
                 return "lm_studio_unavailable", text
             return "backend_unavailable", text or "El servicio local no está disponible."
+        if status_code == 504:
+            return "lm_studio_timeout", text or "LM Studio agotó el tiempo de espera."
         if status_code == 404:
             return "not_found", text or "No se encontró el recurso solicitado."
         return "http_error", text or f"La solicitud falló (HTTP {status_code})."
@@ -133,10 +138,14 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     @app.exception_handler(HTTPException)
     async def handle_http_error(request: Request, exc: HTTPException):
         code, message = error_code(exc.status_code, exc.detail)
+        reason = exc.reason if isinstance(exc, PipelineFailure) else code
+        stage = exc.stage if isinstance(exc, PipelineFailure) else "request"
+        attempts = exc.attempts if isinstance(exc, PipelineFailure) else 0
         return JSONResponse(status_code=exc.status_code, content={
             "api_version": "1.0", "detail": message,
-            "error": {"code": code, "category": code, "message": message},
-            "diagnostics": {"http_status": exc.status_code, "source": "backend"},
+            "error": {"code": code, "reason_code": reason, "category": stage, "message": message},
+            "diagnostics": {"http_status": exc.status_code, "source": "backend", "failure_reason": reason,
+                            "stage": stage, "attempts": attempts},
         }, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
@@ -287,6 +296,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             if estimated_prompt_tokens > available_prompt_tokens:
                 raise HTTPException(413, "El prompt del idioma detectado excede el presupuesto del modelo. Aumenta LM_STUDIO_CONTEXT_TOKENS según la configuración real del modelo.")
         analysis_messages = build_context_analysis_messages(
+            conversation_id=request.conversation_id,
+            target_message_id=request.target_message_id,
             message=request.message,
             context="\n".join(part for part in (context, additional_context) if part.strip()),
             interlocutor=alias,
@@ -307,7 +318,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 analysis_answers = await analyze(attempt_analysis_messages) if analyze else await client.chat(attempt_analysis_messages, 1)
             except LMStudioError as exc:
                 logger.warning("conversation_analysis_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(analysis_attempt), str(exc))
-                raise HTTPException(503, str(exc)) from exc
+                raise transport_failure(exc, "analysis", analysis_attempt + 1) from exc
             analysis = next((parse_context_analysis(answer) for answer in analysis_answers if answer), None) if analysis_answers else None
             analysis_rejection = _analysis_rejection(analysis)
             logger.info(
@@ -324,7 +335,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "invalid_context_confidence": "LM Studio devolvió una confianza de análisis inválida tras un reintento.",
                 "invalid_context_analysis_format": "LM Studio devolvió el análisis contextual con formato inválido tras un reintento.",
             }.get(analysis_rejection, "LM Studio no pudo analizar el contexto de forma válida tras un reintento.")
-            raise HTTPException(502, f"{detail} Puedes intentarlo de nuevo.")
+            raise PipelineFailure(analysis_rejection, "analysis", 2, f"{detail} Puedes intentarlo de nuevo.")
         conversation_analysis = analysis
         messages = build_messages()
         estimated_prompt_tokens = _estimate_prompt_tokens(messages)
@@ -340,6 +351,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         response_language_codes: list[str] = []
         language_retry_used = False
         rejection_reason = ""
+        rejection_history = []
+        review_format_repairs = 0
+        heuristic_overrides = []
+        draft_repairs = []
         for attempt in range(2):
             attempt_messages = messages
             if attempt:
@@ -372,6 +387,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                             "Cumple el contrato JSON de responses y checks con una entrada. "
                             "Redacta desde la perspectiva del usuario y corrige cualquier inversión de emisor o pronombres. "
                             "Corrige en especial el motivo indicado; no añadas dinero, propinas, sexualidad, dominación o hechos sin respaldo. "
+                            "Las notas del interlocutor no son preferencias del propietario: 'I' en el objetivo entrante es el interlocutor. "
+                            "No añadas que compartes sus gustos. Una pregunta genérica sola no contesta una afirmación: atiende su contenido. "
                             "No incluyas alternativas ni traducción. No añadas explicaciones."
                             + "\nBorrador rechazado (solo contraejemplo, no hechos ni historial enviado): "
                             + json.dumps(alternatives[:1], ensure_ascii=False)
@@ -385,7 +402,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 answers = await client.chat(attempt_messages, 1)
             except LMStudioError as exc:
                 logger.warning("suggestion_generation_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(attempt), str(exc))
-                raise HTTPException(503, str(exc)) from exc
+                raise transport_failure(exc, "generation", attempt + 1) from exc
             candidates = [
                 part
                 for answer in answers
@@ -409,6 +426,26 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             )
             context_rejection = _context_review_rejection(generation) if len(alternatives) == 1 else ""
             draft_rejection = response_rejection(alternatives[0], request.message, language_decision.code, previous_responses, context=context + "\n" + additional_context, notes=notes) if alternatives else ""
+            reviewer = getattr(client, "review_generation", None)
+            if draft_rejection == "unsupported_claim" and reviewer and context_rejection in {"", "unsupported_claim"}:
+                repaired = remove_unsupported_clauses(alternatives[0], request.message, context=context + "\n" + additional_context, notes=notes)
+                if repaired:
+                    repaired_reason = response_rejection(repaired, request.message, language_decision.code, previous_responses,
+                                                         context=context + "\n" + additional_context, notes=notes)
+                    if not repaired_reason:
+                        alternatives = [repaired]
+                        response_language_codes = [classify_language(repaired)[0] or "undetermined"]
+                        wrong_language = False
+                        draft_rejection, context_rejection = "", ""
+                        draft_repairs.append("removed_unsupported_clause")
+            owner_context = "\n".join(line for line in (context + "\n" + additional_context).splitlines()
+                                      if line.lstrip().startswith("- Usuario"))
+            verified_owner_notes = owner_notes(notes)
+            requires_evidence = draft_rejection == "unsupported_claim" and bool(reviewer) and bool(owner_context.strip() or verified_owner_notes)
+            if requires_evidence:
+                # A lexical rule cannot recognize every paraphrase of a manual
+                # fact. Only a separate, quote-checked review can resolve it.
+                draft_rejection = ""
             rejection_reason = (
                 "multiple_responses" if len(candidates) > 1 else
                 draft_rejection if draft_rejection else
@@ -418,21 +455,25 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "empty_or_unrecognized_format" if not alternatives or malformed_structured_output else
                 "only_one_valid_response" if len(alternatives) != 1 else ""
             )
-            reviewer = getattr(client, "review_generation", None)
+            rejection_stage = "generation"
             if not rejection_reason and reviewer:
+                rejection_stage = "grounding"
                 audit_messages = review_messages(
                     draft=alternatives[0], incoming=request.message,
-                    context=context + "\n" + additional_context, notes=notes, previous=previous_responses,
+                    context=context + "\n" + additional_context, notes=verified_owner_notes if requires_evidence else notes, previous=previous_responses,
+                    require_evidence=requires_evidence,
                 )
                 if _estimate_prompt_tokens(audit_messages) > available_prompt_tokens:
                     raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
                 try:
                     audit_evidence = {
-                        "target": request.message, "history": context + "\n" + additional_context,
-                        "notes": _bounded_notes(notes),
+                        "target": "" if requires_evidence else request.message,
+                        "history": owner_context,
+                        "notes": _bounded_notes(verified_owner_notes),
                     }
-                    rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence)
+                    rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence, require_evidence=requires_evidence)
                     if rejection_reason == "invalid_grounding_review":
+                        review_format_repairs += 1
                         # Repair the review's serialization before discarding a potentially valid draft.
                         repair_messages = [*audit_messages, {"role": "user", "content":
                             "Return the complete JSON schema including personal_claims (an array, empty when none). "
@@ -440,9 +481,13 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                             "If a claim is unsupported, supported=false and evidence_quote is empty. No prose."}]
                         if _estimate_prompt_tokens(repair_messages) > available_prompt_tokens:
                             raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
-                        rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence)
+                        rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence, require_evidence=requires_evidence)
                 except LMStudioError as exc:
-                    raise HTTPException(503, str(exc)) from exc
+                    raise transport_failure(exc, "grounding", attempt + 1) from exc
+                if requires_evidence and not rejection_reason:
+                    heuristic_overrides.append("unsupported_claim_with_verified_owner_evidence")
+            if rejection_reason:
+                rejection_history.append(rejection_reason)
             logger.info(
                 "suggestion_generation_attempt attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s",
                 attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
@@ -476,10 +521,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "invalid_context_review_format": "LM Studio devolvió una revisión contextual inválida tras un reintento.",
                 "review_language_mismatch": "La revisión contextual detectó un idioma incorrecto tras un reintento.",
             }.get(rejection_reason, "LM Studio no pudo producir una respuesta válida tras un reintento.")
-            raise HTTPException(
-                502,
-                f"{detail} Puedes intentarlo de nuevo.",
-            )
+            raise PipelineFailure(rejection_reason or "empty_response", rejection_stage, 2, f"{detail} Puedes intentarlo de nuevo.")
         if any(code != language_decision.code for code, _ in (classify_language(text) for text in alternatives)):
             raise HTTPException(
                 502,
@@ -496,7 +538,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         translation_failure_stage = None
         if language_decision.code != "es":
             translation = await translate_and_review(
-                client, original=original_response, language=language_decision.name,
+                client, original=original_response, language=language_decision.name, source_context=request.message,
             )
             spanish_translation = translation.text
             translation_failure_reason = translation.failure_reason
@@ -522,6 +564,11 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             spanish_translation=spanish_translation, interlocutor=alias, notice=notice,
             memory_available=bool(alias),
             diagnostics=SuggestionDiagnostics(
+                generation_attempts=attempt + 1,
+                rejection_history=rejection_history,
+                review_format_repairs=review_format_repairs,
+                heuristic_overrides=heuristic_overrides,
+                draft_repairs=draft_repairs,
                 translation_retry_token=translation_retry_token,
                 translation_attempts=translation_attempts,
                 translation_failure_stage=translation_failure_stage,

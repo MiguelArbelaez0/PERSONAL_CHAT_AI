@@ -2,7 +2,7 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado:** `v1.1.0-rc.1`, candidata a revisión en `develop`; no es una versión estable. La validación real en Chrome/Stripchat y LM Studio está pendiente. Backend local en `127.0.0.1:8765`, sin cambios en los puertos ni en el contrato API v1 existente.
+> **Estado:** `v1.1.0-rc.1` en desarrollo; todavía bloqueada para aprobación como estable. LM Studio real se probó repetidamente con datos sintéticos; Chrome/Stripchat real sigue pendiente. Consulta el [cierre vigente y sus resultados completos](docs/CLOSURE_2026_10_21.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
 
 Las correcciones posteriores a las pruebas manuales añaden controles de evidencia, copia parcial, repetición y reparación de traducciones. Las pruebas reales todavía presentan rechazos intermitentes y matices de traducción que requieren revisión humana. Consulta el [informe de los cuatro casos](docs/RC1_REAL_CASES.md); no se considera todavía una candidata completamente fiable.
 
@@ -59,10 +59,10 @@ No se incluyen ni descargan modelos. Revisa la licencia del modelo elegido antes
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
    python -m pip install -r requirements.txt
-   Copy-Item .env.example .env
+   if (-not (Test-Path .env)) { Copy-Item .env.example .env }
    ```
 
-3. En LM Studio, carga un modelo y activa el servidor local compatible con OpenAI en `http://127.0.0.1:1234/v1`.
+3. En LM Studio, carga `qwen/qwen3-4b-2507` y activa el servidor local compatible con OpenAI en `http://127.0.0.1:1234/v1`. Configura `LM_STUDIO_MODEL=qwen/qwen3-4b-2507` en tu `.env` sin reemplazar otros valores privados.
 4. Inicia el backend:
 
    ```powershell
@@ -102,7 +102,7 @@ La app estima tokens sin conocer el tokenizador ni la ventana real del modelo. A
 
 ## Idioma y traducción
 
-La respuesta original se genera primero. Si su idioma no es español, el backend solicita una traducción independiente y revisa el idioma y la fidelidad. Si falla la traducción, conserva el original y permite reintentar solo esa traducción. Hay un reintento interno acotado, pero los resultados automatizados usan modelos simulados: los fallos intermitentes observados no se deben considerar resueltos hasta probar con LM Studio real.
+La respuesta original se genera primero. Si su idioma no es español, el backend solicita una traducción independiente y revisa el idioma y la fidelidad. Si falla la traducción, conserva el original y permite reintentar solo esa traducción. Hay un reintento interno acotado. Las suites simuladas y las repeticiones con LM Studio real están documentadas por separado en el [informe actual](docs/STABILIZATION_2026_10_21.md); permanecen fallos intermitentes y límites semánticos.
 
 Se prioriza el idioma del mensaje entrante objetivo. Para mensajes ambiguos se usan mensajes entrantes recientes y, finalmente, `DEFAULT_LANGUAGE`. Los controles locales rechazan idiomas incorrectos, mezclas reconocibles y repeticiones; permiten un solo reintento de generación. El detector es heurístico: expresiones desconocidas pueden escapar a sus controles o rechazarse por ambigüedad.
 
@@ -130,7 +130,7 @@ La [política de privacidad](docs/PRIVACY.md) y la [auditoría de seguridad](doc
 - El idioma, la naturalidad, los roles conversacionales y la traducción dependen del modelo y requieren revisión humana.
 - No hay instalador, paquete de extensión para Chrome Web Store, actualizador ni gestión de modelos.
 - El backend no autentica llamadas locales; el acceso se limita a loopback y no hay soporte remoto.
-- La publicación está pendiente de migrar las referencias antiguas del repositorio público con autorización y completar la validación manual en Chrome/Stripchat y la generación real con LM Studio. Las pruebas HTTP/ASGI pasaron en un entorno aislado compatible; ver [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+- La publicación está pendiente de resolver los problemas de calidad registrados con LM Studio real, completar la validación humana en Chrome/Stripchat y decidir la licencia. Las referencias antiguas de migración se conservan como historial documental; esta tarea no cambió la configuración remota. Véase [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Pruebas
 

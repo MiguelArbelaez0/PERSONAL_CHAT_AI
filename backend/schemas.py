@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
 
 
@@ -32,6 +32,14 @@ class SuggestRequest(BaseModel):
         if not isinstance(values, dict):
             return values
         values = dict(values)
+        for canonical, legacy in (("target_message", "message"), ("conversation_history", "context"), ("interlocutor_alias", "interlocutor")):
+            new, old = values.get(canonical), values.get(legacy)
+            if new is not None and old not in (None, ""):
+                same = new == old
+                if canonical == "interlocutor_alias" and isinstance(new, str) and isinstance(old, str):
+                    same = " ".join(new.casefold().split()) == " ".join(old.casefold().split())
+                if not same:
+                    raise ValueError("Campos canónicos y heredados contradictorios: " + canonical)
         values["message"] = values.get("target_message") or values.get("message") or ""
         values["target_message"] = values.get("target_message") or values["message"]
         values["context"] = values.get("conversation_history") if values.get("conversation_history") is not None else values.get("context", "")
@@ -42,6 +50,7 @@ class SuggestRequest(BaseModel):
 
 
 class NoteInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
     text: str = Field(min_length=1, max_length=1000)
 
 
@@ -78,6 +87,11 @@ class KnowledgeSourceDiagnostic(BaseModel):
 
 
 class SuggestionDiagnostics(BaseModel):
+    generation_attempts: int = 1
+    rejection_history: list[str] = Field(default_factory=list)
+    review_format_repairs: int = 0
+    heuristic_overrides: list[str] = Field(default_factory=list)
+    draft_repairs: list[str] = Field(default_factory=list)
     translation_retry_token: str | None = None
     translation_attempts: int = 0
     translation_failure_stage: str | None = None

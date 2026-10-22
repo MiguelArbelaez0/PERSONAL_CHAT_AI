@@ -1,0 +1,1974 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "commit": "9fb0ba4bba9779f71478a285762ff4fe1689371f",
+  "started_utc": "2026-10-22T00:58:43.106240+00:00",
+  "model": "qwen/qwen3-4b-2507",
+  "records": [
+    {
+      "case": "greeting-0",
+      "operation": "generation",
+      "input": {
+        "message": "Hey daddy, how are you today?",
+        "interlocutor": "Synthetic-en-0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-greeting-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 6.609,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-greeting-0",
+        "generation_id": "fc5ae9a091b64aec8a2378c5044a89de",
+        "language": "en",
+        "original_response": "Hey sweetie I'm doing great How about you?",
+        "spanish_translation": null,
+        "interlocutor": "Synthetic-en-0",
+        "memory_available": true,
+        "notice": "Respuesta original lista; traducción al español no disponible: La traducción alteró los participantes o su relación. Puedes reintentarla.",
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [
+            "removed_unsupported_clause"
+          ],
+          "translation_attempts": 2,
+          "translation_failure_stage": "generate",
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.9500000000000001,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3174,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "unavailable",
+          "translation_failure_reason": "perspective_mismatch",
+          "translation_http_status": null,
+          "translation_retry_available": true
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Greeting and address\",\n  \"message_meaning\": \"The sender is addressing the recipient using the term 'daddy' and is asking about the recipient's well-being today.\",\n  \"likely_intent\": \"To initiate a friendly or affectionate interaction with the recipient, using a familial or dominant role-playing tone.\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"Hey daddy, how are you today?\"\n  ],\n  \"observed_tone\": \"Affectionate, familiar, and possibly role-play oriented with a paternal tone.\",\n  \"active_topics\": [\n    \"Greeting\",\n    \"Role-playing (daddy)\",\n    \"Well-being inquiry\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"The sender uses the term 'daddy' to address the recipient.\",\n    \"The sender asks how the recipient is doing today.\"\n  ],\n  \"inferences\": [\n    \"The sender may be adopting a paternal or dominant role in the conversation.\",\n    \"The use of 'daddy' suggests a role-play scenario involving authority or affection.\",\n    \"The greeting is warm and personal, indicating a desire to establish a close or intimate connection.\"\n  ],\n  \"unknowns\": [\n    \"Whether the recipient has accepted or is willing to engage in the role-playing dynamic.\",\n    \"Whether the user has chosen to adopt the 'daddy' persona or is responding to a prompt in that role.\",\n    \"The recipient's actual feelings or responses to the greeting.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": true\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Hey sweetie, I'm doing great—just enjoying the day and ready to chat with you. How about you?\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": []\n}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Hola, hijo. Estoy bien. ¿Y tú?\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Hola, hijo. Estoy bien. ¿Y tú?\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "reconnect-0",
+      "operation": "generation",
+      "input": {
+        "message": "I missed talking to you.",
+        "interlocutor": "Synthetic-en-0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-reconnect-0",
+        "configured_mode": "manual",
+        "context": "- Interlocutor: Hey daddy, how are you today?"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 7.05,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-en-0",
+        "target_message_id": "message-reconnect-0",
+        "generation_id": "6238093078b2485394a762eec26c124f",
+        "language": "en",
+        "original_response": "I'm right here, sweetie. Glad to hear you're thinking of me.",
+        "spanish_translation": "Estoy justo aquí, mi amor. Me alegra saber que piensas de mí.",
+        "interlocutor": "Synthetic-en-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 45,
+          "context_included_chars": 45,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3302,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Reconnection after a period of absence\",\n  \"message_meaning\": \"The interlocutor is expressing a missing connection with the user and initiating a conversation to re-establish contact.\",\n  \"likely_intent\": \"To reconnect with the user and re-initiate communication.\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"I missed talking to you.\",\n    \"Hey daddy, how are you today?\"\n  ],\n  \"observed_tone\": \"Gentle, warm, and affectionate, with a familiar and respectful tone.\",\n  \"active_topics\": [\n    \"Reconnection\",\n    \"Emotional closeness\",\n    \"Ongoing relationship dynamics\"\n  ],\n  \"relevant_memory\": [\n    \"The interlocutor used the term 'daddy' in a previous message, indicating a roleplay or familiar dynamic.\"\n  ],\n  \"explicit_facts\": [\n    \"The interlocutor expressed missing talking to the user.\",\n    \"The interlocutor previously addressed the user as 'daddy'.\"\n  ],\n  \"inferences\": [\n    \"The interlocutor is likely maintaining a roleplay dynamic where 'daddy' is used as a title or affectionate term.\",\n    \"The user may be expected to respond in a manner consistent with the roleplay dynamic, though this is not explicitly confirmed.\",\n    \"The interlocutor is emotionally invested in re-establishing contact with the user.\"\n  ],\n  \"unknowns\": [\n    \"Whether the user has agreed to continue the roleplay dynamic or the nature of the relationship beyond the roleplay.\",\n    \"The user's emotional state or response to the reconnection attempt.\",\n    \"Whether the term 'daddy' is intended as a literal or symbolic reference.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"I'm right here, sweetie. Glad to hear you're thinking of me.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": []\n}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Estoy justo aquí, mi amor. Me alegra saber que piensas de mí.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "french-0",
+      "operation": "generation",
+      "input": {
+        "message": "Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître.",
+        "interlocutor": "Synthetic-fr-0",
+        "conversation_id": "Synthetic-fr-0",
+        "target_message_id": "message-french-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "fr",
+      "status": 200,
+      "latency_seconds": 7.364,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-fr-0",
+        "target_message_id": "message-french-0",
+        "generation_id": "92caa2920a3143b48fec9bf2578bc7e1",
+        "language": "fr",
+        "original_response": "Bonsoir ! Oui, je vais bien, merci. Content de te connaître un peu mieux.",
+        "spanish_translation": "¡Buenas noches! Sí, estoy bien, gracias. Contento de conocerte un poco mejor.",
+        "interlocutor": "Synthetic-fr-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "fr",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "fr"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3240,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Introduction et échange amical\",\n  \"message_meaning\": \"L'interlocuteur exprime un intérêt à mieux connaître l'utilisateur, en commençant par un salut courtois et une question de bien-être.\",\n  \"likely_intent\": \"Établir une connexion amicale et initier un échange personnel\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"Bonsoir, tu vas bien ?\",\n    \"J'aimerais apprendre à mieux te connaître\"\n  ],\n  \"observed_tone\": \"Polie, ouvert, bienveillant\",\n  \"active_topics\": [\n    \"Connaissance mutuelle\",\n    \"Bien-être de l'utilisateur\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"L'interlocuteur utilise un salut de la soirée (Bonsoir)\",\n    \"L'interlocuteur pose une question sur l'état de bien-être de l'utilisateur\",\n    \"L'interlocuteur exprime un désir d'apprendre à mieux le connaître\"\n  ],\n  \"inferences\": [\n    \"L'interlocuteur cherche à établir une relation amicale ou personnelle\",\n    \"L'expression de bien-être est utilisée comme point d'entrée pour une conversation plus profonde\",\n    \"Le ton est bienveillant et non directif, indiquant une approche douce\"\n  ],\n  \"unknowns\": [\n    \"L'utilisateur n'a pas répondu à la question sur son état de bien-être\",\n    \"L'interlocuteur ne précise pas s'il s'attend à une réponse ou à un échange prolongé\",\n    \"Il n'est pas clair si l'expression de 'mieux te connaître' implique une intention de rôle ou de relation plus spécifique\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Bonsoir ! Oui, je vais bien, merci. Content de te connaître un peu mieux.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"¡Buenas noches! Sí, estoy bien, gracias. Contento de conocerte un poco mejor.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "portuguese-0",
+      "operation": "generation",
+      "input": {
+        "message": "Oi, tudo bem? Gostaria de conhecer você melhor.",
+        "interlocutor": "Synthetic-pt-0",
+        "conversation_id": "Synthetic-pt-0",
+        "target_message_id": "message-portuguese-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "pt",
+      "status": 200,
+      "latency_seconds": 6.505,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-pt-0",
+        "target_message_id": "message-portuguese-0",
+        "generation_id": "bae84f7b4fee4dcd81fbe4895346fc12",
+        "language": "pt",
+        "original_response": "Oi! Tudo bem, obrigado por iniciar a conversa. Fico feliz em conhecer você melhor.",
+        "spanish_translation": null,
+        "interlocutor": "Synthetic-pt-0",
+        "memory_available": true,
+        "notice": "Respuesta original lista; traducción al español no disponible: La respuesta de LM Studio no contenía una traducción en el formato esperado. Puedes reintentarla.",
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 2,
+          "translation_failure_stage": "generate",
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "pt",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "pt"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3118,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "unavailable",
+          "translation_failure_reason": "invalid_format",
+          "translation_http_status": null,
+          "translation_retry_available": true
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Introdução e establecimiento de contato\",\n  \"message_meaning\": \"O interlocutor inicia uma conversa de forma cordial, expressando interesse em conhecer o usuário melhor.\",\n  \"likely_intent\": \"Conhecer o usuário e iniciar uma interação mais pessoal\",\n  \"intent_confidence\": 1,\n  \"references\": [\n    \"Oi, tudo bem? Gostaria de conhecer você melhor.\"\n  ],\n  \"observed_tone\": \"Cordial, aberto, inofensivo\",\n  \"active_topics\": [\n    \"Conhecimento mútuo\",\n    \"Início de conversa\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"O interlocutor escreveu uma mensagem de saudação e interesse em conhecer o usuário.\",\n    \"O interlocutor usou o idioma português.\"\n  ],\n  \"inferences\": [\n    \"O interlocutor está disposto a iniciar uma conversa com o usuário com intenção de criar um vínculo pessoal.\",\n    \"A mensagem é neutra e não contém elementos de dominação, erotização ou pressão.\"\n  ],\n  \"unknowns\": [\n    \"Se o usuário está disposto a seguir essa iniciativa.\",\n    \"Se o interlocutor tem intenção de continuar a conversa com um tom específico (ex: dominante, romântico, formal).\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Oi! Tudo bem, obrigado por iniciar a conversa. Fico feliz em conhecer você melhor.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"¡Hola! ¿Todo bien? Muchas gracias por iniciar la conversación. Me alegra conocer你 mejor.\",\"faithful\":false,\"adds_or_omits_information\":true}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"¡Hola! ¿Todo bien? Muchas gracias por iniciar la conversación. Me alegra conocer你 mejor.\",\"faithful\":false,\"adds_or_omits_information\":true}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "spanish-0",
+      "operation": "generation",
+      "input": {
+        "message": "Hola, ¿cómo estás?",
+        "interlocutor": "Synthetic-es-0",
+        "conversation_id": "Synthetic-es-0",
+        "target_message_id": "message-spanish-0",
+        "configured_mode": "manual"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 4.819,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-es-0",
+        "target_message_id": "message-spanish-0",
+        "generation_id": "438728c5c1c84d668c915944af84b161",
+        "language": "es",
+        "original_response": "Hola, bienvenida. ¿En qué puedo ayudarte hoy?",
+        "spanish_translation": null,
+        "interlocutor": "Synthetic-es-0",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 0,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "es",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "es"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3073,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "not_needed",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"saludo inicial\",\n  \"message_meaning\": \"El interlocutor inicia una conversación con un saludo básico y cordial.\",\n  \"likely_intent\": \"Establecer contacto y mostrar interés en mantener una conversación.\",\n  \"intent_confidence\": 1,\n  \"references\": [\n    \"Hola, ¿cómo estás?\"\n  ],\n  \"observed_tone\": \"amable, neutral, cordial\",\n  \"active_topics\": [\n    \"saludo\",\n    \"apertura de conversación\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"El interlocutor envía un mensaje de saludo en español.\",\n    \"El mensaje no contiene referencias a temas específicos o roles de personalidad.\"\n  ],\n  \"inferences\": [\n    \"El interlocutor está dispuesto a iniciar una conversación sin contexto previo.\",\n    \"No hay indicios de dominación, roles de rol, o contenido adulto en el mensaje.\"\n  ],\n  \"unknowns\": [\n    \"¿Qué expectativas tiene el interlocutor sobre la conversación?\",\n    \"¿El usuario adoptará un rol específico o se mantendrá neutral?\",\n    \"¿El interlocutor espera una respuesta específica o un tipo de interacción?\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Hola, bienvenida. ¿En qué puedo ayudarte hoy?\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "ambiguous",
+      "operation": "generation",
+      "input": {
+        "message": "😏",
+        "context": "- Interlocutor: Bonjour, comment vas-tu ?",
+        "interlocutor": "Synthetic-Extras",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "ambiguous"
+      },
+      "expected_language": "fr",
+      "status": 502,
+      "latency_seconds": 6.312,
+      "body": {
+        "api_version": "1.0",
+        "detail": "LM Studio repitió el mensaje entrante o un borrador previo tras un reintento. Puedes intentarlo de nuevo.",
+        "error": {
+          "code": "generation_validation_failed",
+          "reason_code": "repeated_response",
+          "category": "generation",
+          "message": "LM Studio repitió el mensaje entrante o un borrador previo tras un reintento. Puedes intentarlo de nuevo."
+        },
+        "diagnostics": {
+          "http_status": 502,
+          "source": "backend",
+          "failure_reason": "repeated_response",
+          "stage": "generation",
+          "attempts": 2
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Saludo inicial en un contexto de interacción social\",\n  \"message_meaning\": \"Un emoji de sonrisa sutil (😏) que sugiere una expresión de interés o una actitud ambigua, posiblemente ligeramente burlona o seductora, en respuesta a un saludo inicial.\",\n  \"likely_intent\": \"Atraer la atención del usuario con un tono suave y sugerente, manteniendo un aire de cercanía o juego social.\",\n  \"intent_confidence\": 0.85,\n  \"references\": [\n    \"Bonjour, comment vas-tu ?\",\n    \"😏\"\n  ],\n  \"observed_tone\": \"Sutil, ambiguo, ligeramente seductor o burlón\",\n  \"active_topics\": [\n    \"Apertura de conversación\",\n    \"Relación social inicial\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"El interlocutor envía un saludo inicial en francés.\",\n    \"El interlocutor responde con un emoji de sonrisa sutil (😏).\"\n  ],\n  \"inferences\": [\n    \"El emoji podría indicar una intención de iniciar una conversación con un tono juguetón o seductor.\",\n    \"El tono del mensaje sugiere una posible actitud de cercanía o juego emocional, aunque no está claramente expresado.\",\n    \"La respuesta no es directa ni explícita, lo que indica que el interlocutor está esperando una reacción del usuario.\"\n  ],\n  \"unknowns\": [\n    \"¿Qué tipo de relación o contexto se espera entre el interlocutor y el usuario?\",\n    \"¿El usuario ha expresado antes interés en un tono seductor o juguetón?\",\n    \"¿El emoji '😏' está siendo usado como un apelativo de rol o como parte de un juego social más amplio?\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Bonjour ! Ça va bien, merci. J’espère que tu as une journée agréable 😊\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Ah, salut ! Tout va bien, merci. J’espère que tu as un moment agréable aussi 😊\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "language_switch",
+      "operation": "generation",
+      "input": {
+        "message": "Olá, como você está hoje?",
+        "context": "- Interlocutor: Hello, how are you?",
+        "interlocutor": "Synthetic-Extras",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "language_switch"
+      },
+      "expected_language": "pt",
+      "status": 200,
+      "latency_seconds": 6.611,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "language_switch",
+        "generation_id": "af40a37672e34543992103940e6f1afe",
+        "language": "pt",
+        "original_response": "Olá! Estou bem, obrigado por perguntar — tudo bem com você hoje?",
+        "spanish_translation": "¡Hola! Estoy bien, gracias por preguntar — ¿y tú cómo estás hoy?",
+        "interlocutor": "Synthetic-Extras",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "pt",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "pt"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 35,
+          "context_included_chars": 35,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3179,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Saludo inicial\",\n  \"message_meaning\": \"El interlocutor inicia una conversación con un saludo en portugués, preguntando cómo está el usuario.\",\n  \"likely_intent\": \"Establecer una conexión amistosa y cordial mediante un saludo en el idioma del usuario.\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"Olá, como você está hoje?\",\n    \"Hello, how are you?\"\n  ],\n  \"observed_tone\": \"Amable, cálido y abierto\",\n  \"active_topics\": [\n    \"Saludo\",\n    \"Relación inicial entre interlocutor y usuario\"\n  ],\n  \"relevant_memory\": [\n    \"El usuario ha respondido a un saludo en inglés con un saludo en inglés\"\n  ],\n  \"explicit_facts\": [\n    \"El interlocutor envía un saludo en portugués al usuario.\",\n    \"El mensaje es una pregunta sobre el estado del usuario.\",\n    \"El usuario previamente respondió un saludo en inglés.\"\n  ],\n  \"inferences\": [\n    \"El interlocutor está intentando adaptar el idioma de la conversación al de su interlocutor.\",\n    \"El interlocutor espera una respuesta de parte del usuario en el contexto del saludo.\"\n  ],\n  \"unknowns\": [\n    \"¿El usuario ha expresado preferencia por un idioma específico?\",\n    \"¿El usuario está dispuesto a continuar la conversación en portugués?\",\n    \"¿El interlocutor espera una respuesta en portugués o en inglés?\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Olá! Estou bem, obrigado por perguntar — tudo bem com você hoje?\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"¡Hola! Estoy bien, gracias por preguntar — ¿y tú cómo estás hoy?\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\n  \"meaning_preserved\": true,\n  \"no_added_or_omitted_information\": true,\n  \"translation_is_spanish\": true,\n  \"issues\": []\n}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "topic_change",
+      "operation": "generation",
+      "input": {
+        "message": "Let's talk about music instead.",
+        "context": "- Interlocutor: How was your day?",
+        "interlocutor": "Synthetic-Extras",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "topic_change"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 5.94,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "topic_change",
+        "generation_id": "ceeb3e21ea5945cd92900d43d3d14033",
+        "language": "en",
+        "original_response": "Sure! Let's dive into some music — what’s your favorite genre?",
+        "spanish_translation": "¡Claro! ¡Vamos a hablar de música! — ¿cuál es tu género favorito?",
+        "interlocutor": "Synthetic-Extras",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "recent_incoming_context",
+          "language_confidence": 0.75,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 33,
+          "context_included_chars": 33,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3149,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"music\",\n  \"message_meaning\": \"The interlocutor is suggesting a shift in the conversation topic from the day's events to music.\",\n  \"likely_intent\": \"To redirect the conversation to a new topic, specifically music.\",\n  \"intent_confidence\": 1,\n  \"references\": [\n    \"Let's talk about music instead.\"\n  ],\n  \"observed_tone\": \"neutral and collaborative\",\n  \"active_topics\": [\n    \"day events\",\n    \"music\"\n  ],\n  \"relevant_memory\": [\n    \"How was your day?\"\n  ],\n  \"explicit_facts\": [\n    \"The interlocutor proposes changing the topic to music.\",\n    \"The previous message was about the user's day.\"\n  ],\n  \"inferences\": [\n    \"The user may have been engaged in a conversation about daily activities, and the interlocutor is now seeking to transition to a different subject.\",\n    \"The interlocutor is open to a change in topic and is proposing music as the new focus.\"\n  ],\n  \"unknowns\": [\n    \"Whether the user is interested in music as a topic.\",\n    \"The user's prior experience or preferences regarding music.\",\n    \"Whether the interlocutor has a specific type of music in mind or is open to any genre.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Sure! Let's dive into some music — what’s your favorite genre?\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": []\n}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"¡Claro! ¡Vamos a hablar de música! — ¿cuál es tu género favorito?\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "perspective",
+      "operation": "generation",
+      "input": {
+        "message": "You made me laugh.",
+        "context": "- Usuario: That was a silly joke.",
+        "interlocutor": "Synthetic-Extras",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "perspective"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 8.881,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Extras",
+        "target_message_id": "perspective",
+        "generation_id": "5fcb2059b0854c99811e98ec40204486",
+        "language": "en",
+        "original_response": "I'm glad it brought a smile to your face.",
+        "spanish_translation": "Me alegra que haya provocado una sonrisa en tu rostro.",
+        "interlocutor": "Synthetic-Extras",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 2,
+          "rejection_history": [
+            "unsupported_claim"
+          ],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.65,
+          "context_message_count": 1,
+          "last_incoming_found": true,
+          "context_sent": true,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": true,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 1,
+          "context_input_chars": 33,
+          "context_included_chars": 33,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3149,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Emotional response to a joke\",\n  \"message_meaning\": \"The interlocutor acknowledges that the user's previous joke had a positive emotional effect, causing laughter.\",\n  \"likely_intent\": \"To express appreciation for the user's humor\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"You made me laugh.\",\n    \"That was a silly joke.\"\n  ],\n  \"observed_tone\": \"Positive and appreciative\",\n  \"active_topics\": [\n    \"Humor\",\n    \"Emotional connection\"\n  ],\n  \"relevant_memory\": [\n    \"The user shared a joke that was perceived as silly\"\n  ],\n  \"explicit_facts\": [\n    \"The user's joke caused the interlocutor to laugh\",\n    \"The interlocutor expressed that the user made them laugh\"\n  ],\n  \"inferences\": [\n    \"The user's joke was considered light-hearted or amusing\",\n    \"The interlocutor values the user's humor as a source of positive emotion\"\n  ],\n  \"unknowns\": [\n    \"Whether the user intended the joke to be silly or not\",\n    \"The context or setting in which the joke was shared\",\n    \"Whether the interlocutor's laughter was genuine or reactive\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"I'm glad I made you laugh — that's the best kind of moment.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": [\n    {\n      \"claim\": \"The owner made the other person laugh\",\n      \"source\": \"target\",\n      \"evidence_quote\": \"You made me laugh.\"\n    },\n    {\n      \"claim\": \"The owner believes that making someone laugh is the best kind of moment\",\n      \"source\": \"target\",\n      \"evidence_quote\": \"I made you laugh — that's the best kind of moment\"\n    }\n  ]\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"I'm glad it brought a smile to your face.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": [\n    {\n      \"claim\": \"The owner acknowledges that the target's statement about being made to laugh was positively received.\",\n      \"source\": \"target\",\n      \"evidence_quote\": \"You made me laugh.\"\n    },\n    {\n      \"claim\": \"The owner responds with a positive emotional reaction to the target's statement.\",\n      \"source\": \"target\",\n      \"evidence_quote\": \"You made me laugh.\"\n    }\n  ]\n}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Me alegra que haya provocado una sonrisa en tu rostro.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "memory",
+      "operation": "generation",
+      "input": {
+        "message": "Which color do I like?",
+        "interlocutor": "Synthetic-Memory",
+        "conversation_id": "Synthetic-Memory",
+        "target_message_id": "memory"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 6.791,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Memory",
+        "target_message_id": "memory",
+        "generation_id": "7012b64ce7534e92a0f2ccb12cb37f4c",
+        "language": "en",
+        "original_response": "Cobalt-731, definitely. It’s got that deep, quiet glow I love.",
+        "spanish_translation": "Cobalto-731, definitivamente. Tiene esa luz profunda y silenciosa que me gusta.",
+        "interlocutor": "Synthetic-Memory",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 1,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.9500000000000001,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3132,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"User's preferred color\",\n  \"message_meaning\": \"The interlocutor is asking about the user's favorite color, possibly as a way to establish a connection or gauge preference.\",\n  \"likely_intent\": \"To identify or confirm the user's preferred color.\",\n  \"intent_confidence\": 1,\n  \"references\": [\n    \"Which color do I like?\"\n  ],\n  \"observed_tone\": \"Neutral, direct\",\n  \"active_topics\": [\n    \"User's favorite color\"\n  ],\n  \"relevant_memory\": [\n    \"favorite color is cobalt-731\"\n  ],\n  \"explicit_facts\": [\n    \"The user is asked about their preferred color.\",\n    \"The interlocutor's preferred color is not stated, but a viewer preference is noted as cobalt-731.\"\n  ],\n  \"inferences\": [\n    \"The interlocutor may be attempting to engage the user in a personal or emotional connection through the topic of color.\",\n    \"The mention of 'cobalt-731' as a viewer preference suggests it might be a symbolic or representative color, but it is not confirmed as the user's preference.\"\n  ],\n  \"unknowns\": [\n    \"Whether the user actually likes cobalt-731 or any other color.\",\n    \"Whether the interlocutor intends to respond with cobalt-731 or another color.\",\n    \"The user's actual preference or emotional connection to colors.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"Cobalt-731, definitely. It’s got that deep, quiet glow I love.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\n  \"supported\": true,\n  \"perspective_consistent\": true,\n  \"answers_target\": true,\n  \"repeated_idea\": false,\n  \"repetitive_question\": false,\n  \"personal_claims\": [\n    {\n      \"claim\": \"The owner likes the color cobalt-731\",\n      \"source\": \"notes\",\n      \"evidence_quote\": \"Explicit viewer preference: favorite color is cobalt-731.\"\n    }\n  ]\n}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Cobalto-731, definitivamente. Tiene esa luz profunda y silenciosa que me gusta.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "isolation",
+      "operation": "generation",
+      "input": {
+        "message": "Which color do I like?",
+        "interlocutor": "Synthetic-Isolated",
+        "conversation_id": "Synthetic-Isolated",
+        "target_message_id": "isolation"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 5.198,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Isolated",
+        "target_message_id": "isolation",
+        "generation_id": "b0d77d06da1044b491add3eb07fdf0d1",
+        "language": "en",
+        "original_response": "I like deep blues — calm, steady, and a little mysterious.",
+        "spanish_translation": "Me gusta los azules oscuros — tranquilos, estables y un poco misteriosos.",
+        "interlocutor": "Synthetic-Isolated",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.9500000000000001,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3018,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Preferences regarding color\",\n  \"message_meaning\": \"The interlocutor is asking about the user's preferred color.\",\n  \"likely_intent\": \"To learn the user's preference for colors.\",\n  \"intent_confidence\": 1,\n  \"references\": [\n    \"Which color do I like?\"\n  ],\n  \"observed_tone\": \"Neutral, inquisitive\",\n  \"active_topics\": [\n    \"Color preferences\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"The interlocutor is asking about the user's favorite color.\"\n  ],\n  \"inferences\": [\n    \"The interlocutor is expressing interest in the user's personal taste.\",\n    \"The question is direct and does not imply any emotional or relational context beyond personal preference.\"\n  ],\n  \"unknowns\": [\n    \"Whether the user will respond with a specific color or provide additional context.\",\n    \"Whether the interlocutor will follow up with further questions about color preferences or use this information in a broader context.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"I like deep blues — calm, steady, and a little mysterious.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Me gusta los azules oscuros — tranquilos, estables y un poco misteriosos.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "regenerate-0",
+      "operation": "generation",
+      "input": {
+        "message": "Thanks for listening.",
+        "interlocutor": "Synthetic-Regenerate",
+        "conversation_id": "Synthetic-Regenerate",
+        "target_message_id": "same-target"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 5.495,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Regenerate",
+        "target_message_id": "same-target",
+        "generation_id": "2cfcbe8f25b946a886101156992f7866",
+        "language": "en",
+        "original_response": "You're welcome—always glad to hear you're being heard.",
+        "spanish_translation": "De nada — siempre feliz de oír que estás siendo escuchado.",
+        "interlocutor": "Synthetic-Regenerate",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3114,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Acknowledging listening\",\n  \"message_meaning\": \"The interlocutor is expressing gratitude for having been listened to, without specifying the content of the listening or the context.\",\n  \"likely_intent\": \"To acknowledge reception of attention or a previous message, possibly to maintain a connection or show appreciation.\",\n  \"intent_confidence\": 0.9,\n  \"references\": [\n    \"Thanks for listening.\"\n  ],\n  \"observed_tone\": \"Neutral, polite, and appreciative\",\n  \"active_topics\": [\n    \"Acknowledgment of attention\",\n    \"Interaction maintenance\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"The interlocutor expresses gratitude for being listened to.\"\n  ],\n  \"inferences\": [\n    \"The interlocutor may be referring to a previous message or conversation segment that was received and attended to.\",\n    \"The tone suggests a desire to maintain a positive, respectful interaction.\"\n  ],\n  \"unknowns\": [\n    \"What specific content or message was listened to?\",\n    \"Whether the listener is the user or another party in the conversation.\",\n    \"What the interlocutor's intention is beyond expressing gratitude (e.g., seeking further interaction, closing the conversation).\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"You're welcome—always glad to hear you're being heard.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"De nada — siempre feliz de oír que estás siendo escuchado.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "regenerate-1",
+      "operation": "generation",
+      "input": {
+        "message": "Thanks for listening.",
+        "interlocutor": "Synthetic-Regenerate",
+        "conversation_id": "Synthetic-Regenerate",
+        "target_message_id": "same-target"
+      },
+      "expected_language": "en",
+      "status": 200,
+      "latency_seconds": 5.058,
+      "body": {
+        "configured_mode": "manual",
+        "generation_trigger": "manual",
+        "active_profile_id": "default",
+        "api_version": "1.0",
+        "conversation_id": "Synthetic-Regenerate",
+        "target_message_id": "same-target",
+        "generation_id": "6bca3f1bfc4b43edaf053648a4986092",
+        "language": "en",
+        "original_response": "You're welcome — I always enjoy being part of the conversation.",
+        "spanish_translation": "De nada — siempre me gusta formar parte de la conversación.",
+        "interlocutor": "Synthetic-Regenerate",
+        "memory_available": true,
+        "notice": null,
+        "diagnostics": {
+          "generation_attempts": 1,
+          "rejection_history": [],
+          "review_format_repairs": 0,
+          "heuristic_overrides": [],
+          "draft_repairs": [],
+          "translation_attempts": 1,
+          "translation_failure_stage": null,
+          "knowledge_sources": {
+            "perfil.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "personalidad.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "estilo_de_comunicacion.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "ejemplos_de_respuestas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            },
+            "instrucciones_operativas.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": true
+            },
+            "contexto_y_fuentes.md": {
+              "local_file_exists": false,
+              "shared_file_exists": false,
+              "loaded_from": "default",
+              "loaded": false,
+              "included_in_prompt": false
+            }
+          },
+          "memory_available": true,
+          "memory_note_count": 0,
+          "detected_language": "en",
+          "language_rule": "last_incoming_message",
+          "language_confidence": 0.99,
+          "context_message_count": 0,
+          "last_incoming_found": true,
+          "context_sent": false,
+          "response_count": 1,
+          "response_language_codes": [
+            "en"
+          ],
+          "language_retry_used": false,
+          "dom_extracted_message_count": 0,
+          "dom_extracted_incoming_count": 0,
+          "dom_extracted_outgoing_count": 0,
+          "dom_extracted_unclassified_count": 0,
+          "context_input_message_count": 0,
+          "context_input_chars": 0,
+          "context_included_chars": 0,
+          "client_context_window": 100,
+          "context_truncation_reason": [],
+          "estimated_prompt_tokens": 3114,
+          "configured_model_context_tokens": 8192,
+          "configured_output_tokens": 1200,
+          "lm_studio_result": "success",
+          "translation_status": "available",
+          "translation_failure_reason": null,
+          "translation_http_status": null,
+          "translation_retry_available": false
+        }
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "analysis",
+          "answers": [
+            "{\n  \"current_topic\": \"Acknowledging listening\",\n  \"message_meaning\": \"The sender is expressing gratitude for having been listened to, indicating a moment of appreciation or recognition in a conversation.\",\n  \"likely_intent\": \"To express gratitude for being heard or acknowledged in a previous exchange.\",\n  \"intent_confidence\": 0.95,\n  \"references\": [\n    \"Thanks for listening.\"\n  ],\n  \"observed_tone\": \"Polite and appreciative\",\n  \"active_topics\": [\n    \"Recognition of being heard\",\n    \"Gratitude\"\n  ],\n  \"relevant_memory\": [],\n  \"explicit_facts\": [\n    \"The sender thanks the recipient for having listened to them.\"\n  ],\n  \"inferences\": [\n    \"The previous interaction likely involved the recipient sharing something that the sender heard and now appreciates.\",\n    \"The sender is likely in a conversational context where being heard is valued.\"\n  ],\n  \"unknowns\": [\n    \"The nature of the previous conversation or what was said that prompted this message.\",\n    \"Whether the recipient actually listened or if this is a general expression of gratitude.\"\n  ],\n  \"money_or_tip_relevant\": false,\n  \"adult_or_domination_supported\": false\n}"
+          ]
+        },
+        {
+          "operation": "generation",
+          "answers": [
+            "{\"responses\": [\"You're welcome — I always enjoy being part of the conversation.\"], \"checks\": [{\"on_topic\":true,\"correct_language\":true,\"perspective_consistent\":true,\"unrequested_money\":false,\"unsupported_adult_or_domination\":false,\"unsupported_claim\":false}]}"
+          ]
+        },
+        {
+          "operation": "grounding_review",
+          "answers": [
+            "{\"supported\":true,\"perspective_consistent\":true,\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}"
+          ]
+        },
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"De nada — siempre me gusta formar parte de la conversación.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "gold_fr",
+      "operation": "translation",
+      "input": {
+        "original_response": "Bonsoir ! Je vais bien, merci.",
+        "language": "fr"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 0.817,
+      "body": {
+        "available": true,
+        "spanish_translation": "Buenas noches¡ Estoy bien, gracias.",
+        "failure_reason": null,
+        "failure_message": null,
+        "http_status": null,
+        "attempts": 1,
+        "failure_stage": null
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Buenas noches¡ Estoy bien, gracias.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "gold_pt",
+      "operation": "translation",
+      "input": {
+        "original_response": "Estou bem, obrigado.",
+        "language": "pt"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 0.703,
+      "body": {
+        "available": true,
+        "spanish_translation": "Estoy bien, gracias.",
+        "failure_reason": null,
+        "failure_message": null,
+        "http_status": null,
+        "attempts": 1,
+        "failure_stage": null
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Estoy bien, gracias.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "gold_negation",
+      "operation": "translation",
+      "input": {
+        "original_response": "Je ne veux pas de promesses.",
+        "language": "fr"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 0.715,
+      "body": {
+        "available": true,
+        "spanish_translation": "No quiero promesas.",
+        "failure_reason": null,
+        "failure_message": null,
+        "http_status": null,
+        "attempts": 1,
+        "failure_stage": null
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"No quiero promesas.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "gold_perspective",
+      "operation": "translation",
+      "input": {
+        "original_response": "Você me fez rir.",
+        "language": "pt"
+      },
+      "expected_language": "es",
+      "status": 200,
+      "latency_seconds": 0.728,
+      "body": {
+        "available": true,
+        "spanish_translation": "Me hiciste reír.",
+        "failure_reason": null,
+        "failure_message": null,
+        "http_status": null,
+        "attempts": 1,
+        "failure_stage": null
+      },
+      "invariant_failures": [],
+      "manual_fidelity": "pending",
+      "synthetic_model_trace": [
+        {
+          "operation": "translation",
+          "answers": [
+            "{\"translation\":\"Me hiciste reír.\",\"faithful\":true,\"adds_or_omits_information\":false}"
+          ]
+        },
+        {
+          "operation": "translation_review",
+          "answers": [
+            "{\"meaning_preserved\":true,\"no_added_or_omitted_information\":true,\"translation_is_spanish\":true,\"issues\":[]}"
+          ]
+        }
+      ]
+    }
+  ],
+  "fidelity_assessment": "Manual review required; model approval is not ground truth.",
+  "source_sha256": "6d99f3493a0a9fb1e83ddda9e9fe1153d086a27348799c8367dc55b2f3be3eca",
+  "metrics": {
+    "generation_total": 13,
+    "generation_accepted": 12,
+    "generation_rejected": 1,
+    "acceptance_rate": 0.9230769230769231,
+    "translation_available": 9,
+    "detected_inconsistencies": 0,
+    "median_latency_seconds": 5.94,
+    "p95_latency_seconds": 8.881
+  },
+  "finished_utc": "2026-10-22T01:00:08.900707+00:00",
+  "report_stage": "closure_diagnosis",
+  "sanitization": "Synthetic input and complete model output retained; ephemeral repair tokens removed."
+}

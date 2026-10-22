@@ -28,6 +28,7 @@
         : fallbacks[resolvedCode] || fallbacks.http_error;
       const normalized = new Error(safeMessage);
       normalized.code = resolvedCode;
+      normalized.reasonCode = typeof error?.reason_code === 'string' ? error.reason_code : resolvedCode;
       normalized.httpStatus = Number(status) || null;
       normalized.diagnostics = body && typeof body === 'object' && !Array.isArray(body)
         && body.diagnostics && typeof body.diagnostics === 'object' ? body.diagnostics : null;
@@ -141,7 +142,10 @@
       this.onLoading({ automatic, alias });
       let responseReceived = false;
       try {
-        const context = SuggestionFlow.prepareContextDetails(snapshot, text, {
+        const normalizeAlias = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const contextSnapshot = !automatic && aliasOverride && normalizeAlias(aliasOverride) !== normalizeAlias(snapshot?.alias)
+          ? null : snapshot;
+        const context = SuggestionFlow.prepareContextDetails(contextSnapshot, text, {
           targetFingerprint,
           windowSize: this.getContextWindow(),
           maxChars: this.getContextCharBudget(),
@@ -170,6 +174,7 @@
         responseReceived = true;
         if (controller.signal.aborted || (conversationKey && conversationKey !== this.getConversationKey())
           || (data?.conversation_id && conversationKey && data.conversation_id !== conversationKey)
+          || (typeof data?.interlocutor === 'string' && normalizeAlias(data.interlocutor) !== normalizeAlias(alias))
           || (targetFingerprint && data?.target_message_id && data.target_message_id !== targetFingerprint)
           || (targetIsIncoming && targetFingerprint && this.getLatestIncomingFingerprint() !== targetFingerprint)
           || (automatic && this.getMode() !== 'auto')) return { state: 'stale' };
@@ -197,7 +202,7 @@
         const normalized = responseReceived
           ? SuggestionFlow.normalizeApiError({ error: { code: 'render_error' } })
           : error instanceof Error
-          ? SuggestionFlow.normalizeApiError({ error: { code: error.code, message: error.message }, diagnostics: error.diagnostics }, error.httpStatus)
+          ? SuggestionFlow.normalizeApiError({ error: { code: error.code, reason_code: error.reasonCode, message: error.message }, diagnostics: error.diagnostics }, error.httpStatus)
           : SuggestionFlow.normalizeApiError(error, error?.httpStatus);
         this.onError({ automatic, alias, error: normalized, httpStatus: normalized.httpStatus });
         return { state: 'error' };

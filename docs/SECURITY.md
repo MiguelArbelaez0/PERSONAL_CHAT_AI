@@ -1,5 +1,7 @@
 # Seguridad
 
+Verificación integral vigente: [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md). Se añadió límite de cuerpo HTTP de 256 KiB, comprobado también con fragmentos sin Content-Length, y rechazo de identidades contradictorias. No se añadió autenticación ni límite global de frecuencia. Los informes LM Studio compartibles son sintéticos y omiten tokens efímeros. Los apartados históricos no certifican el estado de referencias remotas actuales.
+
 ## Alcance auditado
 
 La revisión de esta instantánea cubre permisos del manifiesto, configuración del servidor, cliente LM Studio, rutas de API, archivos incluidos y exclusiones. El escaneo Gitleaks anterior del repositorio fuente no encontró credenciales conocidas. Esta instantánea excluye `.env`, SQLite, `knowledge/local/`, cachés, entornos virtuales e informes internos. Esto reduce el riesgo detectado, pero no garantiza que un secreto desconocido no exista.
