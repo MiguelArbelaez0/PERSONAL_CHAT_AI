@@ -1,4 +1,5 @@
 import json
+from backend.roles import address_frame
 
 from backend.knowledge import CORE_FILES, OPTIONAL_FILES, select_knowledge
 
@@ -48,6 +49,7 @@ def build_context_analysis_messages(
         "NOTAS MANUALES DEL ALIAS, pueden contener inferencias:\n"
         f"{_bounded_notes(notes)}"
     )
+    user = "Autoría y destinatario del apelativo, extraídos del objetivo (no roles inferidos): " + json.dumps(address_frame(message), ensure_ascii=False) + "\n" + user
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
@@ -142,7 +144,7 @@ def build_suggestion_messages(
     user += (
         "\n\nOBJETIVO ACTUAL (es el único mensaje que debes contestar; no selecciones otro del historial):\n"
         + json.dumps({"conversation_id": conversation_id, "target_message_id": target_message_id, "interlocutor_alias": interlocutor,
-                      "detected_language": language, "text": message}, ensure_ascii=False)
+                      "detected_language": language, "role_frame": address_frame(message), "text": message}, ensure_ascii=False)
         + "\nContesta su intención con una o dos frases nuevas. No cierres con una pregunta de relleno. "
         "No rellenes el saludo con actividades, descripciones del día, horarios o sentimientos pasados sin evidencia. "
         "Un saludo cordial y disposición a conversar bastan cuando no hay otros datos."

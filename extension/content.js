@@ -383,12 +383,14 @@
         invalid_json: 'El backend respondió con JSON no válido.',
         render_error: 'La respuesta llegó, pero el panel no pudo mostrarla.',
       };
-      status.textContent = `${statusByCode[error.code] || (httpStatus ? `Falló la petición HTTP ${httpStatus}.` : 'Falló la generación.') } Puedes reintentar.`;
+      const preciseReason = error.reasonCode && error.reasonCode !== error.code && error.message;
+      status.textContent = preciseReason || `${statusByCode[error.code] || (httpStatus ? `Falló la petición HTTP ${httpStatus}.` : 'Falló la generación.') } Puedes reintentar.`;
       status.className = 'pcai-status is-error';
       detection.textContent = `Falló la generación: ${error.message || 'error del backend'}. Puedes reintentar.`;
       detection.hidden = false;
       const safeIssues = (error.diagnostics?.issues || []).map((item) => `${Array.isArray(item.path) ? item.path.join('.') : 'solicitud'}:${String(item.reason || 'validation_error')}`).slice(0, 6).join(', ');
-      const technicalSummary = `${error.reasonCode || error.code || 'error'} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
+      const duplicateSource = ['target_incoming', 'previous_unsubmitted_draft'].includes(error.diagnostics?.duplicate_source) ? ` · duplicado: ${error.diagnostics.duplicate_source}` : '';
+      const technicalSummary = `${error.reasonCode || error.code || 'error'}${duplicateSource} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
       renderAutoDiagnostic({ generation: 'fallida', http: httpStatus ? `HTTP ${httpStatus}` : 'sin respuesta HTTP', backendError: technicalSummary.slice(0, 180), lmCount: 'sin resultado' });
       showTechnicalError(technicalSummary);
       if (automatic) detection.textContent = 'Falló la generación automática; puedes reintentar desde Respuestas sugeridas.';

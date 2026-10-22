@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 
-function panel({ retryOutcomes = [] } = {}) {
+function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false } = {}) {
   const elements = new Map();
   class Element {
     constructor(tag = '') { this.tag = tag; this.value = ''; this.children = []; this.dataset = {}; this.style = {}; this.handlers = {}; }
@@ -11,7 +11,13 @@ function panel({ retryOutcomes = [] } = {}) {
       if (!elements.has(selector)) elements.set(selector, new Element());
       return elements.get(selector);
     }
-    querySelectorAll() { return []; }
+    querySelectorAll(selector) {
+      const all = []; const visit = (node) => node.children.forEach((child) => { if (!child.removed) { all.push(child); visit(child); } }); visit(this);
+      if (selector === '[data-pcai-state]') return all.filter((item) => item.dataset.pcaiState);
+      if (selector === '[data-pcai-state="loading"]') return all.filter((item) => item.dataset.pcaiState === 'loading');
+      if (selector === '.pcai-suggestion') return all.filter((item) => item.className === 'pcai-suggestion');
+      return [];
+    }
     addEventListener(name, handler) { this.handlers[name] = handler; }
     setAttribute() {}
     append(...children) { this.children.push(...children); }
@@ -19,22 +25,29 @@ function panel({ retryOutcomes = [] } = {}) {
     remove() { this.removed = true; }
   }
   const view = { copied: null, calls: [] };
-  class Flow {
+  class FixtureFlow {
     constructor(options) { view.flow = options; this.pending = new Set(); }
     cancelPending() {}
   }
+  const Flow = realFlow ? class extends require('../extension/suggestion-flow.js') {
+    constructor(options) { super(options); view.flow = options; view.coordinator = this; }
+  } : FixtureFlow;
   const profiles = [{ id: 'default', name: 'ChubbyKriz', description: '', tone: '', style: '', rules: '' }];
   let active = 'default';
   const body = new Element('body');
   const context = vm.createContext({
     window: {}, document: { body, documentElement: body, createElement: (tag) => new Element(tag) },
-    URL, PCAISuggestionFlow: Flow, confirm: () => true,
+    URL, AbortController, PCAISuggestionFlow: Flow, confirm: () => true,
     setTimeout: () => 1, clearTimeout: () => {}, console,
     chrome: { storage: { local: { get: async () => ({}), set: async () => {} } } },
     navigator: { clipboard: { writeText: async (text) => { view.copied = text; } } },
     fetch: async (url, options = {}) => {
       const path = new URL(url).pathname;
       view.calls.push({ path, method: options.method || 'GET', payload: options.body ? JSON.parse(options.body) : null });
+      if (path === '/api/suggestions') {
+        const outcome = generationOutcomes.shift();
+        return { ok: outcome.status < 400, status: outcome.status, text: async () => JSON.stringify(outcome.body) };
+      }
       let result = {};
       if (path === '/api/translation/retry') {
         result = retryOutcomes.shift();
@@ -56,6 +69,32 @@ function panel({ retryOutcomes = [] } = {}) {
   vm.runInContext(fs.readFileSync(require.resolve('../extension/content.js'), 'utf8'), context);
   return { view, get: (id) => elements.get(`#pcai-${id}`) };
 }
+
+test('real flow and panel leave loading after 502, show exact reason and enable retry of the same target', async () => {
+  const f = panel({ realFlow: true, generationOutcomes: [
+    { status: 502, body: { error: { code: 'generation_validation_failed', reason_code: 'repeated_response', message: 'Se repitió el objetivo.' }, diagnostics: { duplicate_source: 'target_incoming' } } },
+    { status: 200, body: { language: 'en', original_response: 'It is good to hear from you again.' } },
+  ] });
+  await new Promise((resolve) => setImmediate(resolve));
+  f.get('message').value = 'I missed talking to you, daddy.';
+  f.get('alias').value = 'Synthetic';
+  await f.get('generate-custom').onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.view.coordinator.pending.size, 0);
+  assert.equal(f.get('generate-custom').disabled, false);
+  assert.doesNotMatch(f.get('generate-custom').textContent, /Generando/);
+  assert.equal(f.get('results').querySelectorAll('[data-pcai-state="loading"]').length, 0);
+  assert.equal(f.get('status').textContent, 'Se repitió el objetivo.');
+  const retry = f.get('results').children.find((item) => !item.removed && item.textContent === 'Reintentar');
+  assert.ok(retry);
+  retry.onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.view.coordinator.pending.size, 0);
+  assert.equal(f.get('results').querySelectorAll('.pcai-suggestion').length, 1);
+  const calls = f.view.calls.filter((item) => item.path === '/api/suggestions');
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((item) => item.payload.target_message === 'I missed talking to you, daddy.'));
+});
 
 test('panel creates, edits, selects, deletes and restores profiles using local API', async () => {
   const f = panel();

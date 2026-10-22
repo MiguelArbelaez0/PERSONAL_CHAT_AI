@@ -1,5 +1,7 @@
 # Estado vigente — 21 de octubre de 2026
 
+**Actualización local posterior a `096c243`:** investigación conjunta de los dos mensajes automáticos y las horas duplicadas. Ver [INCIDENT_AUTO_SEQUENCE.md](INCIDENT_AUTO_SEQUENCE.md). 267 Python y 67 JavaScript aprobadas. Se conservan 42 solicitudes sintéticas con LM Studio, incluidos los rechazos; la última secuencia aceptó 6/6. Permanecen pendiente la atribución del `repeated_response` exacto y la comprobación en Chrome. Estos cambios no tienen commit ni push; el respaldo descrito abajo sigue correspondiendo al estado anterior.
+
 **Fecha:** 21 de octubre de 2026. **PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo; no aprobada como estable.**
 
 Cierre vigente: [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md). Se conserva todo el trabajo local anterior y se respalda exclusivamente en `develop` bajo autorización expresa. El commit de entrega se identifica con `git log -1 --oneline` y en el informe final; la base anterior es `9fb0ba4bba9779f71478a285762ff4fe1689371f`. `main` permanece en `d4ba4df447765708bb2a79c430222fe3f3e49fe0`. Sin PR, tags, releases ni publicación estable.

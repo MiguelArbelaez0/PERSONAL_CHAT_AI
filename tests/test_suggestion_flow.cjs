@@ -28,6 +28,22 @@ function fixture({ mode = 'manual', response, request, latestIncomingFingerprint
   return { flow, view, snapshot: { conversationKey, alias: 'Ana', messages: [] }, setMode: (v) => { currentMode = v; }, setConversation: (v) => { conversationKey = v; }, setLatestIncoming: (v) => { latestIncomingFingerprint = v; } };
 }
 
+test('automatic duplicate rejection clears loading and permits retry with the same incoming identity', async () => {
+  let calls = 0;
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'second', request: async () => {
+    if (++calls === 1) throw SuggestionFlow.normalizeApiError({ error: { code: 'generation_validation_failed', reason_code: 'repeated_response', message: 'Duplicate' }, diagnostics: { duplicate_source: 'previous_unsubmitted_draft' } }, 502);
+    return { original_response: 'It is good to hear from you again.', language: 'en', conversation_id: 'chat-a', target_message_id: 'second' };
+  } });
+  const incoming = 'I missed talking to you, daddy.';
+  assert.equal((await f.flow.generate(incoming, f.snapshot, true, null, false, 'second')).state, 'error');
+  assert.equal(f.view.loading, false);
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+  assert.equal((await f.flow.generate(incoming, f.snapshot, true, null, false, 'second')).state, 'success');
+  assert.equal(f.view.payload.target_message, incoming);
+  assert.equal(f.view.payload.target_message_id, 'second');
+});
+
 test('manual alias change cannot reuse a different interlocutor DOM history', async () => {
   const f = fixture();
   const snapshot = { ...f.snapshot, messages: [
@@ -389,6 +405,8 @@ test('manual extra context and extraction metadata are sent with a suggestion re
 test('timestamps normalize clock and ISO values', () => {
   assert.equal(SuggestionFlow.normalizeTimestamp('9:04:33'), '09:04');
   assert.match(SuggestionFlow.normalizeTimestamp('2025-01-02T15:04:00Z'), /^\d{1,2}:\d{2}/);
+  assert.equal(SuggestionFlow.normalizeTimestamp('20:24 20:24'), '20:24');
+  assert.equal(SuggestionFlow.normalizeTimestamp('20:24 20:25'), '20:24 20:25');
 });
 
 test('context window selection is passed to the request and caps history', async () => {

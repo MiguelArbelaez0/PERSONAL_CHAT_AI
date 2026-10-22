@@ -1,5 +1,9 @@
 # Problemas conocidos y estado de auditoría
 
+## Incidencia automática posterior al respaldo
+
+Correcciones **locales, sin commit ni push**: [INCIDENT_AUTO_SEQUENCE.md](INCIDENT_AUTO_SEQUENCE.md). Se investigan juntos el saludo y `I missed talking to you, daddy.`. Se corrigieron metadatos de hora, autoría de apelativos y dos falsos positivos concretos. 267 Python/67 JavaScript aprobadas; última secuencia sintética con Qwen: 6/6 aceptadas, con etapas fallidas conservadas. El `repeated_response` exacto de la segunda prueba de Chrome sigue pendiente de atribución; no se declara resuelto ni estable. La validación real de Chrome requiere reiniciar backend y recargar extensión.
+
 ## Cierre vigente
 
 Véase [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md): 253 Python/61 JavaScript aprobadas, falso duplicado de emoji corregido y referencia de traducción restringida a elipsis. Persisten límites del modelo, rechazos seguros, errores de naturalidad y pruebas humanas pendientes. El respaldo autorizado a develop no constituye aprobación estable. Las secciones siguientes son históricas.

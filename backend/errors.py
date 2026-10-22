@@ -3,9 +3,10 @@ from fastapi import HTTPException
 
 
 class PipelineFailure(HTTPException):
-    def __init__(self, reason: str, stage: str, attempts: int, detail: str, status_code: int = 502):
+    def __init__(self, reason: str, stage: str, attempts: int, detail: str, status_code: int = 502, duplicate_source: str | None = None):
         super().__init__(status_code, detail)
         self.reason, self.stage, self.attempts = reason, stage, attempts
+        self.duplicate_source = duplicate_source
 
 
 def transport_failure(error, stage, attempts):

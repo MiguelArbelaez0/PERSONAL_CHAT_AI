@@ -69,7 +69,7 @@
     }
 
     static normalizeTimestamp(value) {
-      const raw = String(value || '').replace(/\s+/g, ' ').trim();
+      const raw = String(value || '').replace(/\s+/g, ' ').trim().replace(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+\1)+$/, '$1');
       if (!raw) return '';
       const clock = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
       if (clock) return `${clock[1].padStart(2, '0')}:${clock[2]}`;

@@ -4,6 +4,7 @@ import re
 
 from backend.answers import _json_object
 from backend.prompt import _bounded_notes
+from backend.roles import address_frame
 
 
 _COURTESY = re.compile(
@@ -11,6 +12,7 @@ _COURTESY = re.compile(
     r"\b(?:i(?: am|'m) (?:doing )?(?:well|good|great|fine)(?:,?\s*(?:thanks|thank you)(?: for asking)?)?|"
     r"(?:oui[, ]+)?je vais (?:très )?bien(?:[, ]+merci)?|(?:estoy|estou|tudo) (?:bien|bem)(?:[, ]+(?:gracias|obrigad[oa]))?)"
     r"(?=\s*(?:[.!?,;—]|$))|"
+    r"\b(?:thanks|thank you) for (?:asking|checking in)\b(?=\s*(?:[.!?,;—]|$))|"
     r"\b(?:je serais ravi de (?:mieux )?te connaître|ça me fait plaisir de te lire|"
     r"i(?: am|'m) glad (?:you(?:'re| are) here|you reached out)|i appreciate you reaching out)\b",
     re.IGNORECASE,
@@ -64,6 +66,7 @@ def review_messages(*, draft, incoming, context, notes, previous, require_eviden
     if require_evidence:
         system += " The draft contains a concrete personal claim. personal_claims MUST include owner evidence from history or notes; if none exists, supported=false."
     data = {"draft": substantive or "[Only conventional courtesy; no factual assertions.]", "courtesy_only": not bool(substantive),
+            "role_frame": address_frame(incoming),
             "target_incoming": incoming, "visible_history": context,
             "manual_notes": _bounded_notes(notes), "unsubmitted_previous_drafts": previous}
     return [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(data, ensure_ascii=False)}]

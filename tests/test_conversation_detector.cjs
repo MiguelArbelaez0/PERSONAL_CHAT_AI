@@ -1,8 +1,17 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const ConversationDetector = require('../extension/conversation-detector.js');
+const SuggestionFlow = require('../extension/suggestion-flow.js');
 
 class FixtureElement {
+  get nodeType() { return 1; }
+  get textContent() { return (this._text || '') + this.children.map((child) => child.textContent).join(''); }
+  set textContent(value) { this._text = value; this.children = []; }
+  get innerText() { return this.textContent; }
+  set innerText(value) { this._text = value; }
+  get childNodes() { return [...(this._text ? [{ nodeType: 3, textContent: this._text, childNodes: [] }] : []), ...this.children]; }
+  contains(node) { return this === node || this.children.some((child) => child.contains(node)); }
+  remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter((child) => child !== this); }
   constructor(tag = 'div', classes = '', text = '') {
     this.tagName = tag.toUpperCase();
     this.classList = new Set(classes.split(/\s+/).filter(Boolean));
@@ -84,6 +93,75 @@ const selectors = {
   incoming: '.incoming', outgoing: '.outgoing',
 };
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('configured timestamp nodes do not contaminate the selected incoming text or mutate the page', () => {
+  const doc = new FixtureDocument();
+  const conversation = makeConversation('Synthetic');
+  const item = row('incoming', '');
+  const body = new FixtureElement('span', 'body', 'Hey daddy, how are you today?');
+  body.append(new FixtureElement('time', 'time', '20:24'));
+  item.append(body);
+  item.append(new FixtureElement('time', 'time', '20:24'));
+  conversation.append(item); doc.append(conversation);
+  const detector = new ConversationDetector({ document: doc });
+  detector.configure({ ...selectors, text: '.body', timestamp: '.time' });
+  detector.start();
+  const snapshot = detector.scan();
+  assert.equal(snapshot.messages[0].text, 'Hey daddy, how are you today?');
+  assert.equal(snapshot.messages[0].time, '20:24');
+  assert.equal(item.querySelectorAll('.time').length, 2);
+  detector.configure({ ...selectors, timestamp: '.time' });
+  assert.equal(detector.scan().messages[0].text, 'Hey daddy, how are you today?');
+  detector.stop();
+});
+
+test('clock words in actual message text survive; a timestamp selected as text is not a message', () => {
+  const doc = new FixtureDocument(); const conversation = makeConversation('Synthetic');
+  const item = row('incoming', 'Meet me at 20:24.', '', '20:24');
+  conversation.append(item); doc.append(conversation);
+  const detector = new ConversationDetector({ document: doc });
+  detector.configure({ ...selectors, timestamp: '.time' });
+  detector.start();
+  assert.equal(detector.scan().messages[0].text, 'Meet me at 20:24.');
+  detector.configure({ ...selectors, text: '.time', timestamp: '.time' });
+  assert.equal(detector.scan().messages.length, 0);
+  detector.stop();
+});
+
+test('metadata-free extraction preserves line breaks and excludes hidden text', () => {
+  const doc = new FixtureDocument(); const item = row('incoming', 'Hey daddy,');
+  doc.defaultView.getComputedStyle = (node) => ({ display: node.classList.has('hidden') ? 'none' : 'inline', visibility: 'visible', opacity: '1' });
+  item.append(new FixtureElement('br'));
+  item.append(new FixtureElement('span', '', 'how are you today?'));
+  item.append(new FixtureElement('span', 'hidden', 'hidden duplicate'));
+  item.append(new FixtureElement('time', 'time', '20:24'));
+  const detector = new ConversationDetector({ document: doc });
+  detector.configure({ ...selectors, timestamp: '.time' });
+  assert.equal(detector.messageTextOf(item), 'Hey daddy, how are you today?');
+  assert.equal(item.querySelectorAll('.time').length, 1);
+});
+
+test('detector to automatic HTTP payload keeps the second target exact and excludes DOM clocks', async () => {
+  const doc = new FixtureDocument(); const conversation = makeConversation('Synthetic');
+  conversation.append(row('incoming', 'Hey daddy, how are you today?', 'first', '20:24'));
+  conversation.append(row('incoming', 'I missed talking to you, daddy.', 'second', '20:25'));
+  doc.append(conversation);
+  const detector = new ConversationDetector({ document: doc });
+  detector.configure({ ...selectors, timestamp: '.time' }); detector.start();
+  const snapshot = detector.scan(); const target = SuggestionFlow.latestIncoming(snapshot);
+  let payload;
+  const flow = new SuggestionFlow({ getMode: () => 'auto', getConversationKey: () => snapshot.conversationKey,
+    getLatestIncomingFingerprint: () => target.fingerprint, request: async (value) => {
+      payload = value; return { language: 'en', original_response: 'Glad to hear from you.' };
+    } });
+  await flow.generate(target.text, snapshot, true, null, false, target.fingerprint);
+  assert.equal(payload.target_message, 'I missed talking to you, daddy.');
+  assert.equal(payload.message, payload.target_message);
+  assert.equal(payload.target_message_id, target.fingerprint);
+  assert.equal(payload.generation_trigger, 'automatic');
+  assert.equal(payload.conversation_history, '- Interlocutor (20:24): Hey daddy, how are you today?');
+  detector.stop();
+});
 
 test('baselines existing rows, emits only new incoming rows once, and ignores own rows', async () => {
   const doc = new FixtureDocument();

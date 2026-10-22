@@ -20,6 +20,8 @@ from backend.validation import RecentDrafts, response_rejection, remove_unsuppor
 from backend.grounding import review_messages, review_rejection
 from backend.errors import PipelineFailure, transport_failure
 from backend.request_limits import RequestLimitsMiddleware
+from backend.roles import remove_reversed_vocative
+from backend.validation import response_duplicate_source
 from backend.prompt import build_context_analysis_messages, build_suggestion_messages, _bounded_notes
 from backend.schemas import NoteInput, SuggestRequest, SuggestResponse, SuggestionDiagnostics, TranslationRequest, TranslationRetryResponse
 from backend.translation import translate_and_review, translation_failure_message, TranslationRetries
@@ -145,7 +147,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             "api_version": "1.0", "detail": message,
             "error": {"code": code, "reason_code": reason, "category": stage, "message": message},
             "diagnostics": {"http_status": exc.status_code, "source": "backend", "failure_reason": reason,
-                            "stage": stage, "attempts": attempts},
+                            "stage": stage, "attempts": attempts,
+                            **({"duplicate_source": exc.duplicate_source} if isinstance(exc, PipelineFailure) and exc.duplicate_source else {})},
         }, headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
@@ -427,6 +430,25 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             context_rejection = _context_review_rejection(generation) if len(alternatives) == 1 else ""
             draft_rejection = response_rejection(alternatives[0], request.message, language_decision.code, previous_responses, context=context + "\n" + additional_context, notes=notes) if alternatives else ""
             reviewer = getattr(client, "review_generation", None)
+            if draft_rejection == "perspective_mismatch" and reviewer and context_rejection in {"", "perspective_mismatch"}:
+                repaired = remove_reversed_vocative(alternatives[0])
+                repairs = ["removed_reversed_vocative"]
+                if response_rejection(repaired, request.message, language_decision.code, previous_responses,
+                                      context=context + "\n" + additional_context, notes=notes) == "unsupported_claim":
+                    narrowed = remove_unsupported_clauses(repaired, request.message, context=context + "\n" + additional_context, notes=notes)
+                    if narrowed:
+                        repaired = narrowed
+                        repairs.append("removed_unsupported_clause")
+                if repaired != alternatives[0] and len(repaired.split()) >= 3 and not response_rejection(
+                    repaired, request.message, language_decision.code, previous_responses,
+                    context=context + "\n" + additional_context, notes=notes,
+                ):
+                    # The wrong address is deleted, never replaced with an
+                    # invented role. The separate audit below is mandatory.
+                    alternatives = [repaired]
+                    draft_rejection, context_rejection = "", ""
+                    response_language_codes = [classify_language(repaired)[0] or "undetermined"]
+                    draft_repairs.extend(repairs)
             if draft_rejection == "unsupported_claim" and reviewer and context_rejection in {"", "unsupported_claim"}:
                 repaired = remove_unsupported_clauses(alternatives[0], request.message, context=context + "\n" + additional_context, notes=notes)
                 if repaired:
@@ -521,7 +543,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "invalid_context_review_format": "LM Studio devolvió una revisión contextual inválida tras un reintento.",
                 "review_language_mismatch": "La revisión contextual detectó un idioma incorrecto tras un reintento.",
             }.get(rejection_reason, "LM Studio no pudo producir una respuesta válida tras un reintento.")
-            raise PipelineFailure(rejection_reason or "empty_response", rejection_stage, 2, f"{detail} Puedes intentarlo de nuevo.")
+            duplicate_source = response_duplicate_source(alternatives[0], request.message, previous_responses) if rejection_reason == "repeated_response" and alternatives else None
+            raise PipelineFailure(rejection_reason or "empty_response", rejection_stage, 2, f"{detail} Puedes intentarlo de nuevo.", duplicate_source=duplicate_source)
         if any(code != language_decision.code for code, _ in (classify_language(text) for text in alternatives)):
             raise HTTPException(
                 502,

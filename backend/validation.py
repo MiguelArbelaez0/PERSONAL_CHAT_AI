@@ -5,10 +5,11 @@ from difflib import SequenceMatcher
 
 from backend.answers import _is_duplicate, _normalize
 from backend.language import classify_language, has_language_conflict
+from backend.roles import ROLE_GREETING as _ROLE_GREETING, incoming_address
 
 
-_FUNCTION_WORDS = set("i you we me my your a an the to of for and but so it is am are was be have just je tu et de la le un une el en que te me por para eu voce com uma".split())
-_COURTESY_WORDS = set("hi hey hello thanks thank doing well good oui vais bien merci bonsoir bonjour estoy gracias hola estou bem obrigado obrigada oi ola".split())
+_FUNCTION_WORDS = set("i you we me my your a an the to of for and but so it is am are was be have just m re ve ll d je tu et de la le un une el en que te me por para eu voce com uma".split())
+_COURTESY_WORDS = set("hi hey hello there thanks thank doing well good oui vais bien merci bonsoir bonjour estoy gracias hola estou bem obrigado obrigada oi ola".split())
 _COMPLETED_EVENT = re.compile(
     r"\b(?:(?:i|we)\s+(?:(?:ve|have|had|just|already|recently)\s+)*(?:had|chatted|talked|spoke|met|went|visited|ate|finished|promised)\b|"
     r"just\s+(?:had|finished|met|talked)\b|"
@@ -17,7 +18,7 @@ _COMPLETED_EVENT = re.compile(
 )
 _ACTIVITY_OR_RECIPROCITY = re.compile(
     r"\b(?:(?:i am|i m|im|just|i have been|i ve been)\s+(?:just\s+)?"
-    r"(?:lounging|relaxing|sitting|lying|watching|drinking|eating|working|thinking about|meaning to|planning to|intending to|"
+    r"(?:lounging|relaxing|sitting|lying|watching|drinking|eating|working|wrapping up|finishing up|thinking about|meaning to|planning to|intending to|"
     r"(?:having|enjoying|loving)\s+(?:a|the|my|this)\s+[^.!?;]{1,80})\b|"
     r"i\s+(?:missed|miss|was thinking about)\s+you\b|"
     r"you\s+(?:(?:are|re)\s+)?making\s+me\s+(?:smile|happy|laugh)\b|"
@@ -26,7 +27,6 @@ _ACTIVITY_OR_RECIPROCITY = re.compile(
 )
 _OWNER_PREFERENCE = re.compile(r"\b(?:my (?:favorite|favourite|go to)|i (?:(?:always|do) )?(?:love|like|enjoy|prefer) (?!that\b|to (?:chat|talk)\b|hearing from you\b)|i (?:actually )?(?:don t have|do not have|have) a favou?rite|(?:i m|i am|we re|we are) always (?:here|available))\b", re.IGNORECASE)
 _GENERIC_QUESTION = re.compile(r"(?:how about you|what about you|what are you up to|how was your day|how(?:'s|’s| is) your day going|et toi|e voce|y tu)\s*[?？]", re.IGNORECASE)
-_ROLE_GREETING = re.compile(r"^(?:hey|hi|hello|bonjour|salut|bonsoir|hola|oi|ola)\s+(daddy|papa|papi|sir|master|boss)\b", re.IGNORECASE)
 
 
 def owner_notes(notes):
@@ -72,13 +72,21 @@ def _help_acknowledgment(text):
     return bool(words & {"help", "assist", "assistance"}) and bool(words & {"happy", "glad", "pleasure", "pleased"}) and words <= allowed
 
 
+def response_duplicate_source(text, incoming, previous=()):
+    if _is_duplicate(text, incoming):
+        return "target_incoming"
+    if any(_is_duplicate(text, item) for item in previous):
+        return "previous_unsubmitted_draft"
+    return None
+
+
 def response_rejection(text, incoming, expected_language, previous=(), *, context="", notes=()):
     code, _ = classify_language(text)
     if code != expected_language or has_language_conflict(text, expected_language):
         return "wrong_language"
     if not re.search(r"[?？]", incoming) and _GENERIC_QUESTION.fullmatch(text.strip()):
         return "contextually_irrelevant"
-    if _is_duplicate(text, incoming) or any(_is_duplicate(text, item) for item in previous):
+    if response_duplicate_source(text, incoming, previous):
         return "repeated_response"
     if _shared_content_phrase(text, incoming, minimum=5) or any(
         len(_normalize(clause).split()) >= 4 and _normalize(clause) in _normalize(text)
@@ -102,9 +110,9 @@ def response_rejection(text, incoming, expected_language, previous=(), *, contex
         *(line for line in context.splitlines() if re.match(r"\s*-\s*Usuario(?:\s*\([^)]*\))?\s*:", line)),
         *(str(note.get("text", "")) for note in owner_notes(notes)),
     ])
-    incoming_role = _ROLE_GREETING.search(_normalize(incoming))
-    reply_role = _ROLE_GREETING.search(_normalize(text))
-    if incoming_role and reply_role and incoming_role[1] == reply_role[1] and not _ROLE_GREETING.search(_normalize(owner_evidence)):
+    incoming_role = incoming_address(incoming)
+    reply_role = incoming_address(text)
+    if incoming_role and reply_role and incoming_role == reply_role and not _ROLE_GREETING.search(_normalize(owner_evidence)):
         return "perspective_mismatch"
     if _ACTIVITY_OR_RECIPROCITY.search(_normalize(text)) and not _ACTIVITY_OR_RECIPROCITY.search(_normalize(owner_evidence)):
         return "unsupported_claim"
