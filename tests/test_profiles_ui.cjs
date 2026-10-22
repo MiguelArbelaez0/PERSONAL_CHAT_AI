@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 
-function panel() {
+function panel({ retryOutcomes = [] } = {}) {
   const elements = new Map();
   class Element {
     constructor(tag = '') { this.tag = tag; this.value = ''; this.children = []; this.dataset = {}; this.style = {}; this.handlers = {}; }
@@ -16,6 +16,7 @@ function panel() {
     setAttribute() {}
     append(...children) { this.children.push(...children); }
     replaceChildren(...children) { this.children = children; }
+    remove() { this.removed = true; }
   }
   const view = { copied: null, calls: [] };
   class Flow {
@@ -33,9 +34,12 @@ function panel() {
     navigator: { clipboard: { writeText: async (text) => { view.copied = text; } } },
     fetch: async (url, options = {}) => {
       const path = new URL(url).pathname;
-      view.calls.push({ path, method: options.method || 'GET' });
+      view.calls.push({ path, method: options.method || 'GET', payload: options.body ? JSON.parse(options.body) : null });
       let result = {};
-      if (path === '/api/profiles' && options.method === 'POST') {
+      if (path === '/api/translation/retry') {
+        result = retryOutcomes.shift();
+        if (result instanceof Error) throw result;
+      } else if (path === '/api/profiles' && options.method === 'POST') {
         result = { id: 'custom', ...JSON.parse(options.body) }; profiles.push(result);
       } else if (path === '/api/profiles/custom/activate') {
         active = 'custom'; result = profiles[1];
@@ -87,4 +91,47 @@ test('copy button copies edited original independently of Spanish translation', 
   edit.value = 'Bonsoir Miguel !';
   await copy.onclick();
   assert.equal(f.view.copied, 'Bonsoir Miguel !');
+});
+
+test('failed translation can be retried, preserves original and rotates repair context until success', async () => {
+  const f = panel({ retryOutcomes: [
+    { available: false, failure_message: 'Se omitió una frase.', retry_token: 'next-token' },
+    { available: true, spanish_translation: 'Buenas noches, estoy bien, gracias.' },
+  ] });
+  const original = 'Bonsoir, je vais bien, merci.';
+  f.view.flow.onSuccess({ originalResponse: original, spanishTranslation: '', language: 'fr', automatic: false,
+    configuredMode: 'manual', diagnostics: { translation_retry_available: true, translation_retry_token: 'first-token' } });
+  const card = f.get('results').children[0];
+  const [, edit, copy, translation] = card.children;
+  const retry = translation.children[2];
+  await retry.onclick();
+  assert.equal(edit.value, original);
+  assert.equal(retry.disabled, false);
+  assert.match(translation.children[1].textContent, /Se omitió una frase.*original se conserva/);
+  assert.equal(f.view.calls.at(-1).payload.retry_token, 'first-token');
+  await copy.onclick();
+  assert.equal(f.view.copied, original);
+  await retry.onclick();
+  assert.equal(f.view.calls.at(-1).payload.retry_token, 'next-token');
+  assert.equal(edit.value, original);
+  assert.equal(retry.removed, true);
+  assert.equal(translation.children[1].textContent, 'Buenas noches, estoy bien, gracias.');
+  edit.value = 'Bonsoir !';
+  edit.handlers.input();
+  assert.match(translation.children[1].textContent, /corresponde al original generado/);
+  await copy.onclick();
+  assert.equal(f.view.copied, 'Bonsoir !');
+});
+
+test('network failure while retrying translation keeps original and retry control', async () => {
+  const f = panel({ retryOutcomes: [new Error('network')] });
+  f.view.flow.onSuccess({ originalResponse: 'Estou bem, obrigado.', spanishTranslation: '', language: 'pt', automatic: false,
+    diagnostics: { translation_retry_available: true } });
+  const card = f.get('results').children[0];
+  const [, edit, copy, translation] = card.children;
+  await translation.children[2].onclick();
+  assert.equal(edit.value, 'Estou bem, obrigado.');
+  assert.equal(translation.children[2].disabled, false);
+  await copy.onclick();
+  assert.equal(f.view.copied, 'Estou bem, obrigado.');
 });

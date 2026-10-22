@@ -1,5 +1,7 @@
 # v1.1.0-rc.1: auditoría y validación
 
+Actualización posterior a las pruebas manuales: consultar [RC1_REAL_CASES.md](RC1_REAL_CASES.md) para las cuatro correcciones, los resultados vigentes (199 Python / 58 JavaScript) y los riesgos reales todavía abiertos. Las cifras inferiores documentan la implementación inicial de la candidata.
+
 Estado al 21 de octubre de 2026: candidata local en `develop`. No se ha publicado, etiquetado ni enviado a GitHub. Se probaron mensajes sintéticos con LM Studio real; sigue pendiente el flujo completo en Chrome/Stripchat y conversaciones más variadas.
 
 ## Diagnóstico previo

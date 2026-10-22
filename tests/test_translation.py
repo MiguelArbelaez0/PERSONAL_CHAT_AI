@@ -157,7 +157,7 @@ def test_fidelity_retry_receives_semantic_correction_reason():
 
 def test_added_question_is_rejected_independently_of_model_review():
     client = TranslationClient([json.dumps({"translation": "¿Todo bien? Gracias por preguntar."})])
-    outcome = run(translate_and_review(client, original="Tudo bem, obrigado por perguntar.", language="português"))
+    outcome = run(translate_and_review(client, original="Estou bem, obrigado por perguntar.", language="português"))
     assert outcome.text is None
     assert outcome.failure_reason == "added_question"
     assert client.translate_calls == 2

@@ -55,6 +55,7 @@ class NoteOut(BaseModel):
 class TranslationRequest(BaseModel):
     original_response: str = Field(min_length=1, max_length=4000)
     language: str = Field(min_length=2, max_length=40)
+    retry_token: str | None = Field(default=None, max_length=80)
 
 
 class TranslationRetryResponse(BaseModel):
@@ -63,6 +64,9 @@ class TranslationRetryResponse(BaseModel):
     failure_reason: str | None = None
     failure_message: str | None = None
     http_status: int | None = None
+    retry_token: str | None = None
+    attempts: int = 0
+    failure_stage: str | None = None
 
 
 class KnowledgeSourceDiagnostic(BaseModel):
@@ -74,6 +78,9 @@ class KnowledgeSourceDiagnostic(BaseModel):
 
 
 class SuggestionDiagnostics(BaseModel):
+    translation_retry_token: str | None = None
+    translation_attempts: int = 0
+    translation_failure_stage: str | None = None
     knowledge_sources: dict[str, KnowledgeSourceDiagnostic]
     memory_available: bool
     memory_note_count: int

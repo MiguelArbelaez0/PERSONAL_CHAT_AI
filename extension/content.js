@@ -427,9 +427,10 @@
     edit.value = text;
     edit.setAttribute('aria-label', 'Editar sugerencia');
     let translationTextNode = null;
+    let translatedSource = spanishTranslation ? text : null;
     edit.addEventListener('input', () => {
       card.dataset.dirty = 'true';
-      if (translationTextNode && spanishTranslation) {
+      if (translationTextNode && translatedSource !== null && edit.value !== translatedSource) {
         translationTextNode.textContent = 'La traducción corresponde al original generado; regenera para actualizarla.';
       }
     });
@@ -453,6 +454,7 @@
       translationTextNode = translationText;
       translation.append(translationHeading, translationText);
       if (!spanishTranslation && diagnostics?.translation_retry_available) {
+        let translationRetryToken = diagnostics.translation_retry_token || null;
         const retryTranslation = document.createElement('button');
         retryTranslation.type = 'button';
         retryTranslation.textContent = 'Reintentar traducción';
@@ -462,16 +464,20 @@
           retryTranslation.textContent = 'Reintentando traducción…';
           try {
             const outcome = await api('/api/translation/retry', {
-              method: 'POST', body: JSON.stringify({ original_response: sourceText, language }),
+              method: 'POST', body: JSON.stringify({ original_response: sourceText, language, retry_token: translationRetryToken }),
             });
             if (edit.value !== sourceText) throw new Error('El original cambió; vuelve a intentar la traducción.');
             if (!outcome.available || !outcome.spanish_translation) {
-              translationText.textContent = outcome.failure_message || 'No se pudo validar la traducción.';
+              translationRetryToken = outcome.retry_token || null;
+              translationText.textContent = `${outcome.failure_message || 'No se pudo validar la traducción.'} La respuesta original se conserva; puedes reintentar.`;
+              status.textContent = 'La traducción no superó la validación; el original sigue disponible.';
+              status.className = 'pcai-status is-warn';
               retryTranslation.disabled = false;
               retryTranslation.textContent = 'Reintentar traducción';
               return;
             }
             translationText.textContent = outcome.spanish_translation;
+            translatedSource = sourceText;
             retryTranslation.remove();
             status.textContent = 'Traducción al español lista.';
             status.className = 'pcai-status is-ok';
@@ -501,8 +507,10 @@
       invalid_response: 'LM Studio devolvió un cuerpo de respuesta no válido.',
       wrong_language: 'La traducción no está en español.',
       added_question: 'La traducción introdujo una pregunta ausente en el original.',
+      greeting_mismatch: 'La traducción no conservó el saludo nocturno del original.',
       language_unverified: 'No se pudo confirmar que la traducción esté en español.',
       fidelity_review_failed: 'La revisión detectó cambios u omisiones.',
+      invalid_review_format: 'LM Studio no devolvió una revisión de traducción verificable.',
       timeout: 'LM Studio agotó el tiempo de espera.',
       review_timeout: 'Se agotó el tiempo al revisar la traducción.',
       review_truncated: 'LM Studio cortó la revisión antes de completarla.',

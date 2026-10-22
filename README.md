@@ -4,6 +4,8 @@ Asistente local para preparar y revisar borradores de respuesta a conversaciones
 
 > **Estado:** `v1.1.0-rc.1`, candidata a revisión en `develop`; no es una versión estable. La validación real en Chrome/Stripchat y LM Studio está pendiente. Backend local en `127.0.0.1:8765`, sin cambios en los puertos ni en el contrato API v1 existente.
 
+Las correcciones posteriores a las pruebas manuales añaden controles de evidencia, copia parcial, repetición y reparación de traducciones. Las pruebas reales todavía presentan rechazos intermitentes y matices de traducción que requieren revisión humana. Consulta el [informe de los cuatro casos](docs/RC1_REAL_CASES.md); no se considera todavía una candidata completamente fiable.
+
 ## Qué ofrece
 
 - Modos Automático, Manual y Desactivado.

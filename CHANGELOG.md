@@ -1,5 +1,12 @@
 # Cambios
 
+## Correcciones manuales de 1.1.0-rc.1 (sin publicar)
+
+- Controles de copia parcial, expresiones repetidas, actividades inventadas y apelativos invertidos; auditoría separada con evidencia citada.
+- Contratos JSON verificables con LM Studio y reparación limitada de revisiones mal formadas.
+- Traducción revisada por significado, discrepancias concretas y estado temporal de reparación para el botón de reintento. Original editable y copia conservados.
+- 199 pruebas Python y 58 JavaScript aprobadas. Las pruebas reales aún muestran rechazos intermitentes y matices semánticos pendientes: ver [informe](docs/RC1_REAL_CASES.md). No se declara estable.
+
 ## 1.1.0-rc.1 (2026-10-21; revisión local en develop)
 
 - Perfiles locales validados: creación, edición, activación, eliminación y restauración. ChubbyKriz predeterminado, desacoplado del generador.

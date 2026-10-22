@@ -1,4 +1,5 @@
 import logging
+import json
 import math
 import uuid
 from contextlib import asynccontextmanager
@@ -16,9 +17,10 @@ from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.memory import MemoryStore, normalize_alias
 from backend.profiles import ProfileInput, ProfileStore
 from backend.validation import RecentDrafts, response_rejection
-from backend.prompt import build_context_analysis_messages, build_suggestion_messages
+from backend.grounding import review_messages, review_rejection
+from backend.prompt import build_context_analysis_messages, build_suggestion_messages, _bounded_notes
 from backend.schemas import NoteInput, SuggestRequest, SuggestResponse, SuggestionDiagnostics, TranslationRequest, TranslationRetryResponse
-from backend.translation import translate_and_review, translation_failure_message
+from backend.translation import translate_and_review, translation_failure_message, TranslationRetries
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     store = memory or MemoryStore(config.database_path, config.memory_max_notes)
     profiles = ProfileStore(config.database_path.parent / "personalities.sqlite3")
     recent_drafts = RecentDrafts()
+    translation_retries = TranslationRetries()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -349,7 +352,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                     "la respuesta se detectó en un idioma distinto o mezcló idiomas"
                     if retry_language_error or rejection_reason == "wrong_language" else
                     "la respuesta repitió el mensaje entrante o un borrador previo; redacta con palabras nuevas"
-                    if rejection_reason == "repeated_response" else
+                    if rejection_reason in {"repeated_response", "repeated_phrase", "repeated_idea", "copied_incoming", "repetitive_question"} else
                     "la revisión contextual detectó contenido fuera de tema o no respaldado: " + rejection_reason
                     if rejection_reason in {
                         "contextually_irrelevant", "unrequested_money", "unsupported_adult_or_domination",
@@ -370,6 +373,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                             "Redacta desde la perspectiva del usuario y corrige cualquier inversión de emisor o pronombres. "
                             "Corrige en especial el motivo indicado; no añadas dinero, propinas, sexualidad, dominación o hechos sin respaldo. "
                             "No incluyas alternativas ni traducción. No añadas explicaciones."
+                            + "\nBorrador rechazado (solo contraejemplo, no hechos ni historial enviado): "
+                            + json.dumps(alternatives[:1], ensure_ascii=False)
+                            + "\nContesta únicamente este objetivo entrante, no el contraejemplo: "
+                            + json.dumps(request.message, ensure_ascii=False)
                         ),
                     },
                 ]
@@ -401,7 +408,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 for code, _ in (classify_language(text) for text in alternatives)
             )
             context_rejection = _context_review_rejection(generation) if len(alternatives) == 1 else ""
-            draft_rejection = response_rejection(alternatives[0], request.message, language_decision.code, previous_responses) if alternatives else ""
+            draft_rejection = response_rejection(alternatives[0], request.message, language_decision.code, previous_responses, context=context + "\n" + additional_context, notes=notes) if alternatives else ""
             rejection_reason = (
                 "multiple_responses" if len(candidates) > 1 else
                 draft_rejection if draft_rejection else
@@ -411,6 +418,31 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "empty_or_unrecognized_format" if not alternatives or malformed_structured_output else
                 "only_one_valid_response" if len(alternatives) != 1 else ""
             )
+            reviewer = getattr(client, "review_generation", None)
+            if not rejection_reason and reviewer:
+                audit_messages = review_messages(
+                    draft=alternatives[0], incoming=request.message,
+                    context=context + "\n" + additional_context, notes=notes, previous=previous_responses,
+                )
+                if _estimate_prompt_tokens(audit_messages) > available_prompt_tokens:
+                    raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
+                try:
+                    audit_evidence = {
+                        "target": request.message, "history": context + "\n" + additional_context,
+                        "notes": _bounded_notes(notes),
+                    }
+                    rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence)
+                    if rejection_reason == "invalid_grounding_review":
+                        # Repair the review's serialization before discarding a potentially valid draft.
+                        repair_messages = [*audit_messages, {"role": "user", "content":
+                            "Return the complete JSON schema including personal_claims (an array, empty when none). "
+                            "Every claim source MUST be target, history or notes; draft and previous drafts are NOT evidence. "
+                            "If a claim is unsupported, supported=false and evidence_quote is empty. No prose."}]
+                        if _estimate_prompt_tokens(repair_messages) > available_prompt_tokens:
+                            raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
+                        rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence)
+                except LMStudioError as exc:
+                    raise HTTPException(503, str(exc)) from exc
             logger.info(
                 "suggestion_generation_attempt attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s",
                 attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
@@ -426,6 +458,11 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "only_one_valid_response": "LM Studio no devolvió una respuesta válida tras un reintento.",
                 "wrong_language": f"LM Studio siguió respondiendo en un idioma distinto de {language_decision.name} tras un reintento.",
                 "repeated_response": "LM Studio repitió el mensaje entrante o un borrador previo tras un reintento.",
+                "copied_incoming": "La respuesta copió el mensaje entrante en lugar de contestarlo tras un reintento.",
+                "repeated_phrase": "La respuesta repitió una expresión de un borrador anterior tras un reintento.",
+                "repeated_idea": "La revisión detectó una idea repetida de un borrador anterior tras un reintento.",
+                "repetitive_question": "La respuesta volvió a añadir una pregunta genérica tras un reintento.",
+                "invalid_grounding_review": "No se pudo verificar la evidencia y perspectiva del borrador tras un reintento.",
                 "invalid_draft": "LM Studio devolvió un borrador demasiado largo o con encabezados tras un reintento.",
                 "contextually_irrelevant": "La revisión de LM Studio detectó respuestas fuera del tema actual tras un reintento.",
                 "unrequested_money": "La revisión detectó propinas o dinero no solicitados tras un reintento.",
@@ -454,6 +491,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         notice = None
         translation_failure_reason = None
         translation_http_status = None
+        translation_retry_token = None
+        translation_attempts = 0
+        translation_failure_stage = None
         if language_decision.code != "es":
             translation = await translate_and_review(
                 client, original=original_response, language=language_decision.name,
@@ -461,7 +501,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             spanish_translation = translation.text
             translation_failure_reason = translation.failure_reason
             translation_http_status = translation.http_status
+            translation_attempts = translation.attempts
+            translation_failure_stage = translation.failure_stage
             if translation.failure_reason:
+                translation_retry_token = translation_retries.save(original_response, language_decision.code, translation.retry_state)
                 notice = f"Respuesta original lista; traducción al español no disponible: {translation_failure_message(translation.failure_reason, translation.http_status)} Puedes reintentarla."
         full_prompt = "\n".join(message["content"] for message in messages)
         for name, source in source_status.items():
@@ -479,6 +522,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             spanish_translation=spanish_translation, interlocutor=alias, notice=notice,
             memory_available=bool(alias),
             diagnostics=SuggestionDiagnostics(
+                translation_retry_token=translation_retry_token,
+                translation_attempts=translation_attempts,
+                translation_failure_stage=translation_failure_stage,
                 knowledge_sources=source_status,
                 memory_available=bool(alias),
                 memory_note_count=len(notes),
@@ -552,15 +598,19 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         if request.language.strip().casefold() in {"es", "español", "spanish"}:
             raise HTTPException(422, "La respuesta original ya está en español; no requiere traducción.")
         outcome = await translate_and_review(
-            client, original=request.original_response, language=request.language,
+            client, original=request.original_response, language=request.language, manual_retry=True,
+            retry_state=translation_retries.take(request.retry_token, request.original_response, request.language),
         )
         if outcome.text:
-            return TranslationRetryResponse(available=True, spanish_translation=outcome.text)
+            return TranslationRetryResponse(available=True, spanish_translation=outcome.text, attempts=outcome.attempts)
         return TranslationRetryResponse(
             available=False,
             failure_reason=outcome.failure_reason,
             failure_message=translation_failure_message(outcome.failure_reason, outcome.http_status),
             http_status=outcome.http_status,
+            retry_token=translation_retries.save(request.original_response, request.language, outcome.retry_state),
+            attempts=outcome.attempts,
+            failure_stage=outcome.failure_stage,
         )
 
     def require_alias(alias: str | None):

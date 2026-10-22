@@ -2,6 +2,8 @@
 
 ## Estado actual: v1.1.0-rc.1
 
+Después de las pruebas manuales se añadieron controles y regresiones para cuatro fallos reales. Los resultados y límites actualizados están en [RC1_REAL_CASES.md](RC1_REAL_CASES.md): 199 pruebas Python y 58 JavaScript aprobadas, pero con rechazos intermitentes y posibles matices incorrectos de traducción con el modelo real. Esta candidata no está lista para declararse estable.
+
 La candidata se implementó localmente en `develop`, conservando `main`. Consulta [V1_1_VALIDATION.md](V1_1_VALIDATION.md) para diagnóstico, cambios y validaciones manuales pendientes. La detección de idiomas es heurística y la revisión semántica depende del modelo. La API local no autentica clientes y SQLite no cifra el contenido. No se ha consultado ni cambiado la configuración remota durante este trabajo.
 
 Los apartados siguientes son registros históricos de la preparación de v1.0.0; sus afirmaciones sobre ramas, versiones, servicios y cifras de pruebas no describen necesariamente el estado actual.

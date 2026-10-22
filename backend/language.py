@@ -56,6 +56,7 @@ _EXCLUSIVE = {
 for _code, _words in _EXCLUSIVE.items():
     _WORDS[_code].update(_words)
 _STRONG["fr"].update({"bonsoir", "aimerais", "connaitre"})
+_WORDS["en"].update({"which", "did", "mean", "missed", "talking", "doing", "well"})
 
 
 def has_language_conflict(text: str, expected: str) -> bool:
