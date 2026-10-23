@@ -109,7 +109,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     async def lifespan(app):
         yield
 
-    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.1.0-rc.1", lifespan=lifespan)
+    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.1.0", lifespan=lifespan)
     app.state.llm, app.state.memory = client, store
     app.add_middleware(RequestLimitsMiddleware)
     # Content-script fetch requests carry the Stripchat page origin (not the extension origin).

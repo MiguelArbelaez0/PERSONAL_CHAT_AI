@@ -1,3 +1,7 @@
+# v1.1.0 — 2026-10-22
+
+Publicación estable autorizada tras aprobación manual de Chrome/Stripchat. Metadatos finales de backend/extensión y documentación; sin cambios funcionales respecto a 9b51913. Se conservan las limitaciones descritas en RELEASE_NOTES.md y todo el historial previo.
+
 # Cambios
 
 ## Cierre de los tres casos — 22 de octubre de 2026

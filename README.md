@@ -2,9 +2,9 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado:** `v1.1.0-rc.1`, candidata en revisión final, sin publicación estable. MIT aprobada. Correcciones y evidencia vigente en el [cierre de los tres bloqueos](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). Las pruebas y la revisión de resultados no garantizan fidelidad universal del modelo. Backend habitual `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
+> **Estado:** `v1.1.0`, publicación estable aprobada por el propietario tras pruebas manuales satisfactorias en Chrome y Stripchat. Licencia MIT. Consulta [publicación](docs/PUBLICATION_2026_10_22.md) y [limitaciones conocidas](docs/KNOWN_ISSUES.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
 
-Las correcciones posteriores a las pruebas manuales añaden controles de evidencia, copia parcial, repetición y reparación de traducciones. Las pruebas reales todavía presentan rechazos intermitentes y matices de traducción que requieren revisión humana. Consulta el [informe de los cuatro casos](docs/RC1_REAL_CASES.md); no se considera todavía una candidata completamente fiable.
+Se incorporan controles de evidencia, copia parcial, repetición y reparación de traducciones. Persisten rechazos intermitentes y matices de traducción que requieren revisión humana. El [informe de los cuatro casos](docs/RC1_REAL_CASES.md) conserva la evidencia histórica previa a las correcciones y aprobación final.
 
 ## Qué ofrece
 
@@ -153,4 +153,4 @@ El código original está bajo [licencia MIT](LICENSE), Copyright (c) 2026 Migue
 
 ## Estado y hoja de ruta
 
-El estado y las verificaciones vigentes están en [finalización](docs/FINALIZATION_2026_10_22.md). La candidata `v1.1.0-rc.1` conserva el plan de pruebas manuales de [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).
+La aprobación y las verificaciones vigentes están en [publicación](docs/PUBLICATION_2026_10_22.md). El plan de pruebas se conserva en [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).

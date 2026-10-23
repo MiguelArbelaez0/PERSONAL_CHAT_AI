@@ -1,5 +1,10 @@
 # Estado vigente — 22 de octubre de 2026
 
+## Publicación v1.1.0 aprobada — 22 de octubre de 2026
+
+El propietario confirmó pruebas manuales satisfactorias de los tres casos en Chrome y Stripchat y autorizó la publicación estable. Esta decisión sustituye las restricciones de publicación de las etapas históricas inferiores. No cambia funcionalidades ni datos. Se conservan las limitaciones conocidas: rechazos ocasionales y algún falso rechazo, ambigüedad de idioma en entradas breves, dependencia de LM Studio y naturalidad variable. Evidencia y procedimiento en [publicación](PUBLICATION_2026_10_22.md).
+
+
 ## Cierre de los tres casos — 22 de octubre de 2026
 
 Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. 311 Python y 71 JavaScript aprobadas; entrega LM Studio 11/13, traducción 10/10, francés 4/4 y reintentos portugueses reales 2/2. Candidata para revisión final, con limitaciones menores documentadas; HTTP real en puertos aislados, sin detener 8765. Resultados y límites vigentes: [CLOSURE_THREE_BLOCKERS_2026_10_22.md](CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se respalda únicamente develop; no hay publicación estable ni cambios en main. Los apartados inferiores son históricos.
