@@ -1,6 +1,10 @@
-# Estado vigente — 21 de octubre de 2026
+# Estado vigente — 22 de octubre de 2026
 
-**Estado actual: BLOQUEADA para publicación estable.** MIT aprobada, dependencias corregidas (pip-audit sin hallazgos conocidos), 291 Python/71 JavaScript aprobadas. LM Studio final: 11/13 aceptadas, traducción 9/10, reintento portugués fallido; persisten afirmaciones del interlocutor sin respaldo aceptadas. Respaldo exclusivo de develop, sin main/PR/tag/Release. Consultar [informe final](FINALIZATION_2026_10_22.md). Los apartados anteriores en fecha son históricos.
+## Cierre de los tres casos — 22 de octubre de 2026
+
+Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. 311 Python y 71 JavaScript aprobadas; entrega LM Studio 11/13, traducción 10/10, francés 4/4 y reintentos portugueses reales 2/2. Candidata para revisión final, con limitaciones menores documentadas; HTTP real en puertos aislados, sin detener 8765. Resultados y límites vigentes: [CLOSURE_THREE_BLOCKERS_2026_10_22.md](CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se respalda únicamente develop; no hay publicación estable ni cambios en main. Los apartados inferiores son históricos.
+
+**Estado histórico anterior a este cierre: BLOQUEADA para publicación estable.** MIT aprobada, dependencias corregidas (pip-audit sin hallazgos conocidos), 291 Python/71 JavaScript aprobadas. LM Studio final: 11/13 aceptadas, traducción 9/10, reintento portugués fallido; persisten afirmaciones del interlocutor sin respaldo aceptadas. Respaldo exclusivo de develop, sin main/PR/tag/Release. Consultar [informe final](FINALIZATION_2026_10_22.md). Los apartados anteriores en fecha son históricos.
 
 ## Finalización vigente — 22 de octubre de 2026
 

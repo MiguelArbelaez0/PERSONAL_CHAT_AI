@@ -5,6 +5,7 @@ import re
 from backend.answers import _json_object, _normalize
 from backend.prompt import _bounded_notes
 from backend.roles import address_frame
+from backend.evidence import viewer_preference_required, viewer_evidence, preference_anchor, question_citation
 
 
 _COURTESY = re.compile(
@@ -40,7 +41,7 @@ def verified_wellbeing_exchange(draft, incoming):
     portuguese = (re.fullmatch(r"(?:ola|oi) (?:como voce esta(?: hoje)?|tudo bem(?: com voce)?)", target)
                   and re.fullmatch(r"(?:(?:ola|oi) )?estou bem obrigad[oa](?: e voce)?", reply))
     french = (target == "bonsoir tu vas bien j aimerais apprendre a mieux te connaitre"
-              and re.fullmatch(r"bonsoir (?:oui )?je vais bien merci (?:content de t entendre et de mieux te connaitre|je suis ravi de mieux te connaitre)", reply))
+              and re.fullmatch(r"bonsoir (?:oui )?je vais (?:tres )?bien merci (?:(?:je suis )?(?:content|ravi|heureux) de (?:mieux )?te connaitre(?: un peu mieux)?|content de t entendre et de mieux te connaitre)", reply))
     return bool(portuguese or french)
 
 
@@ -66,24 +67,29 @@ def review_messages(*, draft, incoming, context, notes, previous, require_eviden
         "Return exactly one complete JSON object with ALL these fields: {\"supported\":true,\"perspective_consistent\":true,"
         "\"answers_target\":true,\"repeated_idea\":false,\"repetitive_question\":false,\"personal_claims\":[]}. "
         "For every concrete activity, memory or reciprocal feeling in the draft, include a personal_claims item "
-        "about the OWNER only. Notes describe the OTHER PERSON unless explicitly labelled Owner/Propietario/Usuario. "
+        "about EITHER person, with subject owner or other_person and kind preference/activity/feeling/memory/other. "
+        "A guessed favourite or taste is also a preference assertion unless the target explicitly requests guessing. "
+        "Questions, honest uncertainty and ordinary courtesy are not preference assertions. "
+        "Notes describe the OTHER PERSON unless explicitly labelled Owner/Propietario/Usuario. "
         "An other-person preference is never evidence that the owner shares it. "
         "with claim, source (target, history or notes), and an EXACT evidence_quote from that source. "
         "If no evidence exists, leave evidence_quote empty and set supported=false. Ordinary wellbeing "
         "('I am well') and invitations ('happy to talk') do not need a claim. "
         "Set supported=false if a factual claim lacks evidence in the target, visible history or manual notes."
     )
-    substantive = substantive_draft(draft)
+    substantive = "" if verified_wellbeing_exchange(draft, incoming) else substantive_draft(draft)
     if require_evidence:
         system += " The draft contains a concrete personal claim. personal_claims MUST include owner evidence from history or notes; if none exists, supported=false."
-    data = {"draft": substantive or "[Only conventional courtesy; no factual assertions.]", "courtesy_only": not bool(substantive),
+    if viewer_preference_required(draft, incoming):
+        system += " This draft asserts an OTHER-PERSON preference. Include a matching other_person preference claim with its real evidence; without evidence set supported=false. A question about a favourite does not reveal its answer."
+    data = {"speaker_evidence": {"other_person": viewer_evidence(incoming, context, notes)}, "draft": substantive or "[Only conventional courtesy; no factual assertions.]", "courtesy_only": not bool(substantive),
             "role_frame": address_frame(incoming),
             "target_incoming": incoming, "visible_history": context,
             "manual_notes": _bounded_notes(notes), "unsubmitted_previous_drafts": previous}
     return [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(data, ensure_ascii=False)}]
 
 
-def review_rejection(answers, *, evidence=None, require_evidence=False, verified_courtesy=False):
+def review_rejection(answers, *, evidence=None, require_evidence=False, verified_courtesy=False, other_evidence=None, preference_evidence=None, require_viewer_preference=False, draft=""):
     required = {"supported", "perspective_consistent", "answers_target", "repeated_idea", "repetitive_question"}
     if len(answers) != 1:
         return "invalid_grounding_review"
@@ -96,15 +102,38 @@ def review_rejection(answers, *, evidence=None, require_evidence=False, verified
             return "invalid_grounding_review"
         if require_evidence and not claims:
             return "unsupported_claim"
+        viewer_preferences = 0
+        owner_claims = 0
         for claim in claims:
             if not isinstance(claim, dict) or not isinstance(claim.get("claim"), str):
                 return "invalid_grounding_review"
             quote = claim.get("evidence_quote")
             source = claim.get("source")
-            if not isinstance(source, str) or source not in evidence:
+            subject = claim.get("subject", "owner")  # legacy clients remain owner-scoped
+            kind = claim.get("kind", "other")
+            if subject not in {"owner", "other_person"} or kind not in {"preference", "activity", "feeling", "memory", "other"}:
                 return "invalid_grounding_review"
-            if not isinstance(quote, str) or not quote.strip() or quote not in evidence[source]:
+            if not isinstance(source, str) or source not in {"target", "history", "notes"}:
+                return "invalid_grounding_review"
+            if subject == "other_person" and kind == "preference" and question_citation(draft, quote):
+                # The review quoted a question from the draft as a fact. It is
+                # neither an assertion nor evidence; do not reject the question.
+                continue
+            sources = evidence if subject == "owner" else other_evidence
+            if subject == "other_person" and (kind == "preference" or require_viewer_preference):
+                sources = preference_evidence
+            if not sources or not isinstance(quote, str) or not quote.strip() or quote not in sources.get(source, ""):
                 return "unsupported_claim"
+            if subject == "owner":
+                owner_claims += 1
+            if subject == "other_person" and (kind == "preference" or require_viewer_preference):
+                if not preference_anchor(claim["claim"], quote):
+                    return "unsupported_claim"
+                viewer_preferences += 1
+        if require_evidence and not owner_claims:
+            return "unsupported_claim"
+        if require_viewer_preference and not viewer_preferences:
+            return "unsupported_claim"
     # A closed grammar can establish this claim-free greeting independently of
     # an erroneous model verdict. Role, repeat and schema checks still apply.
     if verified_courtesy and not require_evidence and data.get("personal_claims") == []:

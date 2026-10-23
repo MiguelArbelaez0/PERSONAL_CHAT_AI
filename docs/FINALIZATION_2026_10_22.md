@@ -1,5 +1,7 @@
 # Finalización v1.1.0 — 22 de octubre de 2026
 
+> Actualización posterior a 3ed11fc: véase [cierre de los tres bloqueos](CLOSURE_THREE_BLOCKERS_2026_10_22.md). Allí se documentan correcciones, nuevas regresiones, reintentos portugueses reales y arranque HTTP aislado sin detener 8765. Las decisiones inferiores pertenecen a la etapa anterior.
+
 Trabajo autorizado en develop, preservando el historial, main y todos los datos. Este informe sustituye el estado de la auditoría previa; los informes anteriores siguen siendo evidencia histórica. La autorización de publicación es condicional a resolver bloqueos críticos y validar el paquete.
 
 ## Licencia aprobada

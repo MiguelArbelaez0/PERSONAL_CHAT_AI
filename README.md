@@ -2,7 +2,7 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado:** `v1.1.0-rc.1`, preparada para revisión, sin aprobación estable. Auditoría actual: [22 de octubre de 2026](docs/AUDIT_2026_10_22.md). El usuario confirma perfiles persistentes, cuatro idiomas, tres modos y copia en Chrome, sin envío automático. MIT aprobada; dependencias de seguridad actualizadas. Publicación estable bloqueada: persisten afirmaciones sin evidencia aceptadas y falta verificar el arranque de red limpio. Véase [informe final](docs/FINALIZATION_2026_10_22.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
+> **Estado:** `v1.1.0-rc.1`, candidata en revisión final, sin publicación estable. MIT aprobada. Correcciones y evidencia vigente en el [cierre de los tres bloqueos](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). Las pruebas y la revisión de resultados no garantizan fidelidad universal del modelo. Backend habitual `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
 
 Las correcciones posteriores a las pruebas manuales añaden controles de evidencia, copia parcial, repetición y reparación de traducciones. Las pruebas reales todavía presentan rechazos intermitentes y matices de traducción que requieren revisión humana. Consulta el [informe de los cuatro casos](docs/RC1_REAL_CASES.md); no se considera todavía una candidata completamente fiable.
 

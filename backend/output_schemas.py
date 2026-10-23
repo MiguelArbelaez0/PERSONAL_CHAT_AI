@@ -29,7 +29,8 @@ OUTPUT_SCHEMAS = {
     "grounding_review": object_schema({
         **{key: BOOLEAN for key in ("supported", "perspective_consistent", "answers_target", "repeated_idea", "repetitive_question")},
         "personal_claims": array_schema(object_schema({
-            "claim": TEXT, "source": {"type": "string", "enum": ["target", "history", "notes"]}, "evidence_quote": TEXT,
+            "claim": TEXT, "subject": {"type":"string", "enum":["owner","other_person"]},
+            "kind": {"type":"string", "enum":["preference","activity","feeling","memory","other"]}, "source": {"type": "string", "enum": ["target", "history", "notes"]}, "evidence_quote": TEXT,
         })),
     }),
     "translation": object_schema({"translation": TEXT, "faithful": BOOLEAN, "adds_or_omits_information": BOOLEAN}),

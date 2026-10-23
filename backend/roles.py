@@ -15,6 +15,8 @@ def incoming_address(incoming):
 def address_frame(incoming):
     term = incoming_address(incoming)
     return {"target_author": "other_person", "reply_author": "account_owner",
+            "target_first_person": "other_person", "target_second_person": "account_owner",
+            "reply_first_person": "account_owner", "reply_second_person": "other_person",
             "incoming_vocative": term,
             "vocative_addresses": "account_owner" if term else None,
             "other_person_role": "not_established_by_this_address"}

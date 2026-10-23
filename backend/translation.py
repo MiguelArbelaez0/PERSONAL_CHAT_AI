@@ -14,6 +14,9 @@ from backend.lm_studio import LMStudioError
 from backend.prompt import build_translation_messages, build_translation_review_messages
 
 logger = logging.getLogger(__name__)
+_PORTUGUESE_ELLIPSIS = re.compile(
+    r"\b(obrigad[oa]\s+por\s+querer)\s+conhecer\s+melhor(?=\s*(?:[.!?,;]|$))", re.I,
+)
 
 
 def _may_be_question(text: str) -> bool:
@@ -77,7 +80,7 @@ def _perspective_conflict(original, translation, source_context=""):
     if other_as_object and re.search(r"\bconocerme\b", translation, re.I):
         return True
     owner_as_object = bool(re.search(r"\b(?:me\s+conhecer|conhecer-me|me\s+conna[iî]tre)\b", original, re.I))
-    elliptical_owner = (bool(re.search(r"\bobrigad[oa]\s+por\s+querer\s+conhecer\s+melhor\b", original, re.I))
+    elliptical_owner = (bool(_PORTUGUESE_ELLIPSIS.search(original))
                         and bool(re.search(r"\b(?:conhecer\s+voc[eê]|te\s+conhecer)\b", source_context, re.I)))
     return (owner_as_object or elliptical_owner) and bool(re.search(r"\bconocerte\b", translation, re.I))
 
@@ -89,7 +92,15 @@ def _translation_reference(original, source_context):
     utterance too caused the small model to answer/translate that other speaker.
     Keep the cached reference for a retry, but never add it to an unambiguous task.
     """
-    return source_context if re.search(r"\bobrigad[oa]\s+por\s+querer\s+conhecer\s+melhor\b", original, re.I) else ""
+    return source_context if _PORTUGUESE_ELLIPSIS.search(original) else ""
+
+
+def resolved_translation_source(original, source_context):
+    """Resolve only the evidenced Portuguese ellipsis, without changing stored text."""
+    if (_PORTUGUESE_ELLIPSIS.search(original)
+            and re.search(r"\b(?:conhecer voc[eê]|te conhecer)\b", source_context, re.I)):
+        return _PORTUGUESE_ELLIPSIS.sub(lambda match: match[1]+" me conhecer melhor", original, count=1)
+    return original
 
 
 @dataclass(frozen=True)
@@ -185,7 +196,8 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
 
     state = retry_state or {}
     source_context = (source_context or state.get("source_context", ""))[:4000]
-    reference = _translation_reference(original, source_context)
+    translation_source = resolved_translation_source(original, source_context)
+    reference = "" if translation_source != original else _translation_reference(original, source_context)
     previous_failure = state.get("reason")
     rejected_translation = state.get("candidate")
     review_issues = state.get("issues", [])
@@ -196,11 +208,11 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
         stage = "generate"
         try:
             answers = await translate(build_translation_messages(
-                original=original, language=language, retry=retry, failure_reason=previous_failure,
+                original=translation_source, language=language, retry=retry, failure_reason=previous_failure,
                 # A self-refused mixed/invalid candidate is not a correction
                 # template: feeding it back made Qwen copy the same corruption.
                 rejected_translation=None if previous_failure in {"generator_fidelity_failed", "perspective_mismatch"} else rejected_translation,
-                review_issues=review_issues,
+                review_issues=[] if previous_failure == "perspective_mismatch" else review_issues,
                 source_context=reference,
             ))
         except LMStudioError as exc:
@@ -215,6 +227,11 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                 translation = next((parse_translation(answer) for answer in answers if answer), None)
                 if translation:
                     translation = _repair_known_greetings(original, translation)
+                    if translation_source != original:
+                        # The incoming request resolves the missing object to the
+                        # owner. Repair this exact inverted clause only; the full
+                        # translation still undergoes all fidelity checks below.
+                        translation = re.sub(r"\b(gracias por querer) conocerte mejor\b", r"\1 conocerme mejor", translation, flags=re.I)
                 if translation:
                     rejected_translation = translation[:4000]
                     review_issues = []
@@ -253,7 +270,7 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                         stage = "review"
                         try:
                             review_answers = await review(build_translation_review_messages(
-                                original=original, translation=translation, language=language, source_context=reference,
+                                original=translation_source, translation=translation, language=language, source_context=reference,
                             ))
                         except LMStudioError as exc:
                             reason, http_status = f"review_{_failure_code(exc)}", exc.http_status

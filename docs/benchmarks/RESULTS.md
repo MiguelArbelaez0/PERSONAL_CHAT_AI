@@ -1,5 +1,7 @@
 # LM Studio real: resultados completos del 21 de octubre de 2026
 
+**Actualización del 22 de octubre:** los resultados del cierre de preferencias/francés/portugués están en [CLOSURE_THREE_BLOCKERS_2026_10_22.md](../CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se conservan allí también los fallos e intermedias; las cifras inferiores son históricas.
+
 **Evaluación anterior, conservada como evidencia.** Los resultados vigentes están en [CLOSURE_2026_10_21.md](../CLOSURE_2026_10_21.md) y en `closure_verified.json`. `final.json` pertenece a la tarea anterior.
 
 Modelo sin cambios: `qwen/qwen3-4b-2507`, servidor local `127.0.0.1:1234/v1`. Todos los datos son sintéticos y las bases del benchmark son temporales. No se usaron conversaciones, notas ni perfiles privados. No se probó Chrome/Stripchat real. Los JSON conservan todas las entradas/salidas y errores de cada ejecución; únicamente se retiraron tokens efímeros de traducción.

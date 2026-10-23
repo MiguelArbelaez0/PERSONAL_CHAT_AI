@@ -18,6 +18,7 @@ from backend.memory import MemoryStore, normalize_alias
 from backend.profiles import ProfileInput, ProfileStore
 from backend.validation import RecentDrafts, response_rejection, remove_unsupported_clauses, owner_notes
 from backend.grounding import review_messages, review_rejection, verified_wellbeing_exchange
+from backend.evidence import viewer_preference_required, viewer_evidence
 from backend.errors import PipelineFailure, transport_failure
 from backend.request_limits import RequestLimitsMiddleware
 from backend.roles import remove_reversed_vocative
@@ -482,7 +483,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 rejection_stage = "grounding"
                 audit_messages = review_messages(
                     draft=alternatives[0], incoming=request.message,
-                    context=context + "\n" + additional_context, notes=verified_owner_notes if requires_evidence else notes, previous=previous_responses,
+                    context=context + "\n" + additional_context, notes=notes, previous=previous_responses,
                     require_evidence=requires_evidence,
                 )
                 if _estimate_prompt_tokens(audit_messages) > available_prompt_tokens:
@@ -494,7 +495,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                         "notes": _bounded_notes(verified_owner_notes),
                     }
                     rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence, require_evidence=requires_evidence,
-                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message))
+                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message),
+                                                       other_evidence=viewer_evidence(request.message, context + "\n" + additional_context, notes),
+                                                       preference_evidence=viewer_evidence(request.message, context + "\n" + additional_context, notes, preferences=True),
+                                                       require_viewer_preference=viewer_preference_required(alternatives[0], request.message), draft=alternatives[0])
                     if rejection_reason == "invalid_grounding_review":
                         review_format_repairs += 1
                         # Repair the review's serialization before discarding a potentially valid draft.
@@ -505,7 +509,10 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                         if _estimate_prompt_tokens(repair_messages) > available_prompt_tokens:
                             raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
                         rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence, require_evidence=requires_evidence,
-                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message))
+                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message),
+                                                       other_evidence=viewer_evidence(request.message, context + "\n" + additional_context, notes),
+                                                       preference_evidence=viewer_evidence(request.message, context + "\n" + additional_context, notes, preferences=True),
+                                                       require_viewer_preference=viewer_preference_required(alternatives[0], request.message), draft=alternatives[0])
                 except LMStudioError as exc:
                     raise transport_failure(exc, "grounding", attempt + 1) from exc
                 if requires_evidence and not rejection_reason:
