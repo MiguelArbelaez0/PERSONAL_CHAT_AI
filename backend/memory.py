@@ -1,5 +1,6 @@
 import hashlib
 import sqlite3
+import re
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -23,6 +24,7 @@ class MemoryStore:
     @contextmanager
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=5)
+        db.execute("PRAGMA secure_delete=ON")
         db.row_factory = sqlite3.Row
         try:
             yield db
@@ -49,6 +51,16 @@ class MemoryStore:
             cur = db.execute("INSERT INTO notes(speaker_key,speaker,text) VALUES(?,?,?)", (who[0], who[1], text.strip()))
             row = db.execute("SELECT id,text,created_at,updated_at FROM notes WHERE id=?", (cur.lastrowid,)).fetchone()
             return dict(id=row["id"], text=row["text"], created_at=row["created_at"], updated_at=row["updated_at"])
+
+    def relevant_notes(self, alias: str | None, message: str) -> list[dict]:
+        """Rank manual notes by target overlap before applying the prompt's cap.
+
+        Keep other notes as fallback so short references can still use context.
+        No new facts are extracted or persisted by this retrieval step.
+        """
+        words = set(re.findall(r"[^\W\d_]{3,}", message.casefold()))
+        notes = self.list_notes(alias)
+        return sorted(notes, key=lambda note: -len(words & set(re.findall(r"[^\W\d_]{3,}", note["text"].casefold()))))
 
     def edit_note(self, alias: str | None, note_id: int, text: str) -> dict | None:
         who = normalize_alias(alias)

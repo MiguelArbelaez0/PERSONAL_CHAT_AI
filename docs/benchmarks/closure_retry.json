@@ -1,0 +1,26 @@
+{
+  "synthetic_only": true,
+  "model": "qwen/qwen3-4b-2507",
+  "method": "Two deliberately injected malformed translation outputs, followed by real LM Studio translation/review via the exact-original cached retry token. This is fault injection, not an observed LM transport failure.",
+  "original": "Bonsoir ! Je vais bien, merci.",
+  "failed": {
+    "available": false,
+    "spanish_translation": null,
+    "failure_reason": "invalid_format",
+    "failure_message": "La respuesta de LM Studio no contenía una traducción en el formato esperado.",
+    "http_status": null,
+    "attempts": 2,
+    "failure_stage": "generate"
+  },
+  "recovered": {
+    "available": true,
+    "spanish_translation": "Buenas noches¡ Estoy bien, gracias.",
+    "failure_reason": null,
+    "failure_message": null,
+    "http_status": null,
+    "attempts": 1,
+    "failure_stage": null
+  },
+  "generation_calls": 0,
+  "real_translation_calls": 1
+}

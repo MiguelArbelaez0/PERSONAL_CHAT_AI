@@ -229,6 +229,27 @@
       return String(target?.innerText || target?.textContent || '').replace(/\s+/g, ' ').trim();
     }
 
+    messageTextOf(row) {
+      const target = this.selectors.text ? row.querySelector(this.selectors.text) : row;
+      if (!target) return '';
+      const timestamps = this.selectors.timestamp ? [...row.querySelectorAll(this.selectors.timestamp)] : [];
+      if (timestamps.some((node) => node === target || node.contains(target))) return '';
+      const excluded = new Set(timestamps.filter((node) => target.contains(node)));
+      if (!excluded.size) return this.textOf(row, this.selectors.text);
+      // Read visible content without configured metadata. Never mutate the
+      // page or remove clock-shaped words that belong to the actual message.
+      const read = (node) => {
+        if (excluded.has(node)) return '';
+        const style = node.nodeType === 1 ? this.document.defaultView?.getComputedStyle?.(node) : null;
+        if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
+        if (node.tagName === 'BR') return ' ';
+        if (!node.childNodes?.length) return String(node.textContent || '');
+        const text = [...node.childNodes].map(read).join('');
+        return /^(block|flex|grid|list-item|table|table-row|table-cell)$/.test(style?.display || '') ? ` ${text} ` : text;
+      };
+      return read(target).replace(/\s+/g, ' ').trim();
+    }
+
     timestampOrder(value) {
       const time = String(value || '').trim();
       const clock = time.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
@@ -335,7 +356,7 @@
       const fallbackOccurrences = new Map();
       const messages = rows.map((row, domOrder) => {
         const direction = this.directionOf(row);
-        const text = this.textOf(row, this.selectors.text);
+        const text = this.messageTextOf(row);
         const time = this.selectors.timestamp ? this.textOf(row, this.selectors.timestamp) : '';
         const explicitId = row.getAttribute?.('data-message-id') || row.id || '';
         const nodeId = this.idFor(row);

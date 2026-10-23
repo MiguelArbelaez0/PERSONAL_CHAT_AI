@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const SuggestionFlow = require('../extension/suggestion-flow.js');
-const contentSource = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8');
+const contentSource = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8').replace(/\r\n/g, '\n');
 
 function fixture({ mode = 'manual', response, request, latestIncomingFingerprint = null } = {}) {
   let currentMode = mode;
@@ -28,6 +28,45 @@ function fixture({ mode = 'manual', response, request, latestIncomingFingerprint
   return { flow, view, snapshot: { conversationKey, alias: 'Ana', messages: [] }, setMode: (v) => { currentMode = v; }, setConversation: (v) => { conversationKey = v; }, setLatestIncoming: (v) => { latestIncomingFingerprint = v; } };
 }
 
+test('automatic duplicate rejection clears loading and permits retry with the same incoming identity', async () => {
+  let calls = 0;
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'second', request: async () => {
+    if (++calls === 1) throw SuggestionFlow.normalizeApiError({ error: { code: 'generation_validation_failed', reason_code: 'repeated_response', message: 'Duplicate' }, diagnostics: { duplicate_source: 'previous_unsubmitted_draft' } }, 502);
+    return { original_response: 'It is good to hear from you again.', language: 'en', conversation_id: 'chat-a', target_message_id: 'second' };
+  } });
+  const incoming = 'I missed talking to you, daddy.';
+  assert.equal((await f.flow.generate(incoming, f.snapshot, true, null, false, 'second')).state, 'error');
+  assert.equal(f.view.loading, false);
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+  assert.equal((await f.flow.generate(incoming, f.snapshot, true, null, false, 'second')).state, 'success');
+  assert.equal(f.view.payload.target_message, incoming);
+  assert.equal(f.view.payload.target_message_id, 'second');
+});
+
+test('manual alias change cannot reuse a different interlocutor DOM history', async () => {
+  const f = fixture();
+  const snapshot = { ...f.snapshot, messages: [
+    { direction: 'outgoing', text: 'Private synthetic fact from Ana', fingerprint: 'old' },
+  ] };
+  await f.flow.generate('Hello Bob', snapshot, false, 'Bob');
+  assert.equal(f.view.payload.context, '');
+  assert.equal(f.view.payload.dom_extracted_message_count, 0);
+  assert.equal(f.view.payload.interlocutor, 'Bob');
+});
+
+test('explicit backend alias mismatch discards an otherwise current response', async () => {
+  const f = fixture({ response: { interlocutor: 'Bob', language: 'en', original_response: 'Hello there' } });
+  await f.flow.generate('Hello', f.snapshot);
+  assert.deepEqual(f.view.suggestions, []);
+});
+
+test('structured rejection reason survives API normalization', () => {
+  const error = SuggestionFlow.normalizeApiError({ error: { code: 'lm_studio_error', reason_code: 'unsupported_claim', message: 'Rejected' } }, 502);
+  assert.equal(error.reasonCode, 'unsupported_claim');
+  assert.equal(error.httpStatus, 502);
+});
+
 test('manual form generation sends the selected message to the backend', async () => {
   assert.match(contentSource, /id="pcai-generate"[^>]*>Generar respuesta</);
   assert.match(contentSource, /\$\('#pcai-generate'\)\.onclick[\s\S]*?latestIncoming\.text, currentSnapshot, false/);
@@ -36,6 +75,8 @@ test('manual form generation sends the selected message to the backend', async (
   assert.equal(f.view.requests, 1);
   assert.equal(f.view.payload.message, 'Hola');
   assert.equal(f.view.payload.interlocutor, 'Alias manual');
+  assert.equal(f.view.payload.configured_mode, 'manual');
+  assert.equal(f.view.payload.generation_trigger, 'manual');
   assert.equal(f.view.state, 'success');
 });
 
@@ -43,6 +84,8 @@ test('automatic new incoming message generates in auto mode', async () => {
   assert.match(contentSource, /onIncoming:[\s\S]*?queueAutomaticSuggestion\(\{ message: incomingMessage/);
   const f = fixture({ mode: 'auto' });
   await f.flow.generate('Nuevo mensaje', f.snapshot, true);
+  assert.equal(f.view.payload.configured_mode, 'auto');
+  assert.equal(f.view.payload.generation_trigger, 'automatic');
   assert.equal(f.view.requests, 1);
   assert.equal(f.view.state, 'success');
   assert.equal((await f.flow.generate('Incoming', f.snapshot, true)).state, 'success');
@@ -362,6 +405,8 @@ test('manual extra context and extraction metadata are sent with a suggestion re
 test('timestamps normalize clock and ISO values', () => {
   assert.equal(SuggestionFlow.normalizeTimestamp('9:04:33'), '09:04');
   assert.match(SuggestionFlow.normalizeTimestamp('2025-01-02T15:04:00Z'), /^\d{1,2}:\d{2}/);
+  assert.equal(SuggestionFlow.normalizeTimestamp('20:24 20:24'), '20:24');
+  assert.equal(SuggestionFlow.normalizeTimestamp('20:24 20:25'), '20:24 20:25');
 });
 
 test('context window selection is passed to the request and caps history', async () => {

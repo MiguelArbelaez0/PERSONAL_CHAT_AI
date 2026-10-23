@@ -1,5 +1,17 @@
 # Seguridad
 
+## Finalización vigente — 22 de octubre de 2026
+
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+
+
+## Auditoría vigente — 22 de octubre de 2026
+
+Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente, pip-audit detectó ocho avisos distintos en dependencias y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+
+
+Verificación integral vigente: [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md). Se añadió límite de cuerpo HTTP de 256 KiB, comprobado también con fragmentos sin Content-Length, y rechazo de identidades contradictorias. No se añadió autenticación ni límite global de frecuencia. Los informes LM Studio compartibles son sintéticos y omiten tokens efímeros. Los apartados históricos no certifican el estado de referencias remotas actuales.
+
 ## Alcance auditado
 
 La revisión de esta instantánea cubre permisos del manifiesto, configuración del servidor, cliente LM Studio, rutas de API, archivos incluidos y exclusiones. El escaneo Gitleaks anterior del repositorio fuente no encontró credenciales conocidas. Esta instantánea excluye `.env`, SQLite, `knowledge/local/`, cachés, entornos virtuales e informes internos. Esto reduce el riesgo detectado, pero no garantiza que un secreto desconocido no exista.

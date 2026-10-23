@@ -2,7 +2,9 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado de publicación:** instantánea limpia candidata `v1.0.0`, aún no publicada. El backend está fijado a `127.0.0.1`. Esta copia no contiene el historial anterior; las referencias antiguas del repositorio público siguen activas hasta que se autorice y complete su migración.
+> **Estado:** `v1.1.0`, publicación estable aprobada por el propietario tras pruebas manuales satisfactorias en Chrome y Stripchat. Licencia MIT. Consulta [publicación](docs/PUBLICATION_2026_10_22.md) y [limitaciones conocidas](docs/KNOWN_ISSUES.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
+
+Se incorporan controles de evidencia, copia parcial, repetición y reparación de traducciones. Persisten rechazos intermitentes y matices de traducción que requieren revisión humana. El [informe de los cuatro casos](docs/RC1_REAL_CASES.md) conserva la evidencia histórica previa a las correcciones y aprobación final.
 
 ## Qué ofrece
 
@@ -11,6 +13,7 @@ Asistente local para preparar y revisar borradores de respuesta a conversaciones
 - Contexto reciente de mensajes entrantes y propios disponible en el DOM activo.
 - Una respuesta original en el idioma detectado del último mensaje entrante y una traducción secundaria al español cuando corresponde.
 - Notas locales por alias y archivos Markdown para preferencias de tono y estilo.
+- Perfiles editables y persistentes; ChubbyKriz como predeterminado configurable.
 - Edición y copia de la respuesta original; la traducción se muestra por separado.
 - Procesamiento local mediante el backend FastAPI y LM Studio; no incluye envío automático.
 
@@ -55,11 +58,11 @@ No se incluyen ni descargan modelos. Revisa la licencia del modelo elegido antes
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
-   python -m pip install -r requirements.txt
-   Copy-Item .env.example .env
+   python -m pip install -r requirements-dev.txt
+   if (-not (Test-Path .env)) { Copy-Item .env.example .env }
    ```
 
-3. En LM Studio, carga un modelo y activa el servidor local compatible con OpenAI en `http://127.0.0.1:1234/v1`.
+3. En LM Studio, carga `qwen/qwen3-4b-2507` y activa el servidor local compatible con OpenAI en `http://127.0.0.1:1234/v1`. Configura `LM_STUDIO_MODEL=qwen/qwen3-4b-2507` en tu `.env` sin reemplazar otros valores privados.
 4. Inicia el backend:
 
    ```powershell
@@ -99,11 +102,20 @@ La app estima tokens sin conocer el tokenizador ni la ventana real del modelo. A
 
 ## Idioma y traducción
 
-La respuesta original se genera primero. Si su idioma no es español, el backend solicita una traducción independiente y revisa el idioma y la fidelidad. Si falla la traducción, conserva el original y permite reintentar solo esa traducción. Hay un reintento interno acotado, pero los resultados automatizados usan modelos simulados: los fallos intermitentes observados no se deben considerar resueltos hasta probar con LM Studio real.
+La respuesta original se genera primero. Si su idioma no es español, el backend solicita una traducción independiente y revisa el idioma y la fidelidad. Si falla la traducción, conserva el original y permite reintentar solo esa traducción. Hay un reintento interno acotado. Las suites simuladas y las repeticiones con LM Studio real están documentadas por separado en el [informe actual](docs/STABILIZATION_2026_10_21.md); permanecen fallos intermitentes y límites semánticos.
+
+Se prioriza el idioma del mensaje entrante objetivo. Para mensajes ambiguos se usan mensajes entrantes recientes y, finalmente, `DEFAULT_LANGUAGE`. Los controles locales rechazan idiomas incorrectos, mezclas reconocibles y repeticiones; permiten un solo reintento de generación. El detector es heurístico: expresiones desconocidas pueden escapar a sus controles o rechazarse por ambigüedad.
+
+## Personalidades
+
+En el panel abre **Personalidad**. Selecciona un perfil y pulsa **Activar**. Con **Nuevo** puedes definir nombre, descripción, tono, estilo y reglas; pulsa **Guardar perfil** y después **Activar**. También puedes editar o eliminar perfiles personalizados. **Restaurar predeterminado** restaura y activa ChubbyKriz conservando tus perfiles personalizados.
+
+Los perfiles se guardan en `personalities.sqlite3`, junto a la base de notas configurada (por defecto en `data/`). La selección activa se comparte entre las pestañas que usan ese backend; pulsa **Actualizar** para reflejar cambios realizados en otra pestaña. Los archivos `knowledge/local/` se conservan como fuentes complementarias: el perfil elegido determina la voz, y ninguna preferencia puede sustituir las reglas de idioma, perspectiva o veracidad.
 
 ## Contexto, memoria y privacidad
 
 - El contexto de chat se procesa para la solicitud y no se guarda automáticamente en SQLite.
+- Los últimos cinco borradores de hasta 128 conversaciones se mantienen en RAM para evitar repeticiones. Se eliminan al reiniciar el backend; eliminar la memoria de un alias también retira sus borradores temporales.
 - Solo las notas que el usuario guarda explícitamente se almacenan en `data/personal_chat_ai.sqlite3`, separadas por una clave derivada del alias.
 - Los archivos de personalización se leen desde `knowledge/local/`; la carpeta está excluida de Git. Los archivos versionados de `knowledge/` son valores genéricos.
 - La extensión conserva claves de mensajes procesados para deduplicar el modo Automático.
@@ -118,7 +130,7 @@ La [política de privacidad](docs/PRIVACY.md) y la [auditoría de seguridad](doc
 - El idioma, la naturalidad, los roles conversacionales y la traducción dependen del modelo y requieren revisión humana.
 - No hay instalador, paquete de extensión para Chrome Web Store, actualizador ni gestión de modelos.
 - El backend no autentica llamadas locales; el acceso se limita a loopback y no hay soporte remoto.
-- La publicación está pendiente de migrar las referencias antiguas del repositorio público con autorización y completar la validación manual en Chrome/Stripchat y la generación real con LM Studio. Las pruebas HTTP/ASGI pasaron en un entorno aislado compatible; ver [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+- La publicación está pendiente de resolver los problemas de calidad registrados con LM Studio real, ampliar la validación humana a los fallos sintéticos actuales y resolver los bloqueos funcionales vigentes. Las referencias antiguas de migración se conservan como historial documental; esta tarea no cambió la configuración remota. Véase [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Pruebas
 
@@ -137,8 +149,8 @@ Las pruebas no verifican una sesión real de Stripchat ni la salida de un modelo
 
 ## Licencia y uso
 
-La licencia está **pendiente de decisión del propietario**. El archivo `LICENSE` no concede actualmente una licencia de código abierto ni permiso general de redistribución o comercialización. Las licencias de los modelos y de LM Studio dependen de sus proveedores y de la configuración elegida; no se distribuyen con este repositorio. Consulta [docs/SECURITY.md](docs/SECURITY.md) y solicita asesoría profesional para obligaciones legales, privacidad, contenido adulto y términos de las plataformas.
+El código original está bajo [licencia MIT](LICENSE), Copyright (c) 2026 Miguel Arbeláez Vallejo, por autorización expresa del titular. Las dependencias mantienen sus propias licencias; consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). No se incluyen LM Studio ni los pesos Qwen.
 
 ## Estado y hoja de ruta
 
-El candidato `v1.0.0` aún no se ha publicado. La hoja de ruta de futuras versiones es orientativa y no implica compromisos: [docs/ROADMAP.md](docs/ROADMAP.md). Las notas del candidato están en [RELEASE_NOTES.md](RELEASE_NOTES.md); el historial de desarrollo está en [CHANGELOG.md](CHANGELOG.md).
+La aprobación y las verificaciones vigentes están en [publicación](docs/PUBLICATION_2026_10_22.md). El plan de pruebas se conserva en [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).

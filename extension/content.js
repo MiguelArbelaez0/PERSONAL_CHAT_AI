@@ -25,6 +25,17 @@
       <section class="pcai-suggestions-section"><div class="pcai-section-heading"><h2>Respuesta sugerida</h2></div><div id="pcai-results" aria-live="polite"></div></section>
       <button class="primary pcai-generate-main" id="pcai-generate" type="button">Generar respuesta</button>
       <label class="pcai-mode-control">Modo<select id="pcai-mode"><option value="manual">Manual</option><option value="auto" selected>Automático</option><option value="off">Desactivado</option></select><span id="pcai-mode-badge" class="pcai-mode-badge">Automático</span></label>
+      <details id="pcai-personalities" class="pcai-advanced"><summary>Personalidad · <span id="pcai-profile-active">Cargando…</span></summary>
+        <label>Perfil<select id="pcai-profile-select"></select></label>
+        <div class="pcai-actions"><button id="pcai-profile-new" type="button">Nuevo</button><button id="pcai-profile-activate" type="button">Activar</button><button id="pcai-profile-reload" type="button">Actualizar</button></div>
+        <label>Nombre<input id="pcai-profile-name" maxlength="80" /></label>
+        <label>Descripción<textarea id="pcai-profile-description" maxlength="800"></textarea></label>
+        <label>Tono<input id="pcai-profile-tone" maxlength="300" /></label>
+        <label>Estilo<input id="pcai-profile-style" maxlength="300" /></label>
+        <label>Reglas<textarea id="pcai-profile-rules" maxlength="1000"></textarea></label>
+        <div class="pcai-actions"><button id="pcai-profile-save" type="button">Guardar perfil</button><button id="pcai-profile-delete" type="button">Eliminar perfil</button><button id="pcai-profile-restore" type="button">Restaurar predeterminado</button></div>
+        <small id="pcai-profile-status" role="status">Los perfiles se guardan en este equipo.</small>
+      </details>
       <details class="pcai-advanced-shell"><summary>Opciones avanzadas</summary>
       <div class="pcai-advanced-content">
       <details class="pcai-advanced"><summary>Responder manualmente</summary>
@@ -231,7 +242,12 @@
       configureDetector();
       applyMode();
       renderAutoDiagnostic();
-    } catch (_) {}
+    } catch (error) {
+      showTechnicalError(`No se pudo completar la inicialización del panel: ${error.message}`);
+    } finally {
+      // Profiles must remain available even if page detection or preferences fail.
+      await loadProfiles();
+    }
   }
   async function api(path, options = {}) {
     let response;
@@ -336,10 +352,10 @@
         renderAutoDiagnostic({ generation: 'en curso' });
       }
     },
-    onSuccess: ({ originalResponse, spanishTranslation, language, automatic, initial, alias: who, notice, httpStatus, diagnostics }) => {
+    onSuccess: ({ originalResponse, spanishTranslation, language, automatic, configuredMode, initial, alias: who, notice, httpStatus, diagnostics }) => {
       results.querySelectorAll?.('[data-pcai-state]').forEach((item) => item.remove());
       results.querySelectorAll?.('.pcai-suggestion').forEach((item) => item.remove());
-      addSuggestion(originalResponse, spanishTranslation, language, who, automatic, initial, diagnostics);
+      addSuggestion(originalResponse, spanishTranslation, language, who, automatic, initial, diagnostics, configuredMode);
       recordPromptDiagnostics(diagnostics);
       status.textContent = notice || 'Se generó una respuesta.';
       status.className = notice ? 'pcai-status is-warn' : 'pcai-status is-ok';
@@ -366,16 +382,19 @@
         invalid_request: 'El backend rechazó el formato de la solicitud.',
         generation_validation_failed: 'LM Studio respondió, pero la respuesta no superó la validación.',
         lm_studio_http_error: 'LM Studio devolvió un error HTTP.',
+        lm_studio_timeout: 'LM Studio agotó el tiempo de espera.',
         lm_studio_invalid_response: 'LM Studio devolvió un formato no válido.',
         invalid_json: 'El backend respondió con JSON no válido.',
         render_error: 'La respuesta llegó, pero el panel no pudo mostrarla.',
       };
-      status.textContent = `${statusByCode[error.code] || (httpStatus ? `Falló la petición HTTP ${httpStatus}.` : 'Falló la generación.') } Puedes reintentar.`;
+      const preciseReason = error.reasonCode && error.reasonCode !== error.code && error.message;
+      status.textContent = preciseReason || `${statusByCode[error.code] || (httpStatus ? `Falló la petición HTTP ${httpStatus}.` : 'Falló la generación.') } Puedes reintentar.`;
       status.className = 'pcai-status is-error';
       detection.textContent = `Falló la generación: ${error.message || 'error del backend'}. Puedes reintentar.`;
       detection.hidden = false;
       const safeIssues = (error.diagnostics?.issues || []).map((item) => `${Array.isArray(item.path) ? item.path.join('.') : 'solicitud'}:${String(item.reason || 'validation_error')}`).slice(0, 6).join(', ');
-      const technicalSummary = `${error.code || 'error'} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
+      const duplicateSource = ['target_incoming', 'previous_unsubmitted_draft'].includes(error.diagnostics?.duplicate_source) ? ` · duplicado: ${error.diagnostics.duplicate_source}` : '';
+      const technicalSummary = `${error.reasonCode || error.code || 'error'}${duplicateSource} · ${String(error.message || 'Error sin descripción').slice(0, 120)}${safeIssues ? ` · ${safeIssues}` : ''}`;
       renderAutoDiagnostic({ generation: 'fallida', http: httpStatus ? `HTTP ${httpStatus}` : 'sin respuesta HTTP', backendError: technicalSummary.slice(0, 180), lmCount: 'sin resultado' });
       showTechnicalError(technicalSummary);
       if (automatic) detection.textContent = 'Falló la generación automática; puedes reintentar desde Respuestas sugeridas.';
@@ -384,6 +403,7 @@
   async function check() {
     try {
       await api('/api/health');
+      if (!profilesLoaded) await loadProfiles();
       status.textContent = 'Backend local conectado'; status.className = 'pcai-status is-ok';
       try {
         const d = await api('/api/diagnostics/lm-studio');
@@ -402,21 +422,23 @@
     if (diagnostic && detail) diagnostic.textContent = String(detail).slice(0, 500);
   }
 
-  function addSuggestion(text, spanishTranslation, language, suggestionAlias, automatic, initial = false, diagnostics = null) {
+  function addSuggestion(text, spanishTranslation, language, suggestionAlias, automatic, initial = false, diagnostics = null, configuredMode = mode) {
     const card = document.createElement('article');
     card.className = 'pcai-suggestion';
     card.dataset.alias = suggestionAlias || '';
     const languageLabels = { en: 'Inglés', fr: 'Francés', pt: 'Portugués', de: 'Alemán', it: 'Italiano', es: 'Español', ru: 'Ruso', uk: 'Ucraniano', ar: 'Árabe', ja: 'Japonés', zh: 'Chino', ko: 'Coreano', el: 'Griego', he: 'Hebreo', th: 'Tailandés', hi: 'Hindi' };
     const heading = document.createElement('div');
     heading.className = 'pcai-suggestion-meta';
-    heading.textContent = `Respuesta sugerida · ${languageLabels[language] || language || 'Idioma detectado'}${suggestionAlias ? ` · ${suggestionAlias}` : ''}${initial ? ' · Inicial' : automatic ? ' · Automática' : ' · Manual'}`;
+    const modeLabel = configuredMode === 'auto' ? 'Automático' : configuredMode === 'off' ? 'Desactivado' : 'Manual';
+    heading.textContent = `Respuesta sugerida · ${languageLabels[language] || language || 'Idioma detectado'}${suggestionAlias ? ` · ${suggestionAlias}` : ''} · Modo ${modeLabel} · ${automatic ? 'Inicio automático' : 'Solicitud manual'}${initial ? ' · Inicial' : ''}`;
     const edit = document.createElement('textarea');
     edit.value = text;
     edit.setAttribute('aria-label', 'Editar sugerencia');
     let translationTextNode = null;
+    let translatedSource = spanishTranslation ? text : null;
     edit.addEventListener('input', () => {
       card.dataset.dirty = 'true';
-      if (translationTextNode && spanishTranslation) {
+      if (translationTextNode && translatedSource !== null && edit.value !== translatedSource) {
         translationTextNode.textContent = 'La traducción corresponde al original generado; regenera para actualizarla.';
       }
     });
@@ -440,6 +462,7 @@
       translationTextNode = translationText;
       translation.append(translationHeading, translationText);
       if (!spanishTranslation && diagnostics?.translation_retry_available) {
+        let translationRetryToken = diagnostics.translation_retry_token || null;
         const retryTranslation = document.createElement('button');
         retryTranslation.type = 'button';
         retryTranslation.textContent = 'Reintentar traducción';
@@ -449,16 +472,20 @@
           retryTranslation.textContent = 'Reintentando traducción…';
           try {
             const outcome = await api('/api/translation/retry', {
-              method: 'POST', body: JSON.stringify({ original_response: sourceText, language }),
+              method: 'POST', body: JSON.stringify({ original_response: sourceText, language, retry_token: translationRetryToken }),
             });
             if (edit.value !== sourceText) throw new Error('El original cambió; vuelve a intentar la traducción.');
             if (!outcome.available || !outcome.spanish_translation) {
-              translationText.textContent = outcome.failure_message || 'No se pudo validar la traducción.';
+              translationRetryToken = outcome.retry_token || null;
+              translationText.textContent = `${outcome.failure_message || 'No se pudo validar la traducción.'} La respuesta original se conserva; puedes reintentar.`;
+              status.textContent = 'La traducción no superó la validación; el original sigue disponible.';
+              status.className = 'pcai-status is-warn';
               retryTranslation.disabled = false;
               retryTranslation.textContent = 'Reintentar traducción';
               return;
             }
             translationText.textContent = outcome.spanish_translation;
+            translatedSource = sourceText;
             retryTranslation.remove();
             status.textContent = 'Traducción al español lista.';
             status.className = 'pcai-status is-ok';
@@ -487,8 +514,11 @@
       truncated: 'LM Studio cortó la traducción antes de completarla.',
       invalid_response: 'LM Studio devolvió un cuerpo de respuesta no válido.',
       wrong_language: 'La traducción no está en español.',
+      added_question: 'La traducción introdujo una pregunta ausente en el original.',
+      greeting_mismatch: 'La traducción no conservó el saludo nocturno del original.',
       language_unverified: 'No se pudo confirmar que la traducción esté en español.',
       fidelity_review_failed: 'La revisión detectó cambios u omisiones.',
+      invalid_review_format: 'LM Studio no devolvió una revisión de traducción verificable.',
       timeout: 'LM Studio agotó el tiempo de espera.',
       review_timeout: 'Se agotó el tiempo al revisar la traducción.',
       review_truncated: 'LM Studio cortó la revisión antes de completarla.',
@@ -876,7 +906,76 @@
     setPanelOpen(false);
   });
   $('#pcai-use-selection').onclick = () => { const selected = window.getSelection()?.toString().trim(); if (selected) message.value = selected.slice(0, 4000); else status.textContent = 'Selecciona texto en la página o pégalo en el campo.'; };
-  $('#pcai-save-settings').onclick = async () => { try { base = normalizeLoopback($('#pcai-url').value.trim()); await chrome.storage.local.set({ backendUrl: base }); check(); } catch (e) { status.textContent = e.message; } };
+  let profileSnapshot = { active_id: null, profiles: [] };
+  let editingProfileId = null;
+  let profilesLoaded = false;
+  const profileFields = ['name', 'description', 'tone', 'style', 'rules'];
+  function editProfile(profile) {
+    editingProfileId = profile?.id || null;
+    for (const field of profileFields) $(`#pcai-profile-${field}`).value = profile?.[field] || '';
+    $('#pcai-profile-delete').disabled = !editingProfileId || editingProfileId === 'default';
+  }
+  async function loadProfiles() {
+    try {
+      const data = await api('/api/profiles');
+      if (!Array.isArray(data.profiles)) throw new Error('Reinicia el backend actualizado para usar perfiles.');
+      profileSnapshot = data;
+      profilesLoaded = true;
+      const select = $('#pcai-profile-select');
+      select.replaceChildren();
+      for (const profile of data.profiles) {
+        const option = document.createElement('option');
+        option.value = profile.id;
+        option.textContent = profile.name;
+        select.append(option);
+      }
+      select.value = data.active_id;
+      const active = data.profiles.find((profile) => profile.id === data.active_id);
+      $('#pcai-profile-active').textContent = active?.name || 'Sin perfil';
+      editProfile(active);
+      $('#pcai-profile-status').textContent = 'Perfiles guardados localmente. Guardar no cambia el perfil activo.';
+    } catch (error) {
+      $('#pcai-profile-status').textContent = error.message;
+      $('#pcai-profile-active').textContent = 'Sin conexión';
+    }
+  }
+  async function profileAction(action) {
+    try {
+      abortPending();
+      const selected = await action();
+      results.replaceChildren();
+      await loadProfiles();
+      if (selected?.id) {
+        $('#pcai-profile-select').value = selected.id;
+        editProfile(selected);
+      }
+    } catch (error) { $('#pcai-profile-status').textContent = error.message; }
+  }
+  $('#pcai-profile-select').onchange = () => editProfile(profileSnapshot.profiles.find((item) => item.id === $('#pcai-profile-select').value));
+  $('#pcai-profile-new').onclick = () => {
+    $('#pcai-profile-select').value = '';
+    editProfile(null);
+    $('#pcai-profile-status').textContent = 'Nuevo perfil: completa los campos y guarda; después pulsa Activar.';
+  };
+  $('#pcai-profile-reload').onclick = loadProfiles;
+  $('#pcai-profile-save').onclick = () => profileAction(async () => {
+    const payload = Object.fromEntries(profileFields.map((field) => [field, $(`#pcai-profile-${field}`).value.trim()]));
+    if (!payload.name) throw new Error('Indica un nombre para el perfil.');
+    const saved = await api(editingProfileId ? `/api/profiles/${encodeURIComponent(editingProfileId)}` : '/api/profiles', { method: editingProfileId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+    return saved;
+  });
+  $('#pcai-profile-activate').onclick = () => profileAction(async () => {
+    if (!editingProfileId) throw new Error('Guarda el perfil antes de activarlo.');
+    await api(`/api/profiles/${encodeURIComponent(editingProfileId)}/activate`, { method: 'POST' });
+  });
+  $('#pcai-profile-delete').onclick = () => {
+    if (!editingProfileId || editingProfileId === 'default') return;
+    if (confirm('¿Eliminar este perfil personalizado?')) void profileAction(() => api(`/api/profiles/${encodeURIComponent(editingProfileId)}`, { method: 'DELETE' }));
+  };
+  $('#pcai-profile-restore').onclick = () => {
+    if (confirm('¿Restaurar y activar ChubbyKriz? Se conservan los perfiles personalizados.')) void profileAction(() => api('/api/profiles/restore', { method: 'POST' }));
+  };
+  $('#pcai-save-settings').onclick = async () => { try { base = normalizeLoopback($('#pcai-url').value.trim()); await chrome.storage.local.set({ backendUrl: base }); await loadProfiles(); check(); } catch (e) { status.textContent = e.message; } };
   $('#pcai-test-selectors').onclick = () => {
     const candidate = formSelectors();
     const tester = new Detector({ document, onUpdate: () => {}, onIncoming: () => {} });

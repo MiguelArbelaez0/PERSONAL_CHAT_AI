@@ -28,6 +28,7 @@
         : fallbacks[resolvedCode] || fallbacks.http_error;
       const normalized = new Error(safeMessage);
       normalized.code = resolvedCode;
+      normalized.reasonCode = typeof error?.reason_code === 'string' ? error.reason_code : resolvedCode;
       normalized.httpStatus = Number(status) || null;
       normalized.diagnostics = body && typeof body === 'object' && !Array.isArray(body)
         && body.diagnostics && typeof body.diagnostics === 'object' ? body.diagnostics : null;
@@ -68,7 +69,7 @@
     }
 
     static normalizeTimestamp(value) {
-      const raw = String(value || '').replace(/\s+/g, ' ').trim();
+      const raw = String(value || '').replace(/\s+/g, ' ').trim().replace(/^(\d{1,2}:\d{2}(?::\d{2})?)(?:\s+\1)+$/, '$1');
       if (!raw) return '';
       const clock = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
       if (clock) return `${clock[1].padStart(2, '0')}:${clock[2]}`;
@@ -141,12 +142,17 @@
       this.onLoading({ automatic, alias });
       let responseReceived = false;
       try {
-        const context = SuggestionFlow.prepareContextDetails(snapshot, text, {
+        const normalizeAlias = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+        const contextSnapshot = !automatic && aliasOverride && normalizeAlias(aliasOverride) !== normalizeAlias(snapshot?.alias)
+          ? null : snapshot;
+        const context = SuggestionFlow.prepareContextDetails(contextSnapshot, text, {
           targetFingerprint,
           windowSize: this.getContextWindow(),
           maxChars: this.getContextCharBudget(),
         });
         const data = await this.request({
+          configured_mode: mode,
+          generation_trigger: automatic ? 'automatic' : 'manual',
           message: text.slice(0, 4000), interlocutor: alias,
           target_message: text.slice(0, 4000),
           target_message_id: targetFingerprint || null,
@@ -168,6 +174,7 @@
         responseReceived = true;
         if (controller.signal.aborted || (conversationKey && conversationKey !== this.getConversationKey())
           || (data?.conversation_id && conversationKey && data.conversation_id !== conversationKey)
+          || (typeof data?.interlocutor === 'string' && normalizeAlias(data.interlocutor) !== normalizeAlias(alias))
           || (targetFingerprint && data?.target_message_id && data.target_message_id !== targetFingerprint)
           || (targetIsIncoming && targetFingerprint && this.getLatestIncomingFingerprint() !== targetFingerprint)
           || (automatic && this.getMode() !== 'auto')) return { state: 'stale' };
@@ -182,6 +189,7 @@
         const spanishTranslation = language === 'es' || typeof data.spanish_translation !== 'string'
           ? '' : data.spanish_translation.trim();
         this.onSuccess({
+          configuredMode: mode, generationTrigger: automatic ? 'automatic' : 'manual',
           originalResponse, spanishTranslation, language, automatic, initial, alias, message: text,
           notice: typeof data.notice === 'string' ? data.notice : '',
           httpStatus: data.__httpStatus || null, diagnostics: data?.diagnostics || null,
@@ -194,7 +202,7 @@
         const normalized = responseReceived
           ? SuggestionFlow.normalizeApiError({ error: { code: 'render_error' } })
           : error instanceof Error
-          ? SuggestionFlow.normalizeApiError({ error: { code: error.code, message: error.message }, diagnostics: error.diagnostics }, error.httpStatus)
+          ? SuggestionFlow.normalizeApiError({ error: { code: error.code, reason_code: error.reasonCode, message: error.message }, diagnostics: error.diagnostics }, error.httpStatus)
           : SuggestionFlow.normalizeApiError(error, error?.httpStatus);
         this.onError({ automatic, alias, error: normalized, httpStatus: normalized.httpStatus });
         return { state: 'error' };

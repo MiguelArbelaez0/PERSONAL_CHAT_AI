@@ -107,6 +107,8 @@ def test_translation_prompt_requires_contextual_idiom_and_role_preservation():
     outcome = run(translate_and_review(client, original=original, language="English"))
     assert outcome.text == translated
     system = client.messages[0][0]["content"]
+    assert "una afirmación no se convierte en pregunta" in system
+    assert "Bonsoir corresponde a Buenas noches" in system
     assert "expresiones idiomáticas por su sentido contextual" in system
     assert "I/me/my son del usuario y you/your del interlocutor" in system
     assert "no los conviertas en parentescos literales" in system
@@ -136,6 +138,37 @@ def test_incomplete_translation_is_retried_once_with_explicit_complete_output_in
     assert outcome.text == "Me alegra que estés aquí 😊."
     assert client.translate_calls == 2
     assert "Reintento por una salida previa incompleta" in client.messages[1][0]["content"]
+
+
+def test_fidelity_retry_receives_semantic_correction_reason():
+    class Client(TranslationClient):
+        async def review_translation(self, messages):
+            self.review_calls += 1
+            return [json.dumps({"meaning_preserved": self.review_calls > 1,
+                                "no_added_or_omitted_information": self.review_calls > 1,
+                                "translation_is_spanish": True})]
+
+    client = Client([json.dumps({"translation": "Buenas noches, estoy bien, gracias."})])
+    outcome = run(translate_and_review(client, original="Bonsoir, je vais bien, merci.", language="français"))
+    assert outcome.text == "Buenas noches, estoy bien, gracias."
+    assert client.translate_calls == 2
+    assert "corrige la fidelidad, no solo el formato" in client.messages[1][0]["content"]
+
+
+def test_added_question_is_rejected_independently_of_model_review():
+    client = TranslationClient([json.dumps({"translation": "¿Todo bien? Gracias por preguntar."})])
+    outcome = run(translate_and_review(client, original="Estou bem, obrigado por perguntar.", language="português"))
+    assert outcome.text is None
+    assert outcome.failure_reason == "added_question"
+    assert client.translate_calls == 2
+    assert client.review_calls == 0
+    assert "El original no tiene preguntas" in client.messages[1][0]["content"]
+
+
+def test_unpunctuated_question_can_be_translated_with_question_marks():
+    client = TranslationClient([json.dumps({"translation": "¿Cómo estás?"})])
+    outcome = run(translate_and_review(client, original="How are you", language="English"))
+    assert outcome.text == "¿Cómo estás?"
 
 
 def test_translation_retry_is_bounded_when_model_keeps_returning_incomplete_json():
@@ -212,3 +245,42 @@ def test_lm_client_uses_configured_translation_output_budget_and_identifies_trun
             raise AssertionError("truncated translation should be reported explicitly")
 
     run(exercise_client())
+
+
+def test_exact_causative_repair_preserves_agents_and_still_requires_review():
+    original = "I'm glad I made you laugh — that's what humor's for, right?"
+    bad = "Me alegra que me hayas hecho reír — para eso sirve el humor, ¿verdad?"
+    client = TranslationClient([json.dumps({'translation':bad,'faithful':True})])
+    outcome = run(translate_and_review(client, original=original, language='en'))
+    assert outcome.text == 'Me alegra haberte hecho reír — para eso sirve el humor, ¿verdad?'
+    assert client.review_calls == 1
+    refused = TranslationClient([json.dumps({'translation':bad,'faithful':True})], reviewed=[json.dumps({'meaning_preserved':False,'no_added_or_omitted_information':False})])
+    assert run(translate_and_review(refused, original=original, language='en')).text is None
+
+
+def test_causative_repair_does_not_rewrite_other_or_conditional_agents():
+    from backend.translation import _repair_known_greetings
+    phrase = 'Me alegra que me hayas hecho reír.'
+    assert _repair_known_greetings('You made me laugh.', phrase) == phrase
+    assert _repair_known_greetings('If I made you laugh, I am glad.', phrase) == phrase
+
+
+def test_real_french_translation_cannot_add_story_when_source_says_know_you():
+    client = TranslationClient([json.dumps({'translation':'Tengo curiosidad por conocer mejor tu historia también.','faithful':True})])
+    outcome=run(translate_and_review(client,original='Je suis curieux de mieux te connaître aussi.',language='fr'))
+    assert outcome.text is None and outcome.failure_reason=='fidelity_review_failed'
+
+
+def test_what_is_on_your_mind_repairs_idiom_but_not_actual_problem_question():
+    from backend.translation import _repair_known_greetings
+    assert _repair_known_greetings("What's on your mind right now?", '¿Qué te pasa ahora?') == '¿qué tienes en mente?'
+    assert _repair_known_greetings('What is wrong?', '¿Qué te pasa ahora?') == '¿Qué te pasa ahora?'
+
+
+def test_real_mind_idiom_variant_and_explicit_french_object_omission():
+    from backend.translation import _repair_known_greetings
+    assert _repair_known_greetings("What's on your mind right now?", '¿Qué te está pasando ahora?') == '¿qué tienes en mente?'
+    client=TranslationClient([json.dumps({'translation':'Me interesa conocer mejor también.','faithful':True})])
+    result=run(translate_and_review(client, original='Je suis curieux de mieux te connaître aussi.',language='fr'))
+    assert result.text is None and result.failure_reason=='fidelity_review_failed'
+    assert result.retry_state['issues'][0]['category']=='omission'
