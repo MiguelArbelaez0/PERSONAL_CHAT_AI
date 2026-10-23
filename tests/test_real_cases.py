@@ -324,3 +324,47 @@ def test_conventional_courtesies_do_not_require_event_evidence_but_activities_st
 
 def test_recalling_a_manual_fact_is_not_confused_with_inventing_a_completed_event():
     assert response_rejection("I remember you like blue.", "What color do I like?", "en", notes=[{"text": "Likes blue"}]) == ""
+
+
+def test_verified_portuguese_courtesy_only_overrides_false_content_rejection():
+    from backend.grounding import verified_wellbeing_exchange
+    target = "Olá, como você está hoje?"
+    draft = "Olá! Estou bem, obrigado — e você?"
+    assert verified_wellbeing_exchange(draft, target)
+    verdict = {"supported": False, "perspective_consistent": True, "answers_target": False, "repeated_idea": False, "repetitive_question": False, "personal_claims": []}
+    assert review_rejection([json.dumps(verdict)], verified_courtesy=True) == ""
+    verdict['repeated_idea'] = True
+    assert review_rejection([json.dumps(verdict)], verified_courtesy=True) == "repeated_idea"
+    verdict['perspective_consistent'] = False
+    assert review_rejection([json.dumps(verdict)], verified_courtesy=True) == "perspective_mismatch"
+    assert not verified_wellbeing_exchange(draft + " Estou trabalhando.", target)
+    assert not verified_wellbeing_exchange(draft, "Você lembra a promessa que fez?")
+    assert review_rejection(['{}'], verified_courtesy=True) == 'invalid_grounding_review'
+
+
+def test_emoji_does_not_prove_observed_french_smile():
+    assert response_rejection("Bonjour ! C’est un plaisir de te voir sourire comme ça.", '😏', 'fr') == 'unsupported_claim'
+
+
+def test_reciprocal_missing_our_chats_is_not_grounded_by_viewer_feelings():
+    draft="I'm glad you reached out, I missed our chats too."
+    assert response_rejection(draft, MISSED, 'en') == 'unsupported_claim'
+    assert response_rejection(draft, MISSED, 'en', context='- Usuario: I missed our chats too.') == ''
+
+
+def test_smile_event_in_french_cannot_be_inferred_from_emoji():
+    assert response_rejection('Ah, tu sourire m’a fait sourire ! Ça va bien, merci.', '😏', 'fr') == 'unsupported_claim'
+
+
+def test_exact_french_politeness_is_verified_without_accepting_other_claims():
+    from backend.grounding import verified_wellbeing_exchange
+    draft='Bonsoir ! Je vais bien, merci. Content de t’entendre et de mieux te connaître.'
+    assert verified_wellbeing_exchange(draft, FR)
+    assert not verified_wellbeing_exchange(draft + ' Tu me manquais.', FR)
+
+
+def test_deletion_repair_cannot_leave_an_adjective_fragment_as_answer():
+    from backend.validation import remove_unsupported_clauses
+    draft="I actually prefer deep blues — calm and cozy, really."
+    assert remove_unsupported_clauses(draft, 'Which color do I like?') is None
+    assert remove_unsupported_clauses("I'm doing well—just enjoying a quiet morning.", EN) == "I'm doing well"

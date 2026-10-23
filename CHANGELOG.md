@@ -1,5 +1,15 @@
 # Cambios
 
+## Finalización vigente — 22 de octubre de 2026
+
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [docs/FINALIZATION_2026_10_22.md](docs/FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+
+
+## Auditoría vigente — 22 de octubre de 2026
+
+Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+
+
 ## Cierre adicional de 1.1.0-rc.1 (2026-10-21; respaldo de desarrollo autorizado)
 
 - Corregidos falsos duplicados de emoji, reconocimiento inglés incompleto y uso de notas del visitante como evidencia del propietario.

@@ -44,8 +44,17 @@ La automatización se limita a preparar sugerencias. Revisa, edita y envía cada
 ## Verificación de desarrollo
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest tests
 node --test tests/*.cjs
 ```
 
 Los resultados de esta auditoría y los límites del entorno están en [KNOWN_ISSUES.md](KNOWN_ISSUES.md). Las pruebas automatizadas no sustituyen la comprobación manual en Chrome y Stripchat.
+
+## Paquete de revisión v1.1.0
+
+Extrae el ZIP en una carpeta nueva; no reemplaces una instalación anterior ni sus datos. La carpeta raíz es PERSONAL_CHAT_AI_v1.1.0. Ejecuta INSTALAR_PERSONAL_CHAT_AI.bat: crea .venv, instala requirements.txt y copia .env.example solo si .env no existe. Necesita Python 3.11+ disponible mediante py o python y acceso al índice de paquetes. No instala LM Studio ni descarga modelos. Si Python falta, instala Python desde su proveedor y habilita el lanzador o PATH; vuelve a ejecutar el instalador.
+
+Configura el modelo Qwen indicado en esta guía. Ejecuta INICIAR_PERSONAL_CHAT_AI.bat; el backend queda en esa ventana y se cierra con Ctrl+C. No inicies dos copias en el puerto 8765. Para actualizar, conserva una copia verificada de .env, data y knowledge/local; no reemplaces bases ni perfiles por los del paquete (no se incluye ninguno). Usa primero la carpeta nueva sin datos personales y comprueba las funciones.
+
+La licencia MIT fue aprobada por el titular; la publicación depende de las verificaciones funcionales vigentes. El ZIP es material de revisión del propietario. Consulta AUDIT_2026_10_22.md para alcance de instalación limpia realmente comprobado.

@@ -6,10 +6,10 @@ Modelo sin cambios: `qwen/qwen3-4b-2507`, servidor local `127.0.0.1:1234/v1`. To
 
 | Etapa | Generaciones aceptadas | Rechazadas | Traducciones disponibles | Mediana / p95 (segundos) |
 |---|---:|---:|---:|---:|
-| [Base anterior a cambios](baseline.json), 2 rondas básicas | 10/10 (100%) | 0 | 8 | 7,004 / 12,249 |
-| [Intermedia 1](intermediate_1.json), 3 rondas y extras | 18/23 (78,26%) | 5 | 15 | 5,820 / 8,066 |
-| [Intermedia 2](intermediate_2.json), 3 rondas y extras | 20/23 (86,96%) | 3 | 17 | 6,271 / 7,960 |
-| [Final](final.json), 3 rondas y extras | **20/23 (86,96%)** | **3** | **13** | **6,027 / 9,329** |
+| Base anterior a cambios (`baseline.json`, evidencia del repositorio de desarrollo; excluida del ZIP), 2 rondas básicas | 10/10 (100%) | 0 | 8 | 7,004 / 12,249 |
+| Intermedia 1 (`intermediate_1.json`, evidencia del repositorio de desarrollo; excluida del ZIP), 3 rondas y extras | 18/23 (78,26%) | 5 | 15 | 5,820 / 8,066 |
+| Intermedia 2 (`intermediate_2.json`, evidencia del repositorio de desarrollo; excluida del ZIP), 3 rondas y extras | 20/23 (86,96%) | 3 | 17 | 6,271 / 7,960 |
+| Final (`final.json`, evidencia del repositorio de desarrollo; excluida del ZIP), 3 rondas y extras | **20/23 (86,96%)** | **3** | **13** | **6,027 / 9,329** |
 
 Son **91 operaciones reales**: 79 generaciones y 12 traducciones patrón. Cada etapa ampliada tiene 23 generaciones y cuatro traducciones patrón. Las latencias incluyen toda la operación (análisis, generación, revisión y traducción), también rechazos y traducciones patrón; no son velocidad de tokens. Son muestras pequeñas, con variabilidad del modelo, sin garantías estadísticas ni comparación causal controlada. Las etapas contienen código diferente; las dos últimas incluyen huella de fuentes. La base y la primera intermedia no tienen esa huella y no se les inventó una retrospectiva.
 

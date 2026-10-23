@@ -39,3 +39,7 @@ Para reportar un error, comparte el mensaje de diagnóstico y el resultado de sa
 En el panel abre **Personalidad**, selecciona un perfil y pulsa **Activar**. **Nuevo** permite definir nombre, descripción, tono, estilo y reglas; **Guardar perfil** conserva los datos sin activar un perfil nuevo. Puedes editar perfiles, eliminar los personalizados y restaurar ChubbyKriz conservando los personalizados. La selección se comparte entre pestañas del mismo backend; **Actualizar** sincroniza el panel. Los perfiles se guardan localmente sin reemplazar tus notas o archivos privados. Consulta [validación y límites](V1_1_VALIDATION.md).
 
 La referencia entrante solo acompaña traducciones con una elipsis admitida. `generator_fidelity_failed` identifica una negativa de fidelidad del modelo; `invalid_format` identifica una salida no interpretable.
+
+## Perfiles que aparecen vacíos
+
+Confirma el backend local, recarga la extensión en chrome://extensions y después la pestaña de Stripchat. Abre el panel o pulsa Actualizar. La carga de perfiles no depende del éxito del detector y se reintenta al abrir el panel si antes faltaba conexión. No uses Restaurar ni crees duplicados para intentar recuperar datos. Si la API devuelve perfiles pero el panel sigue vacío, conserva el diagnóstico sin compartir datos privados. El usuario confirmó persistencia y perfiles personalizados después del reinicio; consulta la auditoría actual para distinguir esa comprobación de pruebas sintéticas.

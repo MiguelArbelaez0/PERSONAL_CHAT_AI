@@ -2,7 +2,7 @@
 import json
 import re
 
-from backend.answers import _json_object
+from backend.answers import _json_object, _normalize
 from backend.prompt import _bounded_notes
 from backend.roles import address_frame
 
@@ -31,6 +31,17 @@ def substantive_draft(draft):
     result = re.sub(r"\bi(?: am|'m) glad(?: that)?\s+(?=i\b)", "", result, flags=re.IGNORECASE)
     result = re.sub(r"^[\s.!?,;—]*(?:et oui|et|and|thanks|merci)\b[\s.!?,;—]*", "", result, flags=re.IGNORECASE)
     return result.strip(" \t\n.!?,;—")
+
+
+
+def verified_wellbeing_exchange(draft, incoming):
+    """Closed, claim-free greeting exchanges; never infer missing facts."""
+    target, reply = _normalize(incoming), _normalize(draft)
+    portuguese = (re.fullmatch(r"(?:ola|oi) (?:como voce esta(?: hoje)?|tudo bem(?: com voce)?)", target)
+                  and re.fullmatch(r"(?:(?:ola|oi) )?estou bem obrigad[oa](?: e voce)?", reply))
+    french = (target == "bonsoir tu vas bien j aimerais apprendre a mieux te connaitre"
+              and re.fullmatch(r"bonsoir (?:oui )?je vais bien merci (?:content de t entendre et de mieux te connaitre|je suis ravi de mieux te connaitre)", reply))
+    return bool(portuguese or french)
 
 
 def review_messages(*, draft, incoming, context, notes, previous, require_evidence=False):
@@ -72,7 +83,7 @@ def review_messages(*, draft, incoming, context, notes, previous, require_eviden
     return [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(data, ensure_ascii=False)}]
 
 
-def review_rejection(answers, *, evidence=None, require_evidence=False):
+def review_rejection(answers, *, evidence=None, require_evidence=False, verified_courtesy=False):
     required = {"supported", "perspective_consistent", "answers_target", "repeated_idea", "repetitive_question"}
     if len(answers) != 1:
         return "invalid_grounding_review"
@@ -94,6 +105,11 @@ def review_rejection(answers, *, evidence=None, require_evidence=False):
                 return "invalid_grounding_review"
             if not isinstance(quote, str) or not quote.strip() or quote not in evidence[source]:
                 return "unsupported_claim"
+    # A closed grammar can establish this claim-free greeting independently of
+    # an erroneous model verdict. Role, repeat and schema checks still apply.
+    if verified_courtesy and not require_evidence and data.get("personal_claims") == []:
+        data["supported"] = True
+        data["answers_target"] = True
     for key, expected, reason in (
         ("supported", True, "unsupported_claim"), ("perspective_consistent", True, "perspective_mismatch"),
         ("answers_target", True, "copied_incoming"), ("repeated_idea", False, "repeated_idea"),

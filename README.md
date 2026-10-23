@@ -2,7 +2,7 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado:** `v1.1.0-rc.1` en desarrollo; todavía bloqueada para aprobación como estable. LM Studio real se probó repetidamente con datos sintéticos; Chrome/Stripchat real sigue pendiente. Consulta el [cierre vigente y sus resultados completos](docs/CLOSURE_2026_10_21.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
+> **Estado:** `v1.1.0-rc.1`, preparada para revisión, sin aprobación estable. Auditoría actual: [22 de octubre de 2026](docs/AUDIT_2026_10_22.md). El usuario confirma perfiles persistentes, cuatro idiomas, tres modos y copia en Chrome, sin envío automático. MIT aprobada; dependencias de seguridad actualizadas. Publicación estable bloqueada: persisten afirmaciones sin evidencia aceptadas y falta verificar el arranque de red limpio. Véase [informe final](docs/FINALIZATION_2026_10_22.md). Backend `127.0.0.1:8765`, LM Studio `127.0.0.1:1234/v1`, modelo `qwen/qwen3-4b-2507`.
 
 Las correcciones posteriores a las pruebas manuales añaden controles de evidencia, copia parcial, repetición y reparación de traducciones. Las pruebas reales todavía presentan rechazos intermitentes y matices de traducción que requieren revisión humana. Consulta el [informe de los cuatro casos](docs/RC1_REAL_CASES.md); no se considera todavía una candidata completamente fiable.
 
@@ -58,7 +58,7 @@ No se incluyen ni descargan modelos. Revisa la licencia del modelo elegido antes
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
-   python -m pip install -r requirements.txt
+   python -m pip install -r requirements-dev.txt
    if (-not (Test-Path .env)) { Copy-Item .env.example .env }
    ```
 
@@ -130,7 +130,7 @@ La [política de privacidad](docs/PRIVACY.md) y la [auditoría de seguridad](doc
 - El idioma, la naturalidad, los roles conversacionales y la traducción dependen del modelo y requieren revisión humana.
 - No hay instalador, paquete de extensión para Chrome Web Store, actualizador ni gestión de modelos.
 - El backend no autentica llamadas locales; el acceso se limita a loopback y no hay soporte remoto.
-- La publicación está pendiente de resolver los problemas de calidad registrados con LM Studio real, completar la validación humana en Chrome/Stripchat y decidir la licencia. Las referencias antiguas de migración se conservan como historial documental; esta tarea no cambió la configuración remota. Véase [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+- La publicación está pendiente de resolver los problemas de calidad registrados con LM Studio real, ampliar la validación humana a los fallos sintéticos actuales y resolver los bloqueos funcionales vigentes. Las referencias antiguas de migración se conservan como historial documental; esta tarea no cambió la configuración remota. Véase [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Pruebas
 
@@ -149,8 +149,8 @@ Las pruebas no verifican una sesión real de Stripchat ni la salida de un modelo
 
 ## Licencia y uso
 
-La licencia está **pendiente de decisión del propietario**. El archivo `LICENSE` no concede actualmente una licencia de código abierto ni permiso general de redistribución o comercialización. Las licencias de los modelos y de LM Studio dependen de sus proveedores y de la configuración elegida; no se distribuyen con este repositorio. Consulta [docs/SECURITY.md](docs/SECURITY.md) y solicita asesoría profesional para obligaciones legales, privacidad, contenido adulto y términos de las plataformas.
+El código original está bajo [licencia MIT](LICENSE), Copyright (c) 2026 Miguel Arbeláez Vallejo, por autorización expresa del titular. Las dependencias mantienen sus propias licencias; consulta [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). No se incluyen LM Studio ni los pesos Qwen.
 
 ## Estado y hoja de ruta
 
-La candidata `v1.1.0-rc.1` requiere las pruebas manuales de [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).
+El estado y las verificaciones vigentes están en [finalización](docs/FINALIZATION_2026_10_22.md). La candidata `v1.1.0-rc.1` conserva el plan de pruebas manuales de [docs/V1_1_VALIDATION.md](docs/V1_1_VALIDATION.md). Las notas están en [RELEASE_NOTES.md](RELEASE_NOTES.md) y el historial en [CHANGELOG.md](CHANGELOG.md).

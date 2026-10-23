@@ -194,3 +194,24 @@ def test_old_memory_survives_profile_initialization_and_relevance_ranking(tmp_pa
     assert len(reopened.list_notes("Ana")) == 2
     assert reopened.relevant_notes("Ana", "¿Quieres café?")[0]["text"] == "Prefiere café"
     assert reopened.relevant_notes("Beto", "café") == []
+
+
+def test_profile_path_and_existing_selection_survive_different_working_directory(tmp_path, monkeypatch):
+    from backend.config import ROOT, Settings
+
+    monkeypatch.setenv("DATABASE_PATH", "data/personal_chat_ai.sqlite3")
+    expected = Settings.from_env().database_path
+    monkeypatch.chdir(tmp_path)
+    assert Settings.from_env().database_path == expected == ROOT / "data/personal_chat_ai.sqlite3"
+    path = tmp_path / "existing" / "personalities.sqlite3"
+    original = ProfileStore(path)
+    custom = original.save(ProfileInput(name="Synthetic existing voice", rules="Keep original fields"))
+    original.select(custom["id"])
+    snapshot = original.snapshot()
+    elsewhere = tmp_path / "other"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    reopened = ProfileStore(path)
+    assert reopened.snapshot() == snapshot
+    assert reopened.active() == custom
+    assert reopened.snapshot()["profiles"][0]["name"] == "ChubbyKriz"

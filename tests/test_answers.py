@@ -114,3 +114,17 @@ def test_almost_identical_answers_are_removed():
         "That sounds wonderful, tell me more about it.",
         "That sounds wonderful! Tell me more about it.",
     ]) == ["That sounds wonderful, tell me more about it."]
+
+
+def test_analysis_schema_requires_nonempty_topic_instead_of_empty_model_list():
+    from backend.output_schemas import OUTPUT_SCHEMAS
+    from backend.main import _analysis_rejection
+    from backend.answers import parse_context_analysis
+    import json
+    schema = OUTPUT_SCHEMAS['analysis']
+    assert schema['properties']['current_topic'] == {'type':'string','minLength':1}
+    fields = {key: [] for key in ('references','active_topics','relevant_memory','explicit_facts','inferences','unknowns')}
+    fields.update(current_topic=[],message_meaning='Thanks',likely_intent='Thank',observed_tone='Polite',intent_confidence=1,money_or_tip_relevant=False,adult_or_domination_supported=False)
+    assert _analysis_rejection(parse_context_analysis(json.dumps(fields))) == 'invalid_context_analysis_format'
+    fields['current_topic']='Gratitude'
+    assert _analysis_rejection(parse_context_analysis(json.dumps(fields))) == ''

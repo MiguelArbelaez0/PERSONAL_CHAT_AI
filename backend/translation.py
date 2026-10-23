@@ -45,6 +45,12 @@ def _repair_known_greetings(original, translation):
         translation = re.sub(r"\bpiensas de m[ií]\b", "piensas en mí", translation, flags=re.I)
     if re.search(r"\b(?:the|that) joke landed well\b", original, re.I):
         translation = re.sub(r"(\b(?:el|ese) chiste\s+(?:ha|haya|había)\s+)aterrizado\s+bien\b", r"\1funcionado bien", translation, flags=re.I)
+    # Explicit causative: repair only this complete, inverted subordinate
+    # clause. The source has to assert glad + I made you laugh, not a condition.
+    if re.search(r"\bi(?:'m| am) glad(?: that)? i (?:made|have made) you laugh\b", original, re.I):
+        translation = re.sub(r"\b(me alegra) que me hayas hecho re[ií]r\b", r"\1 haberte hecho reír", translation, flags=re.I)
+    if re.search(r"\bwhat(?:'s| is) on your mind\b", original, re.I):
+        translation = re.sub(r"\bqu[eé] te (?:pasa|est[aá] pasando)(?: ahora)?\b", "qué tienes en mente", translation, flags=re.I)
     # Correct an unambiguous opening/closing punctuation mismatch, without
     # adding a question or changing its words. Question guards still run below.
     return re.sub(r"¡([^¡¿!?]+)\?", r"¿\1?", translation)
@@ -193,7 +199,7 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                 original=original, language=language, retry=retry, failure_reason=previous_failure,
                 # A self-refused mixed/invalid candidate is not a correction
                 # template: feeding it back made Qwen copy the same corruption.
-                rejected_translation=None if previous_failure == "generator_fidelity_failed" else rejected_translation,
+                rejected_translation=None if previous_failure in {"generator_fidelity_failed", "perspective_mismatch"} else rejected_translation,
                 review_issues=review_issues,
                 source_context=reference,
             ))
@@ -219,9 +225,19 @@ async def translate_and_review(client, *, original: str, language: str, manual_r
                         rejected_translation = rejected["translation"][:4000]
                     else:
                         reason = "invalid_format"
+                elif (re.search(r"\bte conna[iî]tre\b", original, re.I)
+                      and re.search(r"\bconocer\b", translation, re.I)
+                      and not re.search(r"\b(?:conocerte|conocerlo|conocerla|conocerle|a ti|a usted)\b", translation, re.I)):
+                    reason = "fidelity_review_failed"
+                    review_issues = [{"category": "omission", "source_quote": original[:400], "translation_quote": translation[:400]}]
                 elif _perspective_conflict(original, translation, source_context):
                     reason = "perspective_mismatch"
                     review_issues = [{"category": "perspective", "source_quote": original[:400], "translation_quote": translation[:400]}]
+                elif (re.search(r"\bte conna[iî]tre\b", original, re.I)
+                      and not re.search(r"\bhistoire\b", original, re.I)
+                      and re.search(r"\bhistoria\b", translation, re.I)):
+                    reason = "fidelity_review_failed"
+                    review_issues = [{"category": "addition", "source_quote": original[:400], "translation_quote": translation[:400]}]
                 elif re.match(r"\s*bonsoir\b", original, re.IGNORECASE) and not re.search(r"\bbuenas\s+noches\b", translation, re.IGNORECASE):
                     reason = "greeting_mismatch"
                 elif ((not _may_be_question(original) and any(mark in translation for mark in ("?", "？", "¿")))

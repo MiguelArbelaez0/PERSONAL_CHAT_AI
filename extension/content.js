@@ -240,10 +240,14 @@
       restorePosition(root, data.pcaiTogglePosition);
       restorePosition($('#pcai-panel'), data.pcaiPanelPosition);
       configureDetector();
-      await loadProfiles();
       applyMode();
       renderAutoDiagnostic();
-    } catch (_) {}
+    } catch (error) {
+      showTechnicalError(`No se pudo completar la inicialización del panel: ${error.message}`);
+    } finally {
+      // Profiles must remain available even if page detection or preferences fail.
+      await loadProfiles();
+    }
   }
   async function api(path, options = {}) {
     let response;
@@ -399,6 +403,7 @@
   async function check() {
     try {
       await api('/api/health');
+      if (!profilesLoaded) await loadProfiles();
       status.textContent = 'Backend local conectado'; status.className = 'pcai-status is-ok';
       try {
         const d = await api('/api/diagnostics/lm-studio');
@@ -903,6 +908,7 @@
   $('#pcai-use-selection').onclick = () => { const selected = window.getSelection()?.toString().trim(); if (selected) message.value = selected.slice(0, 4000); else status.textContent = 'Selecciona texto en la página o pégalo en el campo.'; };
   let profileSnapshot = { active_id: null, profiles: [] };
   let editingProfileId = null;
+  let profilesLoaded = false;
   const profileFields = ['name', 'description', 'tone', 'style', 'rules'];
   function editProfile(profile) {
     editingProfileId = profile?.id || null;
@@ -914,6 +920,7 @@
       const data = await api('/api/profiles');
       if (!Array.isArray(data.profiles)) throw new Error('Reinicia el backend actualizado para usar perfiles.');
       profileSnapshot = data;
+      profilesLoaded = true;
       const select = $('#pcai-profile-select');
       select.replaceChildren();
       for (const profile of data.profiles) {

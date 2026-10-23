@@ -37,7 +37,7 @@ Modo Automático y perfil predeterminado ChubbyKriz. Todas las pruebas usan alia
 
 **267 Python y 67 JavaScript aprobadas; cero fallidas u omitidas.** Pytest informa 1110 advertencias de deprecación de FastAPI. Se conservaron todas las pruebas anteriores. Pasan `compileall`, los tres `node --check` y `git diff --check`. Las pruebas adicionales comprueban: ambos mensajes y posiciones del apelativo; ecos reales frente a reconocimiento válido; distinción entre objetivo/borrador; reparación conjunta y auditoría obligatoria; ausencia de notas persistidas; conservación del objetivo durante reintentos; reloj dentro del texto frente a nodo de metadatos; panel sin carga residual y botón Reintentar operativo después de 502.
 
-Se conservan las 42 solicitudes sintéticas reales, incluidas las etapas intermedias fallidas, en [AUTO_SEQUENCE_EVIDENCE.json](incidents/AUTO_SEQUENCE_EVIDENCE.json):
+Se conservan las 42 solicitudes sintéticas reales, incluidas las etapas intermedias fallidas, en AUTO_SEQUENCE_EVIDENCE.json (`incidents/AUTO_SEQUENCE_EVIDENCE.json`, evidencia del repositorio de desarrollo; excluida del ZIP):
 
 | Etapa | Solicitudes aceptadas | Observación |
 |---|---:|---|

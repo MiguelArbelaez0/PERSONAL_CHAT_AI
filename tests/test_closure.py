@@ -94,3 +94,18 @@ def test_viewer_note_cannot_support_an_owner_claim_even_with_reviewer_approval(t
     result = request(app, 'POST', '/api/suggestions', json={'message': 'Which color do I like?', 'interlocutor': 'Synthetic'})
     assert result.status_code == 502
     assert result.json()['error']['reason_code'] == 'unsupported_claim'
+
+
+@pytest.mark.parametrize("draft", [
+    "Hey sweetie, I'm doing great—just loving these little chats with you today!",
+    "Hey sweetie, I'm doing great—just chilling and ready to chat with you.",
+    "I'm good—just enjoying these chats with you. How’s your day going?",
+])
+def test_real_plural_chat_embellishments_require_owner_evidence(draft):
+    assert response_rejection(draft, "Hey daddy, how are you today?", "en") == "unsupported_claim"
+
+
+def test_plural_chat_guard_preserves_willingness_and_explicit_owner_evidence():
+    assert response_rejection("I'm here and ready to talk.", "I missed talking to you, daddy.", "en") == ""
+    draft = "I'm enjoying these chats with you."
+    assert response_rejection(draft, "How are you today?", "en", context="- Usuario: I'm enjoying these chats with you.") == ""

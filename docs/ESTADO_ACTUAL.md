@@ -1,5 +1,19 @@
 # Estado vigente — 21 de octubre de 2026
 
+**Estado actual: BLOQUEADA para publicación estable.** MIT aprobada, dependencias corregidas (pip-audit sin hallazgos conocidos), 291 Python/71 JavaScript aprobadas. LM Studio final: 11/13 aceptadas, traducción 9/10, reintento portugués fallido; persisten afirmaciones del interlocutor sin respaldo aceptadas. Respaldo exclusivo de develop, sin main/PR/tag/Release. Consultar [informe final](FINALIZATION_2026_10_22.md). Los apartados anteriores en fecha son históricos.
+
+## Finalización vigente — 22 de octubre de 2026
+
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+
+
+## Auditoría vigente — 22 de octubre de 2026
+
+Estado: BLOQUEADA para publicación; v1.1.0-rc.1 preparada únicamente para revisión. 275 Python y 71 JavaScript aprobadas. Último LM Studio: 9/13 generaciones aceptadas, 7/8 traducciones de originales no españoles, secuencia 4/4 aceptada con defectos de contenido aún observados. Licencia pendiente y ocho avisos distintos de dependencias. Primer paso siguiente: resolver los bloqueos descritos en AUDIT_2026_10_22.md; no integrar main ni publicar.
+
+Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente, pip-audit detectó ocho avisos distintos en dependencias y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+
+
 **Actualización local posterior a `096c243`:** investigación conjunta de los dos mensajes automáticos y las horas duplicadas. Ver [INCIDENT_AUTO_SEQUENCE.md](INCIDENT_AUTO_SEQUENCE.md). 267 Python y 67 JavaScript aprobadas. Se conservan 42 solicitudes sintéticas con LM Studio, incluidos los rechazos; la última secuencia aceptó 6/6. Permanecen pendiente la atribución del `repeated_response` exacto y la comprobación en Chrome. Estos cambios no tienen commit ni push; el respaldo descrito abajo sigue correspondiendo al estado anterior.
 
 **Fecha:** 21 de octubre de 2026. **PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo; no aprobada como estable.**

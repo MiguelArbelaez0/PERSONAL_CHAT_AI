@@ -18,12 +18,12 @@ _COMPLETED_EVENT = re.compile(
 )
 _ACTIVITY_OR_RECIPROCITY = re.compile(
     r"\b(?:(?:i am|i m|im|just|i have been|i ve been)\s+(?:just\s+)?"
-    r"(?:lounging|relaxing|sitting|lying|watching|drinking|eating|working|wrapping up|finishing up|thinking about|meaning to|planning to|intending to|"
-    r"(?:having|enjoying|loving)\s+(?:a|the|my|this)\s+[^.!?;]{1,80})\b|"
-    r"i\s+(?:missed|miss|was thinking about)\s+you\b|"
+    r"(?:lounging|relaxing|chilling|sitting|lying|watching|drinking|eating|working|wrapping up|finishing up|thinking about|meaning to|planning to|intending to|"
+    r"(?:having|enjoying|loving)\s+(?:a|the|my|this|these|those)\s+[^.!?;]{1,80})\b|"
+    r"i\s+(?:missed|miss|was thinking about)\s+(?:you|our (?:chats|talks|conversations))\b|"
     r"you\s+(?:(?:are|re)\s+)?making\s+me\s+(?:smile|happy|laugh)\b|"
     r"(?:estoy|estou)\s+(?:viendo|comiendo|trabajando|assistindo|comendo|trabalhando)\b|"
-    r"je\s+(?:regarde|travaille|mange)\b)", re.IGNORECASE,
+    r"(?:je\s+(?:regarde|travaille|mange)\b|(?:te voir sourire|(?:ton|ta|tu) sourire)\b))", re.IGNORECASE,
 )
 _OWNER_PREFERENCE = re.compile(r"\b(?:my (?:favorite|favourite|go to)|i (?:(?:always|do) )?(?:love|like|enjoy|prefer) (?!that\b|to (?:chat|talk)\b|hearing from you\b)|i (?:actually )?(?:don t have|do not have|have) a favou?rite|(?:i m|i am|we re|we are) always (?:here|available))\b", re.IGNORECASE)
 _GENERIC_QUESTION = re.compile(r"(?:how about you|what about you|what are you up to|how was your day|how(?:'s|’s| is) your day going|et toi|e voce|y tu)\s*[?？]", re.IGNORECASE)
@@ -57,6 +57,14 @@ def remove_unsupported_clauses(text: str, incoming: str, *, context="", notes=()
         return None
     # Only delete and join existing clauses; every remaining word is original.
     result = " ".join(kept)
+    # Removing a personal preference can leave only descriptive fragments,
+    # e.g. "calm and cozy, really". Do not present that fragment as an answer.
+    if classify_language(result)[0] == "en" and not re.search(
+        r"^(?:i |we |you |it |that |this |thanks\b|thank you\b|hey\b|hi\b|hello\b|"
+        r"good to |glad to |happy to |let s |tell me |what |how |which |would |could |can )",
+        _normalize(result),
+    ):
+        return None
     return result if result != text and len(_normalize(result).split()) >= 3 else None
 
 

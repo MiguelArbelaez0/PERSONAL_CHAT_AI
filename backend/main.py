@@ -17,7 +17,7 @@ from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.memory import MemoryStore, normalize_alias
 from backend.profiles import ProfileInput, ProfileStore
 from backend.validation import RecentDrafts, response_rejection, remove_unsupported_clauses, owner_notes
-from backend.grounding import review_messages, review_rejection
+from backend.grounding import review_messages, review_rejection, verified_wellbeing_exchange
 from backend.errors import PipelineFailure, transport_failure
 from backend.request_limits import RequestLimitsMiddleware
 from backend.roles import remove_reversed_vocative
@@ -493,7 +493,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                         "history": owner_context,
                         "notes": _bounded_notes(verified_owner_notes),
                     }
-                    rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence, require_evidence=requires_evidence)
+                    rejection_reason = review_rejection(await reviewer(audit_messages), evidence=audit_evidence, require_evidence=requires_evidence,
+                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message))
                     if rejection_reason == "invalid_grounding_review":
                         review_format_repairs += 1
                         # Repair the review's serialization before discarding a potentially valid draft.
@@ -503,7 +504,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                             "If a claim is unsupported, supported=false and evidence_quote is empty. No prose."}]
                         if _estimate_prompt_tokens(repair_messages) > available_prompt_tokens:
                             raise HTTPException(413, "La revisión de evidencia supera el presupuesto de contexto configurado.")
-                        rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence, require_evidence=requires_evidence)
+                        rejection_reason = review_rejection(await reviewer(repair_messages), evidence=audit_evidence, require_evidence=requires_evidence,
+                                                       verified_courtesy=verified_wellbeing_exchange(alternatives[0], request.message))
                 except LMStudioError as exc:
                     raise transport_failure(exc, "grounding", attempt + 1) from exc
                 if requires_evidence and not rejection_reason:

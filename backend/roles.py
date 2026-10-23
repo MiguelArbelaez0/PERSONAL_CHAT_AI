@@ -4,7 +4,7 @@ import re
 from backend.answers import _normalize
 
 ROLE_GREETING = re.compile(r"^(?:hey|hi|hello|bonjour|salut|bonsoir|hola|oi|ola)\s+(daddy|papa|papi|sir|master|boss)\b", re.IGNORECASE)
-_TRAILING_ADDRESS = re.compile(r"[,!]\s*(daddy|papa|papi|sir|master|boss)\s*(?=[.!?]|$)", re.IGNORECASE)
+_TRAILING_ADDRESS = re.compile(r"[,!]\s*(daddy|papa|papi|sir|master|boss)\s*(?=[,.!?;—]|$)", re.IGNORECASE)
 
 
 def incoming_address(incoming):

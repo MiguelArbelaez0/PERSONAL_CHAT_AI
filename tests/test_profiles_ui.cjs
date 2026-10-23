@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const test = require('node:test');
 
-function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false } = {}) {
+function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false, preferenceError = false, detectorError = false, profileFailures = 0, savedProfile = null } = {}) {
   const elements = new Map();
   class Element {
     constructor(tag = '') { this.tag = tag; this.value = ''; this.children = []; this.dataset = {}; this.style = {}; this.handlers = {}; }
@@ -34,12 +34,15 @@ function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false }
   } : FixtureFlow;
   const profiles = [{ id: 'default', name: 'ChubbyKriz', description: '', tone: '', style: '', rules: '' }];
   let active = 'default';
+  if (savedProfile) { profiles.push(savedProfile); active = savedProfile.id; }
   const body = new Element('body');
   const context = vm.createContext({
     window: {}, document: { body, documentElement: body, createElement: (tag) => new Element(tag) },
+    location: { hostname: 'stripchat.com' },
+    PCAIConversationDetector: detectorError ? class { constructor() { throw new Error('Synthetic detector failure'); } } : undefined,
     URL, AbortController, PCAISuggestionFlow: Flow, confirm: () => true,
     setTimeout: () => 1, clearTimeout: () => {}, console,
-    chrome: { storage: { local: { get: async () => ({}), set: async () => {} } } },
+    chrome: { storage: { local: { get: async () => { if (preferenceError) throw new Error('Synthetic preference failure'); return {}; }, set: async () => {} } } },
     navigator: { clipboard: { writeText: async (text) => { view.copied = text; } } },
     fetch: async (url, options = {}) => {
       const path = new URL(url).pathname;
@@ -62,12 +65,15 @@ function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false }
         profiles.pop(); active = 'default';
       } else if (path === '/api/profiles/restore') {
         profiles[0].name = 'ChubbyKriz'; active = 'default'; result = { profiles, active_id: active };
-      } else if (path === '/api/profiles') result = { profiles: structuredClone(profiles), active_id: active };
+      } else if (path === '/api/profiles') {
+        if (profileFailures-- > 0) throw new Error('Synthetic startup connection failure');
+        result = { profiles: structuredClone(profiles), active_id: active };
+      }
       return { ok: true, status: options.method === 'DELETE' ? 204 : 200, text: async () => JSON.stringify(result) };
     },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../extension/content.js'), 'utf8'), context);
-  return { view, get: (id) => elements.get(`#pcai-${id}`) };
+  return { view, get: (id) => body.querySelector(`#pcai-${id}`) };
 }
 
 test('real flow and panel leave loading after 502, show exact reason and enable retry of the same target', async () => {
@@ -147,11 +153,11 @@ test('failed translation can be retried, preserves original and rotates repair c
   assert.equal(edit.value, original);
   assert.equal(retry.disabled, false);
   assert.match(translation.children[1].textContent, /Se omitió una frase.*original se conserva/);
-  assert.equal(f.view.calls.at(-1).payload.retry_token, 'first-token');
+  assert.equal(f.view.calls.filter((call) => call.path === '/api/translation/retry').at(-1).payload.retry_token, 'first-token');
   await copy.onclick();
   assert.equal(f.view.copied, original);
   await retry.onclick();
-  assert.equal(f.view.calls.at(-1).payload.retry_token, 'next-token');
+  assert.equal(f.view.calls.filter((call) => call.path === '/api/translation/retry').at(-1).payload.retry_token, 'next-token');
   assert.equal(edit.value, original);
   assert.equal(retry.removed, true);
   assert.equal(translation.children[1].textContent, 'Buenas noches, estoy bien, gracias.');
@@ -173,4 +179,38 @@ test('network failure while retrying translation keeps original and retry contro
   assert.equal(translation.children[2].disabled, false);
   await copy.onclick();
   assert.equal(f.view.copied, 'Estou bem, obrigado.');
+});
+
+for (const preferenceError of [false, true]) {
+  test(`profiles load at startup despite unrelated initialization failure (preferences=${preferenceError})`, async () => {
+    const f = panel({ preferenceError, detectorError: true });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(f.get('profile-active').textContent, 'ChubbyKriz');
+    assert.equal(f.get('profile-name').value, 'ChubbyKriz');
+    assert.ok(f.view.calls.some((call) => call.path === '/api/profiles'));
+    assert.ok(f.view.calls.every((call) => call.method === 'GET'));
+  });
+}
+
+test('opening panel retries unavailable profiles after backend connects without writing storage', async () => {
+  const f = panel({ profileFailures: 1 });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.get('profile-active').textContent, 'Sin conexión');
+  f.get('panel').hidden = true;
+  f.get('toggle').handlers.click({ preventDefault() {}, stopPropagation() {} });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.get('profile-active').textContent, 'ChubbyKriz');
+  assert.ok(f.view.calls.every((call) => call.method === 'GET'));
+});
+
+test('extension reload reads existing custom selection and original fields without recreating profiles', async () => {
+  const savedProfile = { id: 'legacy-synthetic', name: 'Synthetic saved voice', description: 'Existing description', tone: 'Calm', style: 'Brief', rules: 'Existing rules' };
+  for (let reload = 0; reload < 2; reload++) {
+    const f = panel({ savedProfile });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(f.get('profile-active').textContent, savedProfile.name);
+    assert.equal(f.get('profile-select').value, savedProfile.id);
+    for (const field of ['name', 'description', 'tone', 'style', 'rules']) assert.equal(f.get(`profile-${field}`).value, savedProfile[field]);
+    assert.ok(f.view.calls.every((call) => call.method === 'GET'));
+  }
 });

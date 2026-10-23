@@ -1,5 +1,17 @@
 # Problemas conocidos y estado de auditoría
 
+**Estado actual: BLOQUEADA para publicación estable.** MIT aprobada, dependencias corregidas (pip-audit sin hallazgos conocidos), 291 Python/71 JavaScript aprobadas. LM Studio final: 11/13 aceptadas, traducción 9/10, reintento portugués fallido; persisten afirmaciones del interlocutor sin respaldo aceptadas. Respaldo exclusivo de develop, sin main/PR/tag/Release. Consultar [informe final](FINALIZATION_2026_10_22.md). Los apartados anteriores en fecha son históricos.
+
+## Finalización vigente — 22 de octubre de 2026
+
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+
+
+## Auditoría vigente — 22 de octubre de 2026
+
+Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente, pip-audit detectó ocho avisos distintos en dependencias y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+
+
 ## Incidencia automática posterior al respaldo
 
 Correcciones **locales, sin commit ni push**: [INCIDENT_AUTO_SEQUENCE.md](INCIDENT_AUTO_SEQUENCE.md). Se investigan juntos el saludo y `I missed talking to you, daddy.`. Se corrigieron metadatos de hora, autoría de apelativos y dos falsos positivos concretos. 267 Python/67 JavaScript aprobadas; última secuencia sintética con Qwen: 6/6 aceptadas, con etapas fallidas conservadas. El `repeated_response` exacto de la segunda prueba de Chrome sigue pendiente de atribución; no se declara resuelto ni estable. La validación real de Chrome requiere reiniciar backend y recargar extensión.

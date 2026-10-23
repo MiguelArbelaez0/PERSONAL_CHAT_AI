@@ -109,3 +109,18 @@ def test_terminal_duplicate_reports_comparison_source_without_text(tmp_path, sou
     assert result.status_code == 502
     assert result.json()['diagnostics']['duplicate_source'] == source
     assert SECOND not in json.dumps(result.json())
+
+
+@pytest.mark.parametrize('draft', ["I'm doing well, daddy—thanks for asking.", "I'm doing well, daddy, thanks for asking.", "I'm fine, sir; thanks."])
+def test_mid_sentence_vocative_is_detected_and_removed_without_new_role(draft):
+    from backend.roles import remove_reversed_vocative
+    incoming = 'Hey sir, how are you?' if 'sir' in draft else FIRST
+    assert response_rejection(draft, incoming, 'en') == 'perspective_mismatch'
+    repaired = remove_reversed_vocative(draft)
+    assert 'daddy' not in repaired and 'sir' not in repaired
+    assert response_rejection(repaired, incoming, 'en') == ''
+
+
+def test_ordinary_role_noun_is_not_treated_as_vocative():
+    from backend.roles import incoming_address
+    assert incoming_address('My daddy is visiting tomorrow.') is None
