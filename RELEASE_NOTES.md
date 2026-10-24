@@ -1,10 +1,16 @@
+# Preparación v1.2.0 — no publicada
+
+La rama actual prepara v1.2.0; la última estable continúa siendo v1.1.0. Las funciones nuevas y las limitaciones operativas se describen en [notas v1.2.0](docs/RELEASE_NOTES_V1_2.md) y [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md). Las notas de abajo documentan exclusivamente la versión histórica v1.1.0 y su configuración de puerto antigua. La usuaria reportó una verificación manual satisfactoria del flujo v1.2.0 en Chrome/Stripchat; la publicación aún no se ha realizado.
+
 # PERSONAL_CHAT_AI v1.1.0 — Stable Release
 
 Publicación aprobada por el propietario tras pruebas manuales finales satisfactorias en Chrome y Stripchat. Las etapas rc.1 inferiores se conservan como historial y no describen el estado vigente.
 
+> Configuración de desarrollo v1.2.0: el backend predeterminado es `127.0.0.1:8000`. Las instrucciones de puerto `8765` de esta nota v1.1.0 son históricas. Consulta [conexión local](docs/LOCAL_BACKEND_CONNECTION.md).
+
 ## Novedades y estabilidad
 
-- Personalidades configurables, ChubbyKriz predeterminado y perfiles persistentes con selección activa.
+- Personalidades configurables, nombre de prueba predeterminado y perfiles persistentes con selección activa.
 - Memoria SQLite independiente por interlocutor y perfiles personalizados.
 - Inglés, español, francés y portugués; traducción independiente y fiel al español, con validación semántica y reintentos que conservan el original.
 - Modos automático, manual y desactivado; edición y botón copiar. **La aplicación nunca envía mensajes automáticamente**, tampoco en modo automático: solo genera sugerencias.
@@ -51,7 +57,7 @@ Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). Preparación para a
 
 ## Cierre vigente de rc.1 — respaldo exclusivo de develop
 
-Correcciones adicionales de emoji, evidencia por autor, idioma, variación y reintento de traducción con contexto mínimo. 253 Python y 61 JavaScript aprobadas. Repeticiones reales y fallos en el [informe de cierre](docs/CLOSURE_2026_10_21.md). Se conservan perfiles, ChubbyKriz, memoria, modos y copia. Sin nuevas dependencias, permisos o modelo. Calidad, validación humana y licencia siguen pendientes: **no es estable ni aprobación para integrar main**. Las secciones inferiores son históricas.
+Correcciones adicionales de emoji, evidencia por autor, idioma, variación y reintento de traducción con contexto mínimo. 253 Python y 61 JavaScript aprobadas. Repeticiones reales y fallos en el [informe de cierre](docs/CLOSURE_2026_10_21.md). Se conservan perfiles, nombre de prueba, memoria, modos y copia. Sin nuevas dependencias, permisos o modelo. Calidad, validación humana y licencia siguen pendientes: **no es estable ni aprobación para integrar main**. Las secciones inferiores son históricas.
 
 ## Verificación integral actual — 21 de octubre de 2026
 
@@ -61,7 +67,7 @@ Para actualizar, conserva `.env`, `data/` y `knowledge/local/`, reinicia el back
 
 ## `v1.1.0-rc.1` — revisión local, sin publicar
 
-Personalidades configurables desde el panel con persistencia SQLite local; ChubbyKriz predeterminado. Se refuerzan la detección del francés, los controles de mezclas de idioma y repeticiones, y la distinción entre modo e inicio de generación. Se conservan los puertos, la API v1, los archivos privados, las notas por alias y la revisión humana antes de enviar.
+Personalidades configurables desde el panel con persistencia SQLite local; nombre de prueba predeterminado. Se refuerzan la detección del francés, los controles de mezclas de idioma y repeticiones, y la distinción entre modo e inicio de generación. Se conservan los puertos, la API v1, los archivos privados, las notas por alias y la revisión humana antes de enviar.
 
 Para instalar o actualizar: conserva tu `.env` y `data/`, instala `requirements.txt` en el entorno virtual, reinicia el backend y recarga la extensión y la pestaña de Stripchat. No se necesitan nuevas dependencias. Consulta [la auditoría y validación manual](docs/V1_1_VALIDATION.md). Las cifras y observaciones de v1.0.0 siguientes son históricas.
 
@@ -75,12 +81,12 @@ En un entorno aislado Python 3.14.7 pasaron las 129 pruebas Python, incluidas la
 
 ## Notas preparadas para aprobación — español
 
-PERSONAL_CHAT_AI v1.1.0 añade perfiles persistentes con ChubbyKriz predeterminado, memoria independiente por alias, cuatro idiomas (inglés, español, francés y portugués), traducción española independiente y reintentos que conservan el original. Refuerza perspectiva, evidencia, copias y repeticiones. Conserva modos automático/manual/desactivado y edición/copia. Nunca envía mensajes automáticamente. Dependencias de seguridad actualizadas y licencia MIT aprobada.
+PERSONAL_CHAT_AI v1.1.0 añade perfiles persistentes con nombre de prueba predeterminado, memoria independiente por alias, cuatro idiomas (inglés, español, francés y portugués), traducción española independiente y reintentos que conservan el original. Refuerza perspectiva, evidencia, copias y repeticiones. Conserva modos automático/manual/desactivado y edición/copia. Nunca envía mensajes automáticamente. Dependencias de seguridad actualizadas y licencia MIT aprobada.
 
 Instalación: extraer en una carpeta nueva, ejecutar INSTALAR_PERSONAL_CHAT_AI.bat, configurar LM Studio local con qwen/qwen3-4b-2507 y ejecutar INICIAR_PERSONAL_CHAT_AI.bat; cargar extension como extensión sin empaquetar de Chrome. Windows/Python 3.11+, LM Studio y modelo instalados por el usuario. Conservar .env, data y knowledge/local de instalaciones anteriores; no sobrescribirlos. Verificar manualmente borradores, matices y traducciones; pueden fallar o ser rechazados. API local sin autenticación, bases sin cifrar. Estado de aprobación en docs/FINALIZATION_2026_10_22.md; este texto no acredita publicación.
 
 ## Prepared release notes — English
 
-PERSONAL_CHAT_AI v1.1.0 adds persistent profiles with ChubbyKriz as default, per-alias memory, English/Spanish/French/Portuguese support, separate Spanish translation and translation retries that preserve the original. It strengthens speaker perspective, evidence, echo and repetition checks. Automatic, manual and disabled modes, editing and copying are preserved. It never sends chat messages automatically. Security dependencies were updated and the owner approved the MIT license.
+PERSONAL_CHAT_AI v1.1.0 adds persistent profiles with nombre de prueba as default, per-alias memory, English/Spanish/French/Portuguese support, separate Spanish translation and translation retries that preserve the original. It strengthens speaker perspective, evidence, echo and repetition checks. Automatic, manual and disabled modes, editing and copying are preserved. It never sends chat messages automatically. Security dependencies were updated and the owner approved the MIT license.
 
 Extract into a new folder, run INSTALAR_PERSONAL_CHAT_AI.bat, configure local LM Studio with qwen/qwen3-4b-2507, then run INICIAR_PERSONAL_CHAT_AI.bat and load extension in Chrome as an unpacked extension. Requires Windows/Python 3.11+, plus separately installed LM Studio and model. Preserve existing .env, data and knowledge/local. Review drafts and translation meaning manually; generation can fail or be rejected. The local API has no authentication and local databases are not encrypted. See docs/FINALIZATION_2026_10_22.md for approval status; these notes do not claim a published stable release.

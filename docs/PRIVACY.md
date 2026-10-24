@@ -1,37 +1,29 @@
-# Privacidad
+# Privacidad — v1.2.0
 
-## Finalización vigente — 22 de octubre de 2026
+PERSONAL_CHAT_AI procesa el contexto visible para preparar borradores. La modelo debe revisar cada sugerencia y enviarla manualmente.
 
-MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+## Qué datos se usan
 
+- El DOM activo de Stripchat aporta el mensaje entrante, el contexto reciente visible y señales de identidad de la cuenta autenticada. La detección no lee cookies, credenciales ni tokens; la identidad se confirma en el onboarding.
+- FastAPI recibe el UUID de la cuenta, las preferencias del perfil y el contexto necesario para generar. El cliente envía la solicitud al LM Studio configurado localmente.
+- Las notas de memoria solo se guardan mediante acciones explícitas. Cada nota queda aislada por UUID de modelo y alias de visitante; respuestas generadas e historial no se añaden automáticamente como recuerdos.
+- La extensión guarda preferencias de panel, progreso del onboarding, cuenta seleccionada y, mientras se completa una creación, una clave idempotente temporal en `chrome.storage.local`. No almacena allí el historial completo del chat.
 
-## Auditoría vigente — 22 de octubre de 2026
+## Dónde se guarda
 
-Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+La base predeterminada `data/personal_chat_ai_v2.sqlite3` contiene cuentas, perfiles y notas. Las fuentes v1.1 pueden quedar en rutas heredadas para una migración explícita. Las bases SQLite no están cifradas; protege la sesión de Windows y los respaldos. Los archivos `knowledge/local/` pueden contener datos personales y están excluidos de Git.
 
+El backend y LM Studio deben permanecer en loopback. Esta versión no admite acceso remoto. El backend no implementa autenticación local; CORS limita las respuestas legibles por páginas web, pero no sustituye autenticación frente a procesos locales.
 
-Actualización de rc.1: el contexto DOM de otro alias no se reutiliza al cambiar manualmente el interlocutor. La referencia entrante para traducción puede conservarse en RAM en el estado de reparación, limitado a 128 entradas durante 600 segundos y ligado al original exacto; no se guarda en SQLite. Los informes versionables del benchmark contienen únicamente conversaciones sintéticas. Véase [verificación actual](STABILIZATION_2026_10_21.md). La sección final sobre migración del repositorio es histórica.
+## Retención y control
 
-## Datos que procesa
+- El contexto de conversación y las solicitudes al modelo no se persisten intencionalmente como historial.
+- Las notas se conservan hasta que la modelo las edita o elimina. Los borradores recientes antirrepetición viven en memoria del proceso y se pierden al reiniciar.
+- La migración v1.1 no se ejecuta al iniciar. La herramienta explícita conserva las fuentes y coloca datos importados en el área heredada, sin asignarlos automáticamente a una cuenta nueva.
+- Eliminar una nota local con SQLite `secure_delete` no garantiza borrar copias externas, respaldos, copias del sistema de archivos o datos que un proveedor local del modelo retenga.
 
-La extensión lee el DOM de la página de Stripchat en las conversaciones configuradas para identificar el chat y preparar contexto reciente. Ese texto se envía al backend local y después al endpoint LM Studio configurado. La privacidad depende de que el endpoint permanezca local y de la política del modelo y del servidor elegidos.
+## Publicación y documentación histórica
 
-El backend utiliza notas locales por alias, persistidas en SQLite cuando la persona las guarda explícitamente. El identificador interno del interlocutor se deriva mediante hash del alias. El diseño inspeccionado no persiste intencionalmente el historial completo; la extensión conserva claves de deduplicación en `chrome.storage`.
+El paquete v1.2.0 debe excluir bases, conversaciones, memorias, respaldos y reportes internos. El repositorio ya contiene documentación histórica de v1.1 con un nombre artístico real de esa versión; este trabajo no reescribe la historia Git ni puede eliminar forks, cachés o copias externas. La distribución selecciona una lista explícita de documentación revisada.
 
-Los archivos Markdown de conocimiento pueden contener perfil o preferencias personales. `knowledge/local/` está excluido de Git. Revisa los archivos antes de copiarlos, compartir registros o enviar diagnósticos.
-
-## Minimización y control
-
-Desde v1.1, los perfiles y la selección activa se guardan en `personalities.sqlite3`, junto a la base de notas configurada. Solo los últimos cinco borradores de hasta 128 conversaciones/perfiles se conservan en RAM; desaparecen al reiniciar el backend y los de un alias al eliminar su memoria. No se convierten automáticamente en hechos persistentes.
-
-Las bases no están cifradas; el hash del alias no anonimiza el texto ni el nombre guardado. El borrado de notas usa `secure_delete` de SQLite, sin garantizar la eliminación de copias externas. La API local carece de autenticación. Proteja el acceso a su cuenta y carpeta de Windows.
-
-- Usa solo el contexto necesario para generar la respuesta.
-- Verifica manualmente cualquier respuesta antes de copiarla a Stripchat.
-- No guardes una inferencia o texto producido por IA como recuerdo confirmado.
-- Elimina las notas locales desde las funciones disponibles cuando ya no se necesiten; para borrar los datos locales restantes, cierra la aplicación y gestiona la base de datos local en `data/`.
-- La aplicación no envía mensajes automáticamente.
-
-## Revisión del repositorio
-
-Esta instantánea limpia no incluye el historial Git del repositorio de desarrollo ni datos locales de perfil, memoria o conversación. El remoto de origen sigue teniendo referencias anteriores activas hasta que se complete una migración autorizada. Las pruebas de escaneo no garantizan que copias, cachés o referencias externas hayan desaparecido; consulta [SECURITY.md](SECURITY.md).
+Para reportar problemas, comparte códigos y mensajes técnicos redactados. No compartas alias, mensajes, notas, capturas de chats, `.env` ni rutas de usuario.

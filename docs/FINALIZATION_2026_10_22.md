@@ -37,7 +37,7 @@ pip-audit de requirements-dev.txt, incluidas dependencias de producción y trans
 
 ## Conservación
 
-Copias SQLite coherentes verificadas antes de trabajar, con comparación lógica y quick_check. Datos originales en data/personalities.sqlite3 y data/personal_chat_ai.sqlite3. No se han importado, reemplazado, borrado ni reinicializado; hashes comprobados antes y después. ChubbyKriz y perfil activo originales, memoria por alias, archivos privados y configuración se conservan. Las pruebas crean perfiles/notas únicamente en almacenes temporales o en instalaciones limpias sintéticas.
+Copias SQLite coherentes verificadas antes de trabajar, con comparación lógica y quick_check. Datos originales en data/personalities.sqlite3 y data/personal_chat_ai.sqlite3. No se han importado, reemplazado, borrado ni reinicializado; hashes comprobados antes y después. nombre de prueba y perfil activo originales, memoria por alias, archivos privados y configuración se conservan. Las pruebas crean perfiles/notas únicamente en almacenes temporales o en instalaciones limpias sintéticas.
 
 ## Resultados intermedios conservados
 
@@ -69,7 +69,7 @@ Una etapa adicional aceptó 12/13 generaciones con traducción 11/11, pero su re
 
 Tres originales exactos probados de nuevo con el código posterior: traducción disponible 3/3. Se conserva I → te en hacer reír; te connaître conserva el objeto en español (requirió dos intentos); el modismo ya no pregunta por un problema personal. Persisten gramática/puntuación española poco naturales, incluida una interrogación mal colocada. Disponibilidad no equivale a estilo profesional ni fidelidad universal.
 
-La instalación limpia aislada con nuevas dependencias pasó inicialización/servicio ASGI, salud, ChubbyKriz, creación de perfil sintético, selección y nota, y persistencia en un segundo proceso. Starlette avisa que el uso de httpx por TestClient está deprecado; fue una advertencia, no fallo. No se añadió otra dependencia para ocultarla.
+La instalación limpia aislada con nuevas dependencias pasó inicialización/servicio ASGI, salud, nombre de prueba, creación de perfil sintético, selección y nota, y persistencia en un segundo proceso. Starlette avisa que el uso de httpx por TestClient está deprecado; fue una advertencia, no fallo. No se añadió otra dependencia para ocultarla.
 
 **Decisión: respaldo de develop autorizado; publicación estable detenida.** MIT está aprobada y el escaneo de dependencias está limpio, pero no se ha completado el arranque de red limpio ni Chrome con el backend actualizado. La herramienta rechazó la operación de parada/reinicio requerida. No se ha actualizado ni interrumpido el proceso real; sus módulos cargados no se confunden con el entorno nuevo de validación. No hay autorización para afirmar comprobaciones no ejecutadas. Los defectos semánticos de las etapas intermedias y la variación restante justifican mantener rc.1 y revisar los casos reales tras el reinicio. No se crea PR, no se integra main, no se crean tags ni Release mientras falte esa condición.
 

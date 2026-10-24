@@ -69,7 +69,7 @@ Esto demuestra funcionamiento puntual, no calidad garantizada ni estabilidad est
 
 ## Validación manual obligatoria (pendiente)
 
-1. **Perfiles:** comprobar ChubbyKriz; crear, editar, guardar y activar otro perfil; cerrar y abrir panel y reiniciar backend. Verificar persistencia. Eliminar un personalizado activo y restaurar el predeterminado. Confirmar que las notas antiguas y preferencias privadas siguen presentes.
+1. **Perfiles:** comprobar nombre de prueba; crear, editar, guardar y activar otro perfil; cerrar y abrir panel y reiniciar backend. Verificar persistencia. Eliminar un personalizado activo y restaurar el predeterminado. Confirmar que las notas antiguas y preferencias privadas siguen presentes.
 2. **Idiomas:** probar «Hello, how are you?», «Hola, ¿cómo estás?», «Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître.» y «Olá, tudo bem? Gostaria de conhecer você melhor.». Alternar idiomas en el mismo chat. La respuesta debe seguir el objetivo, mantener nombres y mostrar traducción española independiente solo cuando corresponda. Probar también emojis y saludos ambiguos con historial.
 3. **Roles y calidad:** usar «You made me laugh» y referencias ambiguas a promesas no visibles. Comprobar quién hizo cada acción, ausencia de recuerdos inventados y tono breve, cordial o coqueto no gráfico según contexto. Regenerar y revisar diversidad sin perder el objetivo. Una salida repetida tras el reintento debe producir un error, no un borrador aceptado.
 4. **Modos:** Automático sugiere ante una entrada nueva sin enviar; Manual solo genera por botón; Desactivado impide generación. En Automático, pulsar Generar debe mostrar modo Automático e inicio por solicitud manual. Probar además el formulario de texto pegado y el contexto adicional.

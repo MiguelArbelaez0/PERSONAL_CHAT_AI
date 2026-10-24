@@ -7,7 +7,7 @@ Estado: **correcciones locales verificadas; el segundo fallo exacto de Chrome si
 1. `Hey daddy, how are you today?`
 2. `I missed talking to you, daddy.`
 
-Modo Automático y perfil predeterminado ChubbyKriz. Todas las pruebas usan alias sintéticos y bases temporales. No se consultó ni modificó la memoria del interlocutor real. No se capturó su solicitud de Chrome, sus selectores, notas ni historial. La herramienta de navegador disponible no ofrece acceso al Chrome/Stripchat del usuario. Las pruebas DOM/HTTP son simuladas; las llamadas al modelo y su revisión sí utilizan LM Studio real, mismo Qwen y puertos.
+Modo Automático y perfil predeterminado nombre de prueba. Todas las pruebas usan alias sintéticos y bases temporales. No se consultó ni modificó la memoria del interlocutor real. No se capturó su solicitud de Chrome, sus selectores, notas ni historial. La herramienta de navegador disponible no ofrece acceso al Chrome/Stripchat del usuario. Las pruebas DOM/HTTP son simuladas; las llamadas al modelo y su revisión sí utilizan LM Studio real, mismo Qwen y puertos.
 
 ## Causas comprobadas y límites de la atribución
 
@@ -66,7 +66,7 @@ git diff --check
 
 1. Reiniciar el backend desde `develop` y recargar la extensión sin empaquetar y la pestaña. Conservar `.env`, perfiles y bases existentes.
 2. En la configuración de selectores, elegir el nodo de contenido del mensaje y el de hora por separado. Comprobar que el resumen muestre el texto una vez y una sola hora. Si no hay selector de hora fiable, seleccionar un contenido que no la incluya; no se adivinan metadatos sin selector.
-3. Con ChubbyKriz y modo Automático, comprobar la primera entrada y después `I missed talking to you, daddy.`. Antes de generar, revisar el último mensaje seleccionado. No se necesita enviar una respuesta a Stripchat para verificar el borrador.
+3. Con nombre de prueba y modo Automático, comprobar la primera entrada y después `I missed talking to you, daddy.`. Antes de generar, revisar el último mensaje seleccionado. No se necesita enviar una respuesta a Stripchat para verificar el borrador.
 4. En Network, revisar solo `POST /api/suggestions`: `message` y `target_message` deben ser el texto completo actual, sin horas añadidas; `generation_trigger=automatic`, `configured_mode=auto`, con identificador del segundo objetivo distinto del primero. El historial puede contener el saludo anterior, nunca un borrador como si hubiera sido enviado.
 5. Si falla, anotar HTTP, `error.reason_code`, `diagnostics.stage`, `attempts` y `duplicate_source` sin exportar notas ni conversaciones privadas. Verificar que desaparece Generando, reaparece Reintentar y el reintento conserva el mismo objetivo. Si llega otro mensaje antes de terminar, la respuesta anterior no debe mostrarse.
 6. Confirmar que Copiar usa la original editable y que no hay envío automático. Solo después de repetir ambos casos satisfactoriamente en Chrome se podrá cerrar el evento real.

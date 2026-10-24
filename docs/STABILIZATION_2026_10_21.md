@@ -15,7 +15,7 @@ Estado: PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo, **todavía bloqueada para ap
 
 ## Compatibilidad
 
-Sin nuevas dependencias, permisos Chrome, puertos ni modelo. Se conservan ChubbyKriz predeterminado y perfiles CRUD/activación/restauración con SQLite, notas por alias, formatos anteriores compatibles, modos Automático/Manual/Desactivado, edición y copia. Ningún modo envía mensajes. Las pruebas de persistencia y compatibilidad existentes pasan; las solicitudes sintéticas usan almacenes temporales y no se borraron ni reinicializaron bases privadas.
+Sin nuevas dependencias, permisos Chrome, puertos ni modelo. Se conservan nombre de prueba predeterminado y perfiles CRUD/activación/restauración con SQLite, notas por alias, formatos anteriores compatibles, modos Automático/Manual/Desactivado, edición y copia. Ningún modo envía mensajes. Las pruebas de persistencia y compatibilidad existentes pasan; las solicitudes sintéticas usan almacenes temporales y no se borraron ni reinicializaron bases privadas.
 
 ## Inventario de archivos
 
@@ -68,7 +68,7 @@ Riesgos que permanecen: API local sin autenticación; CORS no autentica procesos
 3. Probar cada modo. Automático genera borradores solo con entrantes válidos; Manual únicamente al solicitar; Desactivado no genera. Verificar personalmente que ninguno envía mensajes.
 4. Cambiar rápidamente entre dos chats mientras genera y cambiar el alias manual. No debe mostrarse una respuesta antigua ni contexto del otro chat. Revisar la información técnica sin exportar conversaciones privadas.
 5. Forzar fallo de traducción con un cliente de pruebas o parar LM Studio después de obtener una original. Comprobar que el original editable y Copiar conservan su contenido. Reiniciar LM Studio y usar Reintentar traducción; no debe generar otra original. Si expira el estado temporal (10 minutos/reinicio), el reintento aún traduce el original pero ya no conserva el contexto de reparación.
-6. Crear/editar/activar un perfil de prueba, guardar una nota bajo un alias de prueba, reiniciar backend y verificar persistencia y aislamiento. Restaurar ChubbyKriz y eliminar solo los datos de prueba desde el panel.
+6. Crear/editar/activar un perfil de prueba, guardar una nota bajo un alias de prueba, reiniciar backend y verificar persistencia y aislamiento. Restaurar nombre de prueba y eliminar solo los datos de prueba desde el panel.
 7. Revisar fidelidad humana de todas las originales/traducciones, repetir la serie local y resolver los rechazos o errores documentados antes de aprobar. Chrome/Stripchat real sigue pendiente: los tests DOM son simulados.
 8. El titular debe elegir la licencia de distribución. `LICENSE` no concede actualmente redistribución. Solo tras cerrar calidad, validación humana y licencia corresponde pedir autorización para integración/publicación.
 

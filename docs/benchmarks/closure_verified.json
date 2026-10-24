@@ -119,7 +119,7 @@
         }
       },
       "invariant_failures": [],
-      "manual_fidelity": "Original has a generic customer-service question; verify fit with ChubbyKriz voice.",
+      "manual_fidelity": "Original has a generic customer-service question; verify fit with nombre de prueba voice.",
       "synthetic_model_trace": [
         {
           "operation": "analysis",

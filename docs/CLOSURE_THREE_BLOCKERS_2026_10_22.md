@@ -42,7 +42,7 @@ Los puertos de producción y permisos de Chrome no se cambian. La suite añade a
 
 ## Estado funcional y alcance
 
-Las funciones de ChubbyKriz, perfiles personalizados y selección persistente, memoria independiente por alias, cuatro idiomas, tres modos, reintentos y copia siguen cubiertas por las suites. El código de extensión no cambia. La aplicación nunca envía automáticamente mensajes. Los datos de usuario y las copias privadas quedan fuera de Git y del ZIP.
+Las funciones de nombre de prueba, perfiles personalizados y selección persistente, memoria independiente por alias, cuatro idiomas, tres modos, reintentos y copia siguen cubiertas por las suites. El código de extensión no cambia. La aplicación nunca envía automáticamente mensajes. Los datos de usuario y las copias privadas quedan fuera de Git y del ZIP.
 
 Una respuesta 502 que bloquea una preferencia inventada no equivale a una preferencia falsa mostrada; es una limitación de disponibilidad recuperable mediante reintento. La recuperación del modelo de una nota puede fallar aunque la nota esté correctamente conservada y aislada. No se elimina el control para aumentar la aceptación. El mismo Qwen puede seguir equivocándose como generador o revisor; las cifras HTTP no son una medición universal de calidad. Se inspeccionan las salidas reales, no solo los códigos de estado.
 
@@ -102,7 +102,7 @@ No se afirma aceptación o fidelidad universal del 100 %. Antes de autorizar mai
 
 1. Cuando el propietario decida actualizar la instancia habitual, instalar los requisitos y reiniciar el backend con el código nuevo, sin reemplazar .env, perfiles, notas ni archivos privados. Esta tarea no detiene la instancia actual. Recargar la extensión y la pestaña de Stripchat.
 2. Con alias de prueba, enviar un emoji y preguntar Which color do I like? sin notas: aceptar desconocimiento/petición de pista, o rechazo explícito; nunca presentar un color inventado como conocido. Con una nota sintética explícita para ese alias, comprobar la referencia correcta sin atribuírsela al propietario ni a otro alias.
-3. Probar Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître. con ChubbyKriz y perfil personalizado. Verificar respuesta francesa breve y traducción española, sin exigir evidencia de una cortesía ni admitir recuerdos inventados.
+3. Probar Bonsoir, tu vas bien ? J'aimerais apprendre à mieux te connaître. con nombre de prueba y perfil personalizado. Verificar respuesta francesa breve y traducción española, sin exigir evidencia de una cortesía ni admitir recuerdos inventados.
 4. Probar Oi, tudo bem? Gostaria de conhecer você melhor. Si aparece reintento, comprobar que conoce al propietario (conocerme), que no se modifica el original y que el botón recupera la traducción o muestra un error claro. El ensayo API reproducible usa fixtures para forzar esos errores sin tocar conversaciones reales.
 5. Revisar inglés, español, francés y portugués, alternar modos automático/manual/desactivado y copiar el original. Confirmar que nada se envía automáticamente y que selección de perfil/notas siguen conservándose al reiniciar.
 

@@ -29,7 +29,7 @@ Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación
 
 Cierre vigente: [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md). Se conserva todo el trabajo local anterior y se respalda exclusivamente en `develop` bajo autorización expresa. El commit de entrega se identifica con `git log -1 --oneline` y en el informe final; la base anterior es `9fb0ba4bba9779f71478a285762ff4fe1689371f`. `main` permanece en `d4ba4df447765708bb2a79c430222fe3f3e49fe0`. Sin PR, tags, releases ni publicación estable.
 
-**Pruebas:** 253 Python y 61 JavaScript aprobadas, cero fallidas u omitidas; 1020 advertencias de deprecación FastAPI. Sintaxis, manifiesto V3, diff y revisión de secretos se verifican antes de confirmar. Funciones cubiertas: ChubbyKriz predeterminado, perfiles persistentes, memoria por alias, cuatro idiomas, tres modos, copia/edición y traducción independiente. Ningún modo envía mensajes automáticamente. Chrome/Stripchat real continúa pendiente.
+**Pruebas:** 253 Python y 61 JavaScript aprobadas, cero fallidas u omitidas; 1020 advertencias de deprecación FastAPI. Sintaxis, manifiesto V3, diff y revisión de secretos se verifican antes de confirmar. Funciones cubiertas: nombre de prueba predeterminado, perfiles persistentes, memoria por alias, cuatro idiomas, tres modos, copia/edición y traducción independiente. Ningún modo envía mensajes automáticamente. Chrome/Stripchat real continúa pendiente.
 
 **LM Studio real:** 109 operaciones sintéticas durante este cierre, conservando también fallos y etapas intermedias. Última evaluación: 18/23 generaciones aceptadas; cinco rechazos de contenido, sin transporte fallido. Traducción disponible en 15/15 originales aceptadas no españolas; cuatro originales anteriores antes fallidas traducidas 4/4. Cuatro traducciones patrón conservan significado, con puntuación defectuosa en una. Disponibilidad no significa fidelidad perfecta. Una prueba adicional con dos fallos inyectados y recuperación real verifica el reintento con token sin regenerar la original.
 
@@ -47,7 +47,7 @@ Referencias: [informe previo](STABILIZATION_2026_10_21.md), [casos reales](RC1_R
 
 Trabajo integral local sobre `develop`, base `9fb0ba4bba9779f71478a285762ff4fe1689371f`; sin commit ni push en esta tarea y sin modificar `main`. El respaldo anterior sigue en `origin/develop`; las correcciones actuales están pendientes en el directorio de trabajo.
 
-Implementado y cubierto por pruebas: perfiles persistentes con ChubbyKriz predeterminado, memoria por alias, tres modos, prioridad del objetivo, cancelación/descarte de respuestas obsoletas, copia y edición, traducción separada y reintento sin regenerar la original. Ningún modo envía mensajes automáticamente. Se corrigieron el cruce de historial por alias manual, contratos contradictorios, preferencias/actividades inventadas, falsos positivos acotados de evidencia y traducciones con participantes invertidos; se compactó el prompt y se añadieron motivos de error y límite HTTP.
+Implementado y cubierto por pruebas: perfiles persistentes con nombre de prueba predeterminado, memoria por alias, tres modos, prioridad del objetivo, cancelación/descarte de respuestas obsoletas, copia y edición, traducción separada y reintento sin regenerar la original. Ningún modo envía mensajes automáticamente. Se corrigieron el cruce de historial por alias manual, contratos contradictorios, preferencias/actividades inventadas, falsos positivos acotados de evidencia y traducciones con participantes invertidos; se compactó el prompt y se añadieron motivos de error y límite HTTP.
 
 Verificación: línea base 199 Python/58 JavaScript; estado actual **237 Python/61 JavaScript aprobadas, cero fallidas u omitidas**, con 1005 advertencias de deprecación de FastAPI. Sintaxis, manifiesto y revisión de seguridad se detallan en el [informe integral](STABILIZATION_2026_10_21.md). LM Studio real se ejecutó repetidamente con datos exclusivamente sintéticos; los resultados completos, incluidos los fallos, están en [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
 
@@ -71,9 +71,9 @@ Este cierre conserva las funcionalidades y correcciones existentes. No añade fu
 
 ## Funcionalidades implementadas
 
-- Backend FastAPI local en `127.0.0.1:8765`, con LM Studio local en `127.0.0.1:1234/v1`.
+- Backend FastAPI local predeterminado en `127.0.0.1:8000` (configurable), con LM Studio local en `127.0.0.1:1234/v1`.
 - Extensión Chrome Manifest V3 y panel flotante, detección de alias y clasificación de mensajes entrantes/propios mediante selectores comprobables.
-- Perfiles locales: ChubbyKriz predeterminado; creación, edición, selección, eliminación de personalizados y restauración del predeterminado.
+- Perfiles locales: nombre de prueba predeterminado; creación, edición, selección, eliminación de personalizados y restauración del predeterminado.
 - Selección del idioma desde el último mensaje entrante, con respaldo al historial entrante y a la configuración. Cobertura automatizada de inglés, español, francés y portugués.
 - Respuesta original editable y traducción al español independiente, sin duplicarla cuando la respuesta ya está en español. Copiar utiliza únicamente el original editable.
 - Notas manuales persistentes en SQLite separadas por alias. Los perfiles se almacenan de forma independiente; los borradores no se convierten en recuerdos.
@@ -163,7 +163,7 @@ El respaldo es solo código, pruebas y documentación. Los datos locales excluid
 
    Si el backend anterior sigue ejecutándose, cerrarlo antes de iniciar otra instancia. No cambiar los puertos ni sobrescribir `.env`.
 
-5. Recargar la extensión en `chrome://extensions`, recargar Stripchat y activar ChubbyKriz. **Primera tarea recomendada:** reproducir el saludo inglés que produjo HTTP 502, capturando únicamente datos sintéticos y los motivos de rechazo, para distinguir una invención real de un falso positivo del auditor. Después medir varias repeticiones de los cuatro casos, sin seleccionar solo los éxitos.
+5. Recargar la extensión en `chrome://extensions`, recargar Stripchat y activar nombre de prueba. **Primera tarea recomendada:** reproducir el saludo inglés que produjo HTTP 502, capturando únicamente datos sintéticos y los motivos de rechazo, para distinguir una invención real de un falso positivo del auditor. Después medir varias repeticiones de los cuatro casos, sin seleccionar solo los éxitos.
 6. Añadir regresiones de cualquier fallo nuevo, ejecutar nuevamente ambas suites y actualizar este estado. No relajar validadores indiscriminadamente, no introducir funcionalidades ajenas y no considerar estable la candidata hasta resolver o caracterizar los errores reales. Cualquier futura publicación o commit requiere la autorización aplicable de la siguiente jornada.
 
 ## Verificación del commit de cierre

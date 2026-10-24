@@ -4,7 +4,7 @@ Estado: corrección de inicialización comprobada en pruebas; verificación de C
 
 ## Evidencia y causa
 
-La API local GET http://127.0.0.1:8765/api/profiles respondió 200 y devolvió un perfil, ChubbyKriz, activo con id default. Se comparó el contenido completo devuelto con el JSON original de SQLite: igualdad exacta. No se publican sus campos privados.
+La API local GET http://127.0.0.1:8765/api/profiles respondió 200 y devolvió un perfil, nombre de prueba, activo con id default. Se comparó el contenido completo devuelto con el JSON original de SQLite: igualdad exacta. No se publican sus campos privados.
 
 El proceso del puerto 8765 fue PID 19492, con lanzamiento mediante el Python de .venv del proyecto y argumento -m backend; también se observó el lanzador PID 9596. La ruta de trabajo interna del proceso no se inspeccionó directamente. INICIAR_PERSONAL_CHAT_AI.bat establece el directorio del proyecto antes de ejecutar el módulo.
 
@@ -48,9 +48,9 @@ No se reinició el proceso real ni se manejó Chrome. La reapertura del almacén
 
 ## Validación manual pendiente
 
-1. Mantener el backend iniciado y comprobar GET http://127.0.0.1:8765/api/profiles: active_id default y ChubbyKriz. No pulsar Restaurar, Nuevo ni Guardar para recuperar datos.
+1. Mantener el backend iniciado y comprobar GET http://127.0.0.1:8765/api/profiles: active_id default y nombre de prueba. No pulsar Restaurar, Nuevo ni Guardar para recuperar datos.
 2. En chrome://extensions recargar PERSONAL_CHAT_AI y después recargar la página de Stripchat para reemplazar el content script anterior.
-3. Abrir el panel y comprobar URL http://127.0.0.1:8765, selector ChubbyKriz y campos originales. Actualizar solo realiza GET.
+3. Abrir el panel y comprobar URL http://127.0.0.1:8765, selector nombre de prueba y campos originales. Actualizar solo realiza GET.
 4. Si el backend aún no estaba listo, iniciarlo y volver a abrir el panel: los perfiles deben cargarse sin recrearlos.
 5. Reiniciar el backend con el lanzador habitual y recargar la página; comprobar selección y campos, sin alterar memoria.
 6. Si continúa vacío, registrar el mensaje visible del apartado de perfiles, el diagnóstico y la petición /api/profiles en Network, sin compartir conversaciones ni contenido privado. Si faltan perfiles personalizados, localizar su almacenamiento anterior antes de cualquier restauración/importación.

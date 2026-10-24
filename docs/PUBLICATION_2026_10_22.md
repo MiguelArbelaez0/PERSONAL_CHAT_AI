@@ -2,7 +2,7 @@
 
 El propietario aprobó explícitamente las pruebas manuales finales de Chrome y Stripchat y confirmó la corrección de los tres casos. La aprobación manual es evidencia aportada por el usuario, no una prueba observada directamente por el agente. Se autorizaron PR develop→main, merge, tag anotado y Release público con ZIP.
 
-Código funcional aprobado: 9b51913. Solo se actualizan metadatos a 1.1.0 y documentación. ChubbyKriz, perfiles, memoria SQLite, cuatro idiomas, tres modos, copia y ausencia de envío automático permanecen intactos. No se reinicia la instancia de 8765 ni se alteran datos originales.
+Código funcional aprobado: 9b51913. Solo se actualizan metadatos a 1.1.0 y documentación. nombre de prueba, perfiles, memoria SQLite, cuatro idiomas, tres modos, copia y ausencia de envío automático permanecen intactos. No se reinicia la instancia de 8765 ni se alteran datos originales.
 
 Validación de referencia: 311 Python/71 JavaScript aprobadas, pip check y pip-audit correctos, Gitleaks sin hallazgos; instalación limpia del ZIP y HTTP real con reinicio/persistencia, tanto con copias de datos anteriores como con bases vacías. Se repiten suites, verificación de dependencias, seguridad e instalación para los metadatos finales antes de publicar.
 
