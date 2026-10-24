@@ -1,6 +1,6 @@
-# Preparación v1.2.0 — no publicada
+# PERSONAL_CHAT_AI v1.2.0 — versión estable
 
-La rama actual prepara v1.2.0; la última estable continúa siendo v1.1.0. Las funciones nuevas y las limitaciones operativas se describen en [notas v1.2.0](docs/RELEASE_NOTES_V1_2.md) y [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md). Las notas de abajo documentan exclusivamente la versión histórica v1.1.0 y su configuración de puerto antigua. La usuaria reportó una verificación manual satisfactoria del flujo v1.2.0 en Chrome/Stripchat; la publicación aún no se ha realizado.
+PERSONAL_CHAT_AI v1.2.0 — Personalized Assistant. Las funciones, validaciones y limitaciones se describen en las [notas de v1.2.0](docs/RELEASE_NOTES_V1_2.md) y [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md). Las secciones inferiores conservan las notas históricas de v1.1.0 y versiones anteriores; sus puertos e instrucciones son históricos cuando difieren de la configuración actual. La usuaria confirmó manualmente el flujo v1.2.0 en Chrome/Stripchat.
 
 # PERSONAL_CHAT_AI v1.1.0 — Stable Release
 

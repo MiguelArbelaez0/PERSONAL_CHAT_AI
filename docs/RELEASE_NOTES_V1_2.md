@@ -1,6 +1,6 @@
-# PERSONAL_CHAT_AI v1.2.0 — preparación de versión
+# PERSONAL_CHAT_AI v1.2.0 — versión estable
 
-**Estado: no publicada.** Esta rama está en revisión. La última versión estable continúa siendo v1.1.0.
+PERSONAL_CHAT_AI v1.2.0 — Personalized Assistant.
 
 ## Cambios de v1.2.0
 
@@ -13,8 +13,24 @@
 - Selección de cuenta con fecha, estado e ID local abreviado; la lista se puede actualizar.
 - Backend local predeterminado en `127.0.0.1:8000`; continúa limitado a loopback.
 
+## Validación
+
+- Suite Python: 335 pruebas aprobadas.
+- Suite JavaScript: 117 pruebas aprobadas.
+- Pruebas de distribución: 3 aprobadas.
+- `pip check` sin dependencias rotas; `pip-audit` sin vulnerabilidades conocidas en las dependencias de producción y desarrollo.
+- Gitleaks no encontró secretos en el árbol ni en los 35 commits revisados.
+- Sintaxis, manifiesto Chrome MV3 v1.2.0 y `git diff --check` verificados.
+- La usuaria confirmó manualmente en Chrome/Stripchat la detección, el onboarding, la persistencia y la generación. Una prueba sintética contra LM Studio local también completó generación y traducción.
+
+Bandit reportó B608 de confianza baja en la consulta de migración de `backend/migrations.py`; la selección usa una lista fija de columnas permitidas y la revisión no confirmó una vulnerabilidad.
+
 ## Compatibilidad y control
 
-La migración desde v1.1 requiere una operación explícita. El inicio normal no importa ni borra datos. No se envían mensajes automáticamente: la persona revisa y envía cada respuesta.
+Los datos de v1.1 se mantienen hasta que la persona ejecute una migración explícita hacia una base v1.2; el inicio normal no importa, fusiona ni elimina perfiles heredados. La migración se explica en [instalación y migración](INSTALLATION.md). No se envían mensajes automáticamente: la persona revisa y envía cada respuesta.
 
-Las suites automatizadas, las limitaciones operativas y la prueba sintética con LM Studio local se resumen en [KNOWN_ISSUES_V1_2.md](KNOWN_ISSUES_V1_2.md). La usuaria confirmó manualmente la identidad, el onboarding completo, persistencia y generación en Chrome/Stripchat; la aplicación mantiene el envío manual.
+## Seguridad y limitaciones
+
+Las cuentas, perfiles y recuerdos permanecen locales. El backend escucha solo en loopback, no ofrece autenticación local y no admite acceso remoto. La base SQLite no está cifrada; protege el equipo y los respaldos.
+
+Stripchat puede cambiar su DOM y la detección conserva confirmación humana y entrada manual. La calidad de respuestas y traducciones depende del modelo y requiere revisión. La extensión prepara borradores: cada mensaje se revisa y envía manualmente. Consulta [limitaciones conocidas](KNOWN_ISSUES_V1_2.md) e [instalación y migración](INSTALLATION.md).

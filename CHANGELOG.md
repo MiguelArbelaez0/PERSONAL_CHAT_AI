@@ -1,4 +1,4 @@
-# v1.2.0 — en auditoría, no publicada
+# v1.2.0 — versión estable
 
 - Instalación neutral y cuentas de modelo con UUID, onboarding de ocho pasos y perfiles por cuenta.
 - Separación de memoria por cuenta y visitante; migración v1.1 explícita y conservadora.

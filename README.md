@@ -2,9 +2,9 @@
 
 Asistente local para preparar y revisar borradores de respuesta a conversaciones de Stripchat. La generación usa un modelo servido por LM Studio en el mismo equipo. La persona revisa, edita, copia y envía cada mensaje; la extensión no lo envía.
 
-> **Estado de esta rama:** preparación y auditoría de `v1.2.0`; todavía no publicada. La última versión estable es `v1.1.0`. PERSONAL_CHAT_AI v1.2.0 inicia sin identidad ni perfil personal precargados. Consulta las [notas de v1.2.0](docs/RELEASE_NOTES_V1_2.md) y el [estado de auditoría](docs/KNOWN_ISSUES_V1_2.md). Backend local predeterminado `127.0.0.1:8000` (configurable), LM Studio `127.0.0.1:1234/v1`.
+> **Versión estable:** `v1.2.0`. PERSONAL_CHAT_AI inicia sin identidad ni perfil personal precargados. Consulta las [notas de la versión](docs/RELEASE_NOTES_V1_2.md) y las [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md). Backend local predeterminado `127.0.0.1:8000` (configurable), LM Studio `127.0.0.1:1234/v1`.
 
-Las sugerencias, traducciones y detección DOM pueden fallar y requieren revisión humana. Esta rama no se presenta como lanzamiento aprobado.
+Las sugerencias, traducciones y detección DOM pueden fallar y requieren revisión humana.
 
 ## Qué ofrece
 
