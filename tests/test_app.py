@@ -11,6 +11,7 @@ from backend.knowledge import read_knowledge
 from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.main import create_app
 from backend.memory import MemoryStore
+from backend.profiles import AccountInput, ProfileInput, PROFILE_SECTIONS
 from backend.schemas import SuggestRequest, TranslationRequest
 
 
@@ -89,7 +90,25 @@ class FakeLLM:
 
 def build(tmp_path, llm=None):
     cfg = Settings(database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge")
-    return create_app(cfg, llm=llm or FakeLLM())
+    app = create_app(cfg, llm=llm or FakeLLM())
+    _seed_ready_account(app)
+    return app
+
+
+def _seed_ready_account(app, artist_name="Synthetic Model"):
+    account = app.state.profiles.create_account(AccountInput(
+        platform="stripchat", artist_name=artist_name, identity_source="manual", confirmed=True,
+    ))
+    profile = ProfileInput(
+        name="Synthetic profile", personality=["warm"], interests=["music"],
+        visitor_types=["regular visitor"], conversation_dynamics=["friendly"],
+        response_style={"tone": ["natural"], "length": "short", "emoji_policy": "match_context"},
+        languages=["en", "es", "fr", "pt"], personal_boundaries=["No personal data"],
+        completed_sections=PROFILE_SECTIONS, onboarding_complete=True,
+    )
+    app.state.profiles.save_profile(account["id"], profile)
+    app.state.test_account_id = account["id"]
+    return account["id"]
 
 
 def run_immediate_coroutine(coroutine):
@@ -181,7 +200,7 @@ def test_real_generation_path_sends_profile_style_examples_and_safe_diagnostics_
         "# Examples\n\n## Short replies\nViewer: EXAMPLE_INCLUDED_SENTINEL, keep it playful.\n"
         "Respuesta deseada: Keep it short and natural.", encoding="utf-8"
     )
-    app.state.memory.add_note("Viewer-1", "MEMORY_INCLUDED_SENTINEL")
+    app.state.memory.add_note(app.state.test_account_id, "Viewer-1", "MEMORY_INCLUDED_SENTINEL")
     endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/suggestions")
 
     coroutine = endpoint(SuggestRequest(
@@ -333,6 +352,7 @@ def test_model_context_budget_discards_oldest_dom_rows_and_reports_truncation(tm
         lm_studio_context_tokens=6000, lm_studio_output_tokens=500, max_context_chars=20000,
     )
     app = create_app(config, llm=llm)
+    _seed_ready_account(app)
     endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/suggestions")
     context = "\n".join(
         f"- Interlocutor (10:{index:02d}): old-marker-{index} {'reference detail ' * 34}"
@@ -404,8 +424,8 @@ def test_suggestions_respect_available_evidence_and_do_not_write_generated_memor
 
     llm = EvidenceAwareLLM()
     app = build(tmp_path, llm)
-    app.state.memory.add_note("Viewer", "Likes playful teasing")
-    before = app.state.memory.list_notes("Viewer")
+    app.state.memory.add_note(app.state.test_account_id, "Viewer", "Likes playful teasing")
+    before = app.state.memory.list_notes(app.state.test_account_id, "Viewer")
     history = (
         "- Interlocutor (10:00): That blue outfit looks great.\n"
         "- Usuario (10:01): Thanks, you have good taste."
@@ -424,7 +444,7 @@ def test_suggestions_respect_available_evidence_and_do_not_write_generated_memor
     else:
         assert all(any(word in text.casefold() for word in ("hint", "guess", "messages")) for text in texts)
         assert all("i promised" not in text.casefold() for text in texts)
-    assert app.state.memory.list_notes("Viewer") == before
+    assert app.state.memory.list_notes(app.state.test_account_id, "Viewer") == before
 
 
 @pytest.mark.parametrize(("message", "mentions_tokens"), [

@@ -3,6 +3,7 @@ from typing import Literal
 
 
 class SuggestRequest(BaseModel):
+    model_account_id: str | None = Field(default=None, min_length=1, max_length=80)
     configured_mode: Literal["auto", "manual", "off"] = "manual"
     generation_trigger: Literal["automatic", "manual"] = "manual"
     message: str = Field(default="", min_length=1, max_length=4000)
@@ -130,6 +131,7 @@ class SuggestResponse(BaseModel):
     configured_mode: str = "manual"
     generation_trigger: str = "manual"
     active_profile_id: str | None = None
+    model_account_id: str | None = None
     api_version: str = "1.0"
     conversation_id: str | None = None
     target_message_id: str | None = None

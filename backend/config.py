@@ -38,7 +38,10 @@ class Settings:
     max_message_chars: int = 4000
     max_context_chars: int = 12000
     memory_max_notes: int = 100
-    database_path: Path = ROOT / "data" / "personal_chat_ai.sqlite3"
+    # v1.2 writes to a new store; the v1.1 paths remain read-only migration sources.
+    database_path: Path = ROOT / "data" / "personal_chat_ai_v2.sqlite3"
+    legacy_database_path: Path = ROOT / "data" / "personal_chat_ai.sqlite3"
+    legacy_profiles_path: Path = ROOT / "data" / "personalities.sqlite3"
     knowledge_path: Path = ROOT / "knowledge"
     log_level: str = "INFO"
 
@@ -63,9 +66,15 @@ class Settings:
         host = os.getenv("BACKEND_HOST", "127.0.0.1").strip()
         if host != "127.0.0.1":
             raise ValueError("BACKEND_HOST debe ser 127.0.0.1; el acceso remoto no está soportado")
-        database_path = Path(os.getenv("DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai.sqlite3")))
+        database_path = Path(os.getenv("PCAI_DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai_v2.sqlite3")))
         if not database_path.is_absolute():
             database_path = ROOT / database_path
+        legacy_database_path = Path(os.getenv("DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai.sqlite3")))
+        if not legacy_database_path.is_absolute():
+            legacy_database_path = ROOT / legacy_database_path
+        legacy_profiles_path = Path(os.getenv("PERSONALITIES_DATABASE_PATH", str(legacy_database_path.parent / "personalities.sqlite3")))
+        if not legacy_profiles_path.is_absolute():
+            legacy_profiles_path = ROOT / legacy_profiles_path
         knowledge_path = Path(os.getenv("KNOWLEDGE_PATH", str(ROOT / "knowledge")))
         if not knowledge_path.is_absolute():
             knowledge_path = ROOT / knowledge_path
@@ -85,6 +94,8 @@ class Settings:
             max_context_chars=integer("MAX_CONTEXT_CHARS", 12000),
             memory_max_notes=integer("MEMORY_MAX_NOTES", 100),
             database_path=database_path,
+            legacy_database_path=legacy_database_path,
+            legacy_profiles_path=legacy_profiles_path,
             knowledge_path=knowledge_path,
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         )

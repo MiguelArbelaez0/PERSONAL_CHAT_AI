@@ -98,7 +98,7 @@ def test_evidenced_preference_with_reviewer_citation_reaches_api(tmp_path):
             return [json.dumps(verdict(personal_claims=[{'claim':'Viewer likes cobalt-731','subject':'other_person','kind':'preference','source':'notes','evidence_quote':'Explicit viewer preference: favorite color is cobalt-731.'}]))]
     llm=Reviewed(['You like cobalt-731.'])
     app=build(tmp_path,llm)
-    app.state.memory.add_note('Synthetic-Notes','Explicit viewer preference: favorite color is cobalt-731.')
+    app.state.memory.add_note(app.state.test_account_id, 'Synthetic-Notes','Explicit viewer preference: favorite color is cobalt-731.')
     r=request(app,'POST','/api/suggestions',json={'message':'Which color do I like?','interlocutor':'Synthetic-Notes'})
     assert r.status_code==200 and r.json()['original_response']=='You like cobalt-731.'
 
