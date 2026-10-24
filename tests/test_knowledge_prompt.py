@@ -353,11 +353,20 @@ def test_active_token_request_can_use_personal_tip_context_when_relevant():
 
 
 def test_memories_are_isolated_and_local_lm_studio_is_required(tmp_path: Path):
-    store = MemoryStore(tmp_path / "memory.sqlite3")
-    store.add_note("Ana", "ANA_ONLY_SENTINEL")
-    store.add_note("Beto", "BETO_ONLY_SENTINEL")
-    assert [n["text"] for n in store.list_notes("Ana")] == ["ANA_ONLY_SENTINEL"]
-    assert [n["text"] for n in store.list_notes("Beto")] == ["BETO_ONLY_SENTINEL"]
+    from backend.profiles import AccountInput, ProfileStore
+
+    path = tmp_path / "memory.sqlite3"
+    store = MemoryStore(path)
+    profiles = ProfileStore(path)
+    model_a = profiles.create_account(AccountInput(platform="stripchat", artist_name="Model A", confirmed=True))
+    model_b = profiles.create_account(AccountInput(platform="stripchat", artist_name="Model B", confirmed=True))
+    store.add_note(model_a["id"], "Ana", "ANA_ONLY_SENTINEL")
+    store.add_note(model_a["id"], "Beto", "BETO_ONLY_SENTINEL")
+    store.add_note(model_b["id"], "Ana", "OTHER_MODEL_ONLY_SENTINEL")
+    assert [n["text"] for n in store.list_notes(model_a["id"], "Ana")] == ["ANA_ONLY_SENTINEL"]
+    assert [n["text"] for n in store.list_notes(model_a["id"], "Beto")] == ["BETO_ONLY_SENTINEL"]
+    assert [n["text"] for n in store.list_notes(model_b["id"], "Ana")] == ["OTHER_MODEL_ONLY_SENTINEL"]
+    assert store.edit_note(model_b["id"], "Ana", 1, "cross-account edit") is None
     try:
         LMStudioClient("https://api.example.com/v1")
     except ValueError as error:

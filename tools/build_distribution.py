@@ -2,20 +2,34 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-ROOT_FILES = ("README.md", "CHANGELOG.md", "RELEASE_NOTES.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "requirements.txt", "requirements-dev.txt", "constraints.txt", ".env.example", "INSTALAR_PERSONAL_CHAT_AI.bat", "INICIAR_PERSONAL_CHAT_AI.bat", "VERIFICAR_PERSONAL_CHAT_AI.bat")
-ROOT_FOLDER = "PERSONAL_CHAT_AI_v1.1.0"
+ROOT_FILES = ("README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "requirements.txt", "requirements-dev.txt", "constraints.txt", ".env.example", "INSTALAR_PERSONAL_CHAT_AI.bat", "INICIAR_PERSONAL_CHAT_AI.bat", "VERIFICAR_PERSONAL_CHAT_AI.bat")
+DISTRIBUTION_DOCS = (
+    "ARCHITECTURE.md", "INSTALLATION.md", "USER_GUIDE.md", "LOCAL_BACKEND_CONNECTION.md",
+    "SECURITY.md", "PRIVACY.md", "KNOWN_ISSUES_V1_2.md", "ACCOUNT_PROFILE_STORAGE_V1_2.md",
+    "IDENTITY_ONBOARDING_V1_2.md", "RELEASE_NOTES_V1_2.md",
+)
+
+
+def distribution_root_folder(root):
+    manifest_path = root / "extension" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    version = str(manifest.get("version", ""))
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("The extension manifest must declare a stable semantic version before packaging.")
+    return f"PERSONAL_CHAT_AI_v{version}"
 
 
 def distribution_files(root):
     files = [root / name for name in ROOT_FILES]
     for folder, pattern in (("backend", "*.py"), ("extension", "*.js"), ("extension", "*.css"), ("extension", "manifest.json"), ("knowledge", "*.md")):
         files.extend(sorted((root / folder).glob(pattern)))
-    # Historical technical Markdown is safe reference material; raw traces and
-    # the local profile investigation containing workstation paths stay private.
-    files.extend(sorted(p for p in (root / "docs").rglob("*.md") if p.name != "PROFILE_LOADING_2026_10_22.md"))
+    # Only ship user-facing documentation reviewed for this version. Historical
+    # audits and local incident reports remain in the repository, not the archive.
+    files.extend(root / "docs" / name for name in DISTRIBUTION_DOCS)
     for path in files:
         if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError(f"Unsafe or missing distribution source: {path.name}")
@@ -24,6 +38,7 @@ def distribution_files(root):
 
 def build(root, output):
     root, output = root.resolve(), output.resolve()
+    root_folder = distribution_root_folder(root)
     if output.is_relative_to(root):
         raise ValueError("Distribution must be outside the source repository")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -32,7 +47,7 @@ def build(root, output):
     with ZipFile(output, "x", compression=ZIP_DEFLATED) as archive:
         for path in distribution_files(root):
             data = path.read_bytes()
-            name = f"{ROOT_FOLDER}/{path.relative_to(root).as_posix()}"
+            name = f"{root_folder}/{path.relative_to(root).as_posix()}"
             archive.writestr(name, data)
             inventory.append({"path": name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()})
     with ZipFile(output) as archive:

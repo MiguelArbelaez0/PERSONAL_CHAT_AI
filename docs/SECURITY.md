@@ -1,44 +1,31 @@
-# Seguridad
+# Seguridad — v1.2.0 en auditoría
 
-## Finalización vigente — 22 de octubre de 2026
+v1.2.0 aún no está publicada. Esta nota describe la configuración de la rama auditada; no es una certificación de seguridad.
 
-MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+## Límites de red y navegador
 
+- FastAPI solo acepta `BACKEND_HOST=127.0.0.1`. Un valor externo o ambiguo se rechaza. El puerto predeterminado es 8000; el acceso remoto no está soportado.
+- La extensión declara `storage` y `clipboardWrite`, acceso HTTP al loopback y scripts de contenido para Stripchat. No declara permisos para cookies, historial o credenciales.
+- CORS permite HTTPS de `stripchat.com` y sus subdominios, además de orígenes `chrome-extension://` con formato de ID de Chrome. Los métodos y encabezados autorizados incluyen el JSON de la API y `Idempotency-Key` para recuperar de forma segura creaciones de cuenta.
+- CORS no es autenticación. La API local no implementa autenticación y otros procesos locales pueden intentar acceder al puerto. Mantén el equipo y los procesos locales bajo control.
+- La configuración de LM Studio valida HTTP local y no admite credenciales dentro de la URL.
 
-## Auditoría vigente — 22 de octubre de 2026
+## Datos y almacenamiento
 
-Véase [AUDIT_2026_10_22.md](AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente, pip-audit detectó ocho avisos distintos en dependencias y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+- `.gitignore` excluye `.env` y variantes, `/data/`, SQLite, entornos virtuales, cachés y `knowledge/local/`. `.env.example` es plantilla pública sin credenciales.
+- Las cuentas, perfiles y notas se guardan en SQLite local, sin cifrado de base de datos. Las notas se separan por UUID de cuenta y visitante.
+- El historial visible se envía al backend y al LM Studio configurado para generar la respuesta; no se guarda automáticamente como memoria. No registres el contenido completo de conversaciones.
+- La identidad se infiere de elementos visibles del DOM y requiere confirmación. No se leen cookies, tokens ni contraseñas.
+- La migración v1.1 es explícita; el arranque normal no importa datos ni asigna memorias a cuentas nuevas.
 
+## Verificaciones de esta auditoría
 
-Verificación integral vigente: [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md). Se añadió límite de cuerpo HTTP de 256 KiB, comprobado también con fragmentos sin Content-Length, y rechazo de identidades contradictorias. No se añadió autenticación ni límite global de frecuencia. Los informes LM Studio compartibles son sintéticos y omiten tokens efímeros. Los apartados históricos no certifican el estado de referencias remotas actuales.
+Las pruebas automatizadas comprueban host loopback, permisos del manifiesto, CORS, validación de entradas e aislamiento por cuenta. Gitleaks se ejecutó sobre la historia y los cambios que se incluirían en la revisión; consulta el informe de auditoría v1.2.0 para el resultado exacto. Las pruebas no sustituyen una evaluación externa ni la revisión de los objetos públicos históricos.
 
-## Alcance auditado
+La historia anterior de v1.1 contiene referencias documentales a un nombre artístico usado en esa versión. El paquete v1.2 debe incluir solo la documentación pública revisada. Esta auditoría no reescribe la historia Git ni declara que copias externas hayan sido eliminadas.
 
-La revisión de esta instantánea cubre permisos del manifiesto, configuración del servidor, cliente LM Studio, rutas de API, archivos incluidos y exclusiones. El escaneo Gitleaks anterior del repositorio fuente no encontró credenciales conocidas. Esta instantánea excluye `.env`, SQLite, `knowledge/local/`, cachés, entornos virtuales e informes internos. Esto reduce el riesgo detectado, pero no garantiza que un secreto desconocido no exista.
+## Uso seguro
 
-## Hallazgos que bloquean publicación
-
-### Límite de servidor incluido en esta instantánea
-
-`backend/config.py` rechaza cualquier `BACKEND_HOST` distinto de `127.0.0.1`; Uvicorn recibe únicamente esa dirección. La API no implementa autenticación y el acceso remoto no está soportado. Las pruebas comprueban configuraciones externas y ambiguas.
-
-### Repositorio de desarrollo anterior
-
-Esta instantánea no incluye la historia Git del repositorio de desarrollo. El remoto de origen conserva referencias activas anteriores y no se ha alterado. La migración requiere aprobación explícita y las copias, forks, cachés u objetos no referenciados de terceros pueden persistir.
-
-## Protecciones observadas
-
-- `.gitignore` excluye `.env`, variantes `.env.*` salvo `.env.example`, `/data/`, SQLite, entornos virtuales, cachés y `knowledge/local/`.
-- El manifiesto limita permisos de extensión a almacenamiento y portapapeles; su host de backend apunta a loopback.
-- CORS permite orígenes HTTPS de `stripchat.com` y subdominios, además de IDs con formato de Chrome extension. La política no es autenticación y no limita clientes que no sean navegador; el enlace de loopback proporciona el límite local en esta versión.
-- La URL de LM Studio se valida como HTTP local en la configuración inspeccionada.
-- Los diagnósticos de backend tienen desactivado el registro de acceso de Uvicorn en su lanzador.
-- La extensión prepara respuestas y no automatiza el envío a Stripchat.
-
-## Recomendaciones operativas
-
-- Mantener `BACKEND_HOST=127.0.0.1`.
-- No publicar `.env`, `data/`, `knowledge/local/`, exportaciones de conversaciones, registros o capturas con datos identificables.
-- Revisar permisos y exposición de red antes de cada distribución.
-- No incluir credenciales de LM Studio u otros servicios en el repositorio.
-- Elegir una licencia solo mediante decisión explícita del titular; [LICENSE](../LICENSE) indica que sigue pendiente.
+- No publiques `.env`, `data/`, `knowledge/local/`, respaldos, exportaciones de chat ni diagnósticos con identificadores.
+- No cambies el host a una interfaz de red ni expongas LM Studio.
+- Revisa las sugerencias antes de copiarlas. PERSONAL_CHAT_AI no envía mensajes automáticamente.

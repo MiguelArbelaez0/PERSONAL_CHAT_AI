@@ -1,3 +1,11 @@
+# v1.2.0 — en auditoría, no publicada
+
+- Instalación neutral y cuentas de modelo con UUID, onboarding de ocho pasos y perfiles por cuenta.
+- Separación de memoria por cuenta y visitante; migración v1.1 explícita y conservadora.
+- Confirmación humana de identidad Stripchat; no se envían mensajes automáticamente.
+- Puerto local predeterminado unificado en 8000.
+- Se añade recuperación idempotente de creación de cuentas y selección que distingue registros repetidos.
+
 # v1.1.0 — 2026-10-22
 
 Publicación estable autorizada tras aprobación manual de Chrome/Stripchat. Metadatos finales de backend/extensión y documentación; sin cambios funcionales respecto a 9b51913. Se conservan las limitaciones descritas en RELEASE_NOTES.md y todo el historial previo.
@@ -43,7 +51,7 @@ Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). Preparación para a
 
 ## 1.1.0-rc.1 (2026-10-21; revisión local en develop)
 
-- Perfiles locales validados: creación, edición, activación, eliminación y restauración. ChubbyKriz predeterminado, desacoplado del generador.
+- Perfiles locales validados: creación, edición, activación, eliminación y restauración. nombre de prueba predeterminado, desacoplado del generador.
 - Detección reforzada de francés y controles verificables de mezclas en generación y traducción.
 - Rechazo de ecos del mensaje y de borradores recientes; historial temporal acotado sin persistir conversaciones.
 - Modo configurado e inicio de generación diferenciados en API y panel, manteniendo clientes anteriores.

@@ -98,7 +98,7 @@ def test_evidenced_preference_with_reviewer_citation_reaches_api(tmp_path):
             return [json.dumps(verdict(personal_claims=[{'claim':'Viewer likes cobalt-731','subject':'other_person','kind':'preference','source':'notes','evidence_quote':'Explicit viewer preference: favorite color is cobalt-731.'}]))]
     llm=Reviewed(['You like cobalt-731.'])
     app=build(tmp_path,llm)
-    app.state.memory.add_note('Synthetic-Notes','Explicit viewer preference: favorite color is cobalt-731.')
+    app.state.memory.add_note(app.state.test_account_id, 'Synthetic-Notes','Explicit viewer preference: favorite color is cobalt-731.')
     r=request(app,'POST','/api/suggestions',json={'message':'Which color do I like?','interlocutor':'Synthetic-Notes'})
     assert r.status_code==200 and r.json()['original_response']=='You like cobalt-731.'
 
@@ -167,7 +167,7 @@ def test_actual_http_startup_and_restart_use_only_ephemeral_ports_and_synthetic_
     probe(Path(__file__).resolve().parents[1],copies,output)
     result=json.loads(output.read_text())
     assert result['original_snapshot_matches'] and result['restart_persistence']
-    assert result['copied_inputs_unchanged'] and all(port!=8765 for port in result['ports'])
+    assert result['copied_inputs_unchanged'] and all(port!=8000 for port in result['ports'])
 
 
 def test_french_api_keeps_both_real_courtesies_despite_false_reviewer_verdict(tmp_path):

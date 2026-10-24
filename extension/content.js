@@ -12,9 +12,17 @@
     <button id="pcai-toggle" type="button" aria-label="Abrir asistente" aria-expanded="false"><span aria-hidden="true">✦</span></button>
     <section id="pcai-panel" aria-label="Asistente local" hidden>
       <header id="pcai-drag-handle" class="pcai-header">
-        <div class="pcai-brand"><span class="pcai-brand-icon" aria-hidden="true">✦</span><span><strong>Asistente local</strong><small id="pcai-header-state">Borradores privados</small></span></div>
+        <div class="pcai-brand"><span class="pcai-brand-icon" aria-hidden="true">✦</span><span><strong id="pcai-title">Configura tu asistente</strong><small id="pcai-header-state">Borradores privados</small></span></div>
         <div class="pcai-header-controls"><button id="pcai-minimize" class="pcai-icon-button" type="button" aria-label="Minimizar panel" title="Minimizar">−</button><button id="pcai-close" class="pcai-icon-button" type="button" aria-label="Cerrar asistente" title="Cerrar">×</button></div>
       </header>
+      <section id="pcai-onboarding" class="pcai-onboarding" aria-label="Configuración inicial" hidden>
+        <div class="pcai-wizard-intro"><span id="pcai-wizard-kicker">PERSONAL_CHAT_AI · CONFIGURACIÓN</span><h1 id="pcai-wizard-title">Tu asistente, a tu manera</h1><p id="pcai-wizard-description">Configura tus preferencias paso a paso. Tus respuestas siempre quedan bajo tu control.</p></div>
+        <div class="pcai-progress"><div class="pcai-progress-track"><span id="pcai-progress-fill"></span></div><div class="pcai-progress-caption"><span id="pcai-progress-label">Paso 1 de 8</span><span id="pcai-progress-percent">12 %</span></div></div>
+        <div id="pcai-wizard-view" class="pcai-wizard-view"></div>
+        <div class="pcai-wizard-nav"><button id="pcai-wizard-back" type="button">Anterior</button><div><button id="pcai-wizard-cancel" type="button" hidden>Cancelar edición</button><button id="pcai-wizard-next" class="primary" type="button">Comenzar</button></div></div>
+        <p id="pcai-wizard-status" class="pcai-wizard-status" role="status" aria-live="polite"></p>
+      </section>
+      <div id="pcai-main-content">
       <div class="pcai-status" id="pcai-status" role="status">Comprobando servicios locales…</div>
       <div class="pcai-conversation-card">
         <div class="pcai-conversation-heading"><strong id="pcai-active-alias">Sin conversación identificada</strong></div>
@@ -25,16 +33,11 @@
       <section class="pcai-suggestions-section"><div class="pcai-section-heading"><h2>Respuesta sugerida</h2></div><div id="pcai-results" aria-live="polite"></div></section>
       <button class="primary pcai-generate-main" id="pcai-generate" type="button">Generar respuesta</button>
       <label class="pcai-mode-control">Modo<select id="pcai-mode"><option value="manual">Manual</option><option value="auto" selected>Automático</option><option value="off">Desactivado</option></select><span id="pcai-mode-badge" class="pcai-mode-badge">Automático</span></label>
-      <details id="pcai-personalities" class="pcai-advanced"><summary>Personalidad · <span id="pcai-profile-active">Cargando…</span></summary>
-        <label>Perfil<select id="pcai-profile-select"></select></label>
-        <div class="pcai-actions"><button id="pcai-profile-new" type="button">Nuevo</button><button id="pcai-profile-activate" type="button">Activar</button><button id="pcai-profile-reload" type="button">Actualizar</button></div>
-        <label>Nombre<input id="pcai-profile-name" maxlength="80" /></label>
-        <label>Descripción<textarea id="pcai-profile-description" maxlength="800"></textarea></label>
-        <label>Tono<input id="pcai-profile-tone" maxlength="300" /></label>
-        <label>Estilo<input id="pcai-profile-style" maxlength="300" /></label>
-        <label>Reglas<textarea id="pcai-profile-rules" maxlength="1000"></textarea></label>
-        <div class="pcai-actions"><button id="pcai-profile-save" type="button">Guardar perfil</button><button id="pcai-profile-delete" type="button">Eliminar perfil</button><button id="pcai-profile-restore" type="button">Restaurar predeterminado</button></div>
-        <small id="pcai-profile-status" role="status">Los perfiles se guardan en este equipo.</small>
+      <details id="pcai-personalities" class="pcai-advanced"><summary>Mi asistente · <span id="pcai-profile-active">Cargando…</span></summary>
+        <p id="pcai-profile-summary" class="pcai-profile-summary">Tus preferencias se guardan localmente por cuenta.</p>
+        <label>Perfil de esta cuenta<select id="pcai-profile-select"></select></label>
+        <div class="pcai-actions"><button id="pcai-profile-edit" type="button">Editar preferencias</button><button id="pcai-profile-activate" type="button">Activar perfil</button><button id="pcai-profile-new" type="button">Crear perfil</button></div>
+        <small id="pcai-profile-status" role="status">Los datos se aíslan por cuenta de modelo.</small>
       </details>
       <details class="pcai-advanced-shell"><summary>Opciones avanzadas</summary>
       <div class="pcai-advanced-content">
@@ -54,7 +57,7 @@
         <label>Mensajes para el contexto<select id="pcai-context-window"><option value="8">8 mensajes</option><option value="12">12 mensajes</option><option value="20">20 mensajes</option><option value="30">30 mensajes</option><option value="40">40 mensajes</option><option value="100" selected>100 mensajes</option></select></label>
         <label>Límite de caracteres del historial<select id="pcai-context-char-budget"><option value="3000">3.000 caracteres</option><option value="6000">6.000 caracteres</option><option value="8000">8.000 caracteres</option><option value="12000" selected>12.000 caracteres</option></select></label>
         <div id="pcai-auto-diagnostic" class="pcai-auto-diagnostic" role="status" aria-live="polite"></div>
-        <label>URL del backend<input id="pcai-url" value="http://127.0.0.1:8765" /></label><button id="pcai-save-settings" type="button">Guardar URL</button>
+        <label>URL del backend<input id="pcai-url" value="http://127.0.0.1:8000" /></label><button id="pcai-save-settings" type="button">Guardar URL</button>
         <p>Usa «Elegir en página» para proponer un selector desde un elemento real, o inspecciónalo en DevTools. El candidato debe probarse con el DOM actual y no queda verificado al guardarlo.</p>
         ${selectorField('conversation', 'Contenedor del chat activo', 'Agrupa el alias y las filas de una sola conversación.')}
         ${selectorField('alias', 'Alias del interlocutor', 'Debe coincidir una vez dentro del chat activo.')}
@@ -69,6 +72,7 @@
       </details>
       </div>
       </details>
+      </div>
     </section>`;
   const mountPoint = document.body || document.documentElement;
   mountPoint.append(root);
@@ -85,6 +89,7 @@
   const modeSelect = $('#pcai-mode');
   const modeBadge = $('#pcai-mode-badge');
   const Detector = globalThis.PCAIConversationDetector;
+  const AccountDetector = globalThis.PCAIAccountDetector;
   const SuggestionFlow = globalThis.PCAISuggestionFlow;
   let retrySuggestion = null;
   let suggestionFlow;
@@ -109,7 +114,23 @@
   let autoTimer = null;
   const pendingAutoPayloads = new Map();
   const processedAutomaticKeys = new Set();
-  let base = 'http://127.0.0.1:8765';
+  const BackendConfig = globalThis.PCAIBackendConfig;
+  let base = BackendConfig.DEFAULT_URL;
+  let currentAccountId = null;
+  let currentAccount = null;
+  let accountReady = false;
+  let accountObserver = null;
+  let modelAccounts = [];
+  let profileSnapshot = { account: null, active_id: null, onboarding_complete: false, profiles: [] };
+  let editingProfileId = null;
+  let wizardStep = 1;
+  let wizardEditing = false;
+  let wizardDraft = null;
+  let wizardProgressTimer = null;
+  let identityConfirmInFlight = false;
+  let identityDetection = { status: 'unavailable', candidates: [] };
+  let wizardIdentityPrefillName = '';
+  let detectedAccountMatch = null;
 
   function discoverStripchatSelectors() {
     const hostname = location.hostname.toLowerCase();
@@ -118,14 +139,6 @@
     probe.configure(Detector.stripchatSelectors);
     const report = probe.diagnose();
     return { selectors: { ...Detector.stripchatSelectors }, report };
-  }
-
-  function normalizeLoopback(raw) {
-    const url = new URL(raw);
-    if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || url.username || url.password || !['', '/'].includes(url.pathname) || url.search || url.hash) {
-      throw new Error('La URL del backend debe ser local: http://127.0.0.1:PUERTO');
-    }
-    return url.origin;
   }
 
   function clampPosition(element, left, top) {
@@ -195,7 +208,11 @@
   async function loadPrefs() {
     try {
       const data = await chrome.storage.local.get(['backendUrl', 'interlocutor', 'mode', 'selectors', 'processedAutomaticKeys', 'contextWindow', 'contextCharBudget', 'pcaiPanelPosition', 'pcaiTogglePosition']);
-      try { base = normalizeLoopback(data.backendUrl || base); } catch (_) { base = 'http://127.0.0.1:8765'; }
+      try {
+        const storedBackend = BackendConfig.resolveStoredBackendUrl(data.backendUrl);
+        base = storedBackend.url;
+        if (storedBackend.migrated) await chrome.storage.local.set({ backendUrl: base });
+      } catch (_) { base = BackendConfig.DEFAULT_URL; }
       $('#pcai-url').value = base;
       alias.value = data.interlocutor || '';
       selectors = data.selectors || {};
@@ -245,8 +262,7 @@
     } catch (error) {
       showTechnicalError(`No se pudo completar la inicialización del panel: ${error.message}`);
     } finally {
-      // Profiles must remain available even if page detection or preferences fail.
-      await loadProfiles();
+      await initializeAssistant();
     }
   }
   async function api(path, options = {}) {
@@ -276,6 +292,10 @@
     if (invalidJson) throw SuggestionFlow.normalizeApiError({ error: { code: 'invalid_json' } }, response.status);
     if (body && typeof body === 'object') body.__httpStatus = response.status;
     return body;
+  }
+  function accountScopedPath(path) {
+    if (!currentAccountId) throw new Error('Confirma una cuenta de modelo antes de consultar datos privados.');
+    return `${path}${path.includes('?') ? '&' : '?'}account_id=${encodeURIComponent(currentAccountId)}`;
   }
   function renderAutoDiagnostic(patch = {}) {
     Object.assign(autoDiagnostic, patch);
@@ -323,6 +343,7 @@
   }
   suggestionFlow = new SuggestionFlow({
     getMode: () => mode,
+    getAccountId: () => currentAccountId,
     getConversationKey: () => latestConversationKey,
     getLatestIncomingFingerprint: () => {
       const latest = SuggestionFlow.latestConversationMessage(currentSnapshot);
@@ -403,7 +424,6 @@
   async function check() {
     try {
       await api('/api/health');
-      if (!profilesLoaded) await loadProfiles();
       status.textContent = 'Backend local conectado'; status.className = 'pcai-status is-ok';
       try {
         const d = await api('/api/diagnostics/lm-studio');
@@ -550,8 +570,8 @@
 
   function updateGenerateAvailability() {
     const busy = suggestionFlow.pending.size > 0;
-    $('#pcai-generate').disabled = mode === 'off' || busy;
-    $('#pcai-generate-custom').disabled = mode === 'off' || busy;
+    $('#pcai-generate').disabled = !accountReady || mode === 'off' || busy;
+    $('#pcai-generate-custom').disabled = !accountReady || mode === 'off' || busy;
     if (!SuggestionFlow.latestIncoming(currentSnapshot) && mode !== 'off' && !busy) {
       detection.textContent = 'Esperando un mensaje entrante.';
       detection.hidden = false;
@@ -571,7 +591,7 @@
   }
 
   function queueAutomaticSuggestion(payload) {
-    if (!payload.snapshot?.alias || !String(payload.message || '').trim()) return;
+    if (!accountReady || !currentAccountId || !payload.snapshot?.alias || !String(payload.message || '').trim()) return;
     const key = automaticMessageKey(payload);
     if (processedAutomaticKeys.has(key) || [...pendingAutoPayloads.values()].some((item) => item.key === key)) return;
     const conversationKey = payload.snapshot.conversationKey;
@@ -598,6 +618,12 @@
   }
 
   async function requestSuggestion(messageText, snapshot = currentSnapshot, automatic = false, aliasOverride = null, initial = false, targetFingerprint = null, targetIsIncoming = true, additionalContext = '') {
+    if (!accountReady || !currentAccountId) {
+      $('#pcai-wizard-status').textContent = 'Completa y confirma la configuración de tu asistente para generar respuestas.';
+      showOnboarding(currentAccountId ? 3 : 2, false);
+      setPanelOpen(true);
+      return { state: 'blocked' };
+    }
     retrySuggestion = () => requestSuggestion(messageText, snapshot, automatic, aliasOverride, initial, targetFingerprint, targetIsIncoming, additionalContext);
     const result = await suggestionFlow.generate(messageText, snapshot, automatic, aliasOverride, initial, targetFingerprint, targetIsIncoming, additionalContext);
     if (automatic) {
@@ -726,7 +752,7 @@
       document,
       onUpdate: renderSnapshot,
       onBaseline: ({ snapshot, lastIncoming }) => {
-        if (mode !== 'auto') return;
+        if (!accountReady || mode !== 'auto') return;
         detection.hidden = false;
         if (lastIncoming) autoDiagnostic.lastIncoming = 'último mensaje entrante del contexto inicial';
         if (lastIncoming && SuggestionFlow.isLatestIncoming(snapshot, lastIncoming.fingerprint)
@@ -736,7 +762,7 @@
         renderAutoDiagnostic();
       },
       onIncoming: ({ message: incomingMessage, snapshot, fingerprint }) => {
-        if (mode !== 'auto' || verifiedSelectorSignature !== JSON.stringify(selectors)) return;
+        if (!accountReady || mode !== 'auto' || verifiedSelectorSignature !== JSON.stringify(selectors)) return;
         detection.hidden = false;
         autoDiagnostic.event = 'mensaje entrante';
         autoDiagnostic.lastIncoming = 'detectado';
@@ -749,6 +775,16 @@
   }
 
   function applyMode() {
+    if (!accountReady) {
+      detector?.stop();
+      abortPending();
+      if (autoTimer !== null) clearTimeout(autoTimer);
+      autoTimer = null;
+      pendingAutoPayloads.clear();
+      updateGenerateAvailability();
+      detection.textContent = 'Completa la configuración inicial para activar la detección del chat.';
+      return;
+    }
     if (mode === 'off') {
       detector?.stop();
       abortPending();
@@ -906,76 +942,553 @@
     setPanelOpen(false);
   });
   $('#pcai-use-selection').onclick = () => { const selected = window.getSelection()?.toString().trim(); if (selected) message.value = selected.slice(0, 4000); else status.textContent = 'Selecciona texto en la página o pégalo en el campo.'; };
-  let profileSnapshot = { active_id: null, profiles: [] };
-  let editingProfileId = null;
-  let profilesLoaded = false;
-  const profileFields = ['name', 'description', 'tone', 'style', 'rules'];
-  function editProfile(profile) {
-    editingProfileId = profile?.id || null;
-    for (const field of profileFields) $(`#pcai-profile-${field}`).value = profile?.[field] || '';
-    $('#pcai-profile-delete').disabled = !editingProfileId || editingProfileId === 'default';
+  const wizardView = $('#pcai-wizard-view');
+  const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+  const blankDraft = () => ({
+    name: 'Mi asistente', personality: [], interests: [], visitor_types: [], conversation_dynamics: [],
+    response_style: { tone: [], length: null, emoji_policy: null, custom_instructions: '' }, languages: [],
+    personal_boundaries: [], completed_sections: [],
+  });
+  function profileDraft(profile) {
+    const draft = { ...blankDraft(), ...(profile || {}) };
+    draft.response_style = { ...blankDraft().response_style, ...(profile?.response_style || {}) };
+    draft.personal_boundaries = Array.isArray(profile?.personal_boundaries) ? profile.personal_boundaries : [];
+    const splitCustom = (values, known, prefix = '') => {
+      const normalized = Array.isArray(values) ? values : [];
+      const custom = normalized.filter((value) => !known.includes(value)).map((value) => value.startsWith(prefix) ? value.slice(prefix.length) : value);
+      return { selected: normalized.filter((value) => known.includes(value)), custom: custom.join(', ') };
+    };
+    const customPersonality = (draft.personality || []).find((value) => value.startsWith('Personalizada: '));
+    const personality = splitCustom(draft.personality, ['Coqueta y divertida', 'Dulce y cariñosa', 'Elegante y sofisticada', 'Dominante y segura', 'Amistosa y conversadora', 'Personalizada:']);
+    draft.personality_custom = customPersonality?.slice('Personalizada: '.length) || personality.custom;
+    draft.personalityCustomSelected = Boolean(customPersonality || (draft.personality || []).includes('Personalizada'));
+    draft.personality = [...personality.selected.filter((value) => value !== 'Personalizada:'), ...(draft.personalityCustomSelected ? ['Personalizada'] : [])];
+    const interests = splitCustom(draft.interests, ['Música', 'Videojuegos', 'Cine y series', 'Anime', 'Viajes', 'Deportes', 'Moda', 'Tecnología']);
+    draft.interests = interests.selected; draft.interests_custom = interests.custom;
+    const visitors = splitCustom(draft.visitor_types, ['Sumisos', 'Dominantes', 'Románticos', 'Tímidos', 'Conversadores', 'Usuarios nuevos', 'Usuarios frecuentes', 'VIP']);
+    draft.visitor_types = visitors.selected; draft.visitor_custom = visitors.custom;
+    draft.conversation_dynamics = splitCustom(draft.conversation_dynamics, ['Juguetona', 'Cariñosa', 'Ligera y amistosa', 'Coqueta sin presión', 'Directa y clara']).selected;
+    const takeBoundary = (prefix) => draft.personal_boundaries.find((value) => value.startsWith(prefix))?.slice(prefix.length) || '';
+    draft.allowedTopics = takeBoundary('Temas permitidos: ');
+    draft.avoidedTopics = takeBoundary('Temas a evitar: ');
+    draft.personalRule = takeBoundary('Límites personales: ');
+    return draft;
   }
-  async function loadProfiles() {
+  function escapeProfileName(value) { return escapeHTML(value).slice(0, 100); }
+  function checkedCards(field, options, selected = []) {
+    return `<div class="pcai-choice-grid">${options.map((option) => `<label class="pcai-choice-card"><input type="checkbox" data-wizard-list="${field}" value="${escapeHTML(option)}" ${selected.includes(option) ? 'checked' : ''}><span class="pcai-choice-check" aria-hidden="true">✓</span><span>${escapeHTML(option)}</span></label>`).join('')}</div>`;
+  }
+  function wizardStatus(text, error = false) {
+    const node = $('#pcai-wizard-status');
+    node.textContent = text || '';
+    node.className = `pcai-wizard-status${error ? ' is-error' : ''}`;
+  }
+  function identityStatusMessage(detection) {
+    if (detection.status === 'ambiguous') return 'La identificación no es única; elige y confirma la cuenta correcta.';
+    if (detection.reason === 'authenticated_avatar_alt_unrecognized') return 'Stripchat reconoce la cabecera de modelo, pero su etiqueta de avatar no tiene un formato reconocido. Escribe tu nombre artístico manualmente.';
+    if (detection.reason === 'authenticated_name_not_in_dom') return 'Stripchat reconoce la sesión de modelo, pero no expone el nombre en esta página. Abre el menú de cuenta o escribe tu nombre artístico.';
+    if (detection.reason === 'detector_module_missing') return 'No se cargó el módulo de detección de identidad. Recarga la extensión y la página.';
+    if (detection.status === 'candidate') return 'Confirma la identidad detectada antes de usar el asistente.';
+    return 'No encontramos una señal fiable de identidad. Escribe tu nombre artístico para continuar.';
+  }
+  function logIdentityDiagnostic(detection) {
+    let runtimeDom = null;
     try {
-      const data = await api('/api/profiles');
-      if (!Array.isArray(data.profiles)) throw new Error('Reinicia el backend actualizado para usar perfiles.');
-      profileSnapshot = data;
-      profilesLoaded = true;
-      const select = $('#pcai-profile-select');
-      select.replaceChildren();
-      for (const profile of data.profiles) {
-        const option = document.createElement('option');
-        option.value = profile.id;
-        option.textContent = profile.name;
-        select.append(option);
-      }
-      select.value = data.active_id;
-      const active = data.profiles.find((profile) => profile.id === data.active_id);
-      $('#pcai-profile-active').textContent = active?.name || 'Sin perfil';
-      editProfile(active);
-      $('#pcai-profile-status').textContent = 'Perfiles guardados localmente. Guardar no cambia el perfil activo.';
-    } catch (error) {
-      $('#pcai-profile-status').textContent = error.message;
-      $('#pcai-profile-active').textContent = 'Sin conexión';
+      runtimeDom = {
+        authenticatedHeaderSelectorCount: document.querySelectorAll('.header-top.is-model-user').length,
+        dropdownControlCount: document.querySelectorAll('.header-top.is-model-user .nav-right .dropdown-link').length,
+        dropdownAvatarAltCount: document.querySelectorAll('.header-top.is-model-user .nav-right .dropdown-link img[alt]').length,
+      };
+    } catch (_) { runtimeDom = { readError: true }; }
+    console.info?.('[PERSONAL_CHAT_AI] identity diagnostic', {
+      diagnosticVersion: 2,
+      detectorLoaded: Boolean(AccountDetector?.detectAccount),
+      status: detection.status,
+      source: detection.identitySource || null,
+      platformIdAvailable: Boolean(detection.platformUserId),
+      reason: detection.reason || null,
+      counts: detection.diagnostics || null,
+      runtimeDom,
+    });
+  }
+  function refreshIdentityStep(detection) {
+    if (wizardEditing) return;
+    if (wizardStep === 1 && detection.status === 'candidate') wizardStep = 2;
+    if (wizardStep !== 2) return;
+    const currentName = String(wizardView.querySelector?.('#pcai-wizard-artist')?.value || '').trim();
+    const currentAccountChoice = String(wizardView.querySelector?.('#pcai-wizard-account')?.value || '');
+    const preserveManualName = Boolean(currentName && currentName !== wizardIdentityPrefillName);
+    renderWizard();
+    const nextName = wizardView.querySelector?.('#pcai-wizard-artist');
+    const nextAccount = wizardView.querySelector?.('#pcai-wizard-account');
+    if (nextName) nextName.value = preserveManualName ? currentName : (detection.status === 'candidate' ? detection.artistName : '');
+    if (nextAccount && currentAccountChoice) nextAccount.value = currentAccountChoice;
+    wizardStatus(identityStatusMessage(detection), detection.status !== 'candidate');
+  }
+  function updateHeader() {
+    const title = currentAccount?.confirmed && currentAccount.artist_name
+      ? `Asistente de ${currentAccount.artist_name}` : 'Configura tu asistente';
+    $('#pcai-title').textContent = title;
+    $('#pcai-panel').setAttribute('aria-label', title);
+    $('#pcai-header-state').textContent = accountReady ? 'Cuenta confirmada · borradores privados' : 'Configuración pendiente';
+  }
+  function showOnboarding(step = 1, editing = false) {
+    accountReady = false;
+    wizardEditing = Boolean(editing);
+    wizardStep = Math.min(8, Math.max(1, Number(step) || 1));
+    $('#pcai-onboarding').hidden = false;
+    $('#pcai-main-content').hidden = true;
+    updateHeader();
+    renderWizard();
+    updateGenerateAvailability();
+    applyMode();
+  }
+  const WIZARD_STEPS = [
+    ['Bienvenida', 'Tu asistente, a tu manera', 'Un copiloto privado que prepara borradores para que tú los revises y envíes.'],
+    ['Identidad', '¿De quién será este asistente?', 'Confirma la cuenta de modelo. El nombre artístico solo se muestra y nunca se usa como identificador único.'],
+    ['Personalidad', 'Elige tu personalidad', 'Selecciona las cualidades que sí representan tu voz. Puedes elegir varias.'],
+    ['Intereses', '¿Qué temas te gustan?', 'Añade temas que quieras conversar; podrás ajustarlos en cualquier momento.'],
+    ['Interacción', 'Define tus preferencias', 'Configura dinámicas que tú prefieres. No inferimos características sensibles de los visitantes.'],
+    ['Estilo e idiomas', 'Así quieres responder', 'Elige la longitud, el tono, los emojis y los idiomas de tus borradores.'],
+    ['Límites', 'Tus límites personales', 'Indica temas permitidos, temas que quieres evitar y reglas que siempre debemos respetar.'],
+    ['Confirmación', 'Revisa tu configuración', 'Comprueba el resumen. Puedes volver a cualquier paso antes de guardar y activar.'],
+  ];
+  function renderWizard() {
+    const [label, title, description] = WIZARD_STEPS[wizardStep - 1];
+    $('#pcai-wizard-kicker').textContent = wizardEditing ? `MI ASISTENTE · ${label.toLocaleUpperCase()}` : `PERSONAL_CHAT_AI · ${label.toLocaleUpperCase()}`;
+    $('#pcai-wizard-title').textContent = title;
+    $('#pcai-wizard-description').textContent = description;
+    $('#pcai-progress-label').textContent = `Paso ${wizardStep} de 8`;
+    $('#pcai-progress-percent').textContent = `${Math.round(wizardStep / 8 * 100)} %`;
+    $('#pcai-progress-fill').style.width = `${wizardStep / 8 * 100}%`;
+    $('#pcai-wizard-back').hidden = wizardStep === 1 || (wizardEditing && wizardStep === 3);
+    $('#pcai-wizard-next').textContent = wizardStep === 1 ? 'Comenzar' : wizardStep === 8 ? 'Guardar y activar' : wizardStep === 2 ? 'Confirmar y continuar' : 'Continuar';
+    $('#pcai-wizard-cancel').hidden = !wizardEditing;
+    if (wizardStep === 1) {
+      wizardView.innerHTML = '<div class="pcai-welcome-card"><span class="pcai-welcome-icon">✦</span><h2>Tu voz, tus reglas</h2><p>PERSONAL_CHAT_AI lee el contexto visible de tus conversaciones y prepara una respuesta original en el idioma del visitante, con traducción al español cuando corresponde.</p><div class="pcai-trust-points"><span>✓ Tus mensajes no se envían automáticamente</span><span>✓ Tus perfiles y recuerdos quedan separados por cuenta</span><span>✓ Puedes editar o copiar cada borrador antes de usarlo</span></div></div>';
+    } else if (wizardStep === 2) {
+      const candidate = identityDetection.status === 'candidate' ? identityDetection : null;
+      wizardIdentityPrefillName = candidate?.artistName || '';
+      const preferredId = wizardDraft?.account_id || currentAccountId || '';
+      const choices = modelAccounts.map((account) => {
+        const created = account.created_at ? new Date(account.created_at).toLocaleDateString() : 'fecha desconocida';
+        const state = account.configured ? 'Configurada' : account.profile_count ? 'Configuración pendiente' : 'Sin perfil';
+        const shortId = String(account.id || '').slice(-8);
+        return `<option value="${escapeHTML(account.id)}" ${account.id === preferredId ? 'selected' : ''}>${escapeHTML(account.artist_name || 'Cuenta sin nombre')} · ${state} · ${created} · ID …${escapeHTML(shortId)}</option>`;
+      }).join('');
+      const duplicateNameCount = candidate
+        ? modelAccounts.filter((item) => item.platform === 'stripchat' && item.artist_name?.trim().toLocaleLowerCase() === candidate.artistName.toLocaleLowerCase()).length
+        : 0;
+      const detectionText = candidate
+        ? `Señal de cabecera detectada: ${escapeHTML(candidate.artistName)}. Confirma que corresponde a tu cuenta.`
+        : identityDetection.status === 'ambiguous'
+          ? 'La página muestra señales ambiguas. No seleccionaremos ninguna cuenta automáticamente; elige una cuenta o escribe el nombre.'
+          : 'No encontramos una señal fiable en la cabecera. Escribe tu nombre artístico o selecciona una cuenta local.';
+      wizardView.innerHTML = `<div class="pcai-step-card"><div class="pcai-detection-card ${candidate ? 'is-detected' : 'is-manual'}"><span aria-hidden="true">${candidate ? '✦' : '◎'}</span><p>${detectionText}</p><button id="pcai-detect-account" type="button" class="pcai-link-button">Volver a detectar</button></div><div class="pcai-account-list-heading"><span>${modelAccounts.length} ${modelAccounts.length === 1 ? 'cuenta local' : 'cuentas locales'}</span><button id="pcai-refresh-accounts" type="button" class="pcai-link-button">Actualizar lista</button></div><label>Cuenta local<select id="pcai-wizard-account"><option value="">Crear una cuenta nueva</option>${choices}</select></label><label>Nombre artístico<input id="pcai-wizard-artist" maxlength="80" autocomplete="off" value="${escapeHTML(candidate?.artistName || currentAccount?.artist_name || '')}" placeholder="Escribe tu nombre artístico"></label><p class="pcai-inline-note">La identidad se confirma con tu elección. No leemos cookies, contraseñas ni tokens.</p></div>`;
+      $('#pcai-refresh-accounts').onclick = async () => {
+        const selected = wizardView.querySelector?.('#pcai-wizard-account')?.value || '';
+        const name = wizardView.querySelector?.('#pcai-wizard-artist')?.value || '';
+        try {
+          const response = await api('/api/accounts');
+          modelAccounts = Array.isArray(response.accounts) ? response.accounts : [];
+          renderWizard();
+          const nextSelect = wizardView.querySelector?.('#pcai-wizard-account');
+          const nextInput = wizardView.querySelector?.('#pcai-wizard-artist');
+          if (nextSelect) nextSelect.value = selected;
+          if (nextInput) nextInput.value = name;
+          wizardStatus('Lista de cuentas actualizada. Elige explícitamente la cuenta correcta o crea otra.');
+        } catch (error) { wizardStatus(`No se pudo actualizar la lista: ${error.message}`, true); }
+      };
+      $('#pcai-detect-account').onclick = () => {
+        identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [], reason: 'detector_module_missing' };
+        detectedAccountMatch = globalThis.PCAIAccountSetup.matchDetectedAccount(modelAccounts, identityDetection);
+        renderWizard();
+        wizardStatus('Señales de identidad actualizadas; confirma manualmente la selección.');
+      };
+    } else if (wizardStep === 3) {
+      wizardView.innerHTML = `<div class="pcai-step-card"><p class="pcai-form-lead">¿Qué estilo se parece más a ti?</p>${checkedCards('personality', ['Coqueta y divertida', 'Dulce y cariñosa', 'Elegante y sofisticada', 'Dominante y segura', 'Amistosa y conversadora', 'Personalizada'], wizardDraft.personality)}<label class="pcai-field-label">Describe tu estilo propio<textarea data-wizard-value="personality_custom" maxlength="240" placeholder="Opcional: palabras o matices que quieres añadir">${escapeHTML(wizardDraft.personality_custom || '')}</textarea></label></div>`;
+    } else if (wizardStep === 4) {
+      wizardView.innerHTML = `<div class="pcai-step-card"><p class="pcai-form-lead">Selecciona tus temas favoritos.</p>${checkedCards('interests', ['Música', 'Videojuegos', 'Cine y series', 'Anime', 'Viajes', 'Deportes', 'Moda', 'Tecnología'], wizardDraft.interests)}<label class="pcai-field-label">Otros intereses<textarea data-wizard-value="interests_custom" maxlength="400" placeholder="Separa los temas con comas">${escapeHTML(wizardDraft.interests_custom || '')}</textarea></label><label class="pcai-check-row"><input type="checkbox" data-wizard-none="interests" ${wizardDraft.completed_sections?.includes('interests') && !wizardDraft.interests?.length ? 'checked' : ''}>No quiero añadir intereses por ahora</label></div>`;
+    } else if (wizardStep === 5) {
+      wizardView.innerHTML = `<div class="pcai-step-card"><p class="pcai-form-lead">Elige preferencias de interacción; no describen ni clasifican automáticamente a cada visitante.</p><h3>Dinámicas que prefieres</h3>${checkedCards('visitor_types', ['Sumisos', 'Dominantes', 'Románticos', 'Tímidos', 'Conversadores', 'Usuarios nuevos', 'Usuarios frecuentes', 'VIP'], wizardDraft.visitor_types)}<label class="pcai-field-label">Otras preferencias<textarea data-wizard-value="visitor_custom" maxlength="300" placeholder="Añade categorías elegidas por ti">${escapeHTML(wizardDraft.visitor_custom || '')}</textarea></label><h3>Dinámicas de conversación</h3>${checkedCards('conversation_dynamics', ['Juguetona', 'Cariñosa', 'Ligera y amistosa', 'Coqueta sin presión', 'Directa y clara'], wizardDraft.conversation_dynamics)}<label class="pcai-check-row"><input type="checkbox" data-wizard-none="visitors" ${wizardDraft.completed_sections?.includes('visitor_types') && !wizardDraft.visitor_types?.length ? 'checked' : ''}>No quiero fijar preferencias por tipo de visitante</label></div>`;
+    } else if (wizardStep === 6) {
+      wizardView.innerHTML = `<div class="pcai-step-card"><div class="pcai-form-columns"><label class="pcai-field-label">Longitud<select data-wizard-value="length"><option value="">Elige una opción</option><option value="short" ${wizardDraft.response_style.length === 'short' ? 'selected' : ''}>Corta</option><option value="medium" ${wizardDraft.response_style.length === 'medium' ? 'selected' : ''}>Normal</option><option value="long" ${wizardDraft.response_style.length === 'long' ? 'selected' : ''}>Larga</option></select></label><label class="pcai-field-label">Emojis<select data-wizard-value="emoji_policy"><option value="">Elige una opción</option><option value="match_context" ${wizardDraft.response_style.emoji_policy === 'match_context' ? 'selected' : ''}>Según el contexto</option><option value="few" ${wizardDraft.response_style.emoji_policy === 'few' ? 'selected' : ''}>Pocos</option><option value="none" ${wizardDraft.response_style.emoji_policy === 'none' ? 'selected' : ''}>Sin emojis</option></select></label></div><h3>Tono</h3>${checkedCards('tone', ['Cálido', 'Juguetón', 'Elegante', 'Directo', 'Dulce', 'Seguro'], wizardDraft.response_style.tone)}<h3>Idiomas</h3>${checkedCards('languages', ['Español', 'English', 'Português', 'Français', 'Deutsch', 'Italiano', 'auto'], wizardDraft.languages)}<p class="pcai-inline-note">«Detección automática» adapta cada borrador al idioma del mensaje entrante.</p><label class="pcai-field-label">Instrucción de estilo opcional<textarea data-wizard-value="custom_instructions" maxlength="600" placeholder="Por ejemplo: prefiere frases sencillas">${escapeHTML(wizardDraft.response_style.custom_instructions || '')}</textarea></label></div>`;
+    } else if (wizardStep === 7) {
+      wizardView.innerHTML = `<div class="pcai-step-card"><label class="pcai-field-label">Temas permitidos<textarea data-wizard-value="allowedTopics" maxlength="500" placeholder="Temas que te gusta conversar">${escapeHTML(wizardDraft.allowedTopics || '')}</textarea></label><label class="pcai-field-label">Temas que quieres evitar<textarea data-wizard-value="avoidedTopics" maxlength="500" placeholder="Temas que prefieres no tratar">${escapeHTML(wizardDraft.avoidedTopics || '')}</textarea></label><label class="pcai-field-label">Reglas personales<textarea data-wizard-value="personalRule" maxlength="500" placeholder="Límites que deben respetarse siempre">${escapeHTML(wizardDraft.personalRule || '')}</textarea></label><label class="pcai-check-row"><input type="checkbox" data-wizard-none="boundaries" ${wizardDraft.completed_sections?.includes('personal_boundaries') && !wizardDraft.personal_boundaries?.length ? 'checked' : ''}>No quiero añadir límites adicionales ahora</label></div>`;
+    } else {
+      const list = (title, values) => `<div class="pcai-summary-row"><strong>${title}</strong><span>${values?.length ? values.map(escapeHTML).join(' · ') : 'Sin preferencias añadidas'}</span></div>`;
+      const boundaries = [wizardDraft.allowedTopics && `Permitidos: ${wizardDraft.allowedTopics}`, wizardDraft.avoidedTopics && `A evitar: ${wizardDraft.avoidedTopics}`, wizardDraft.personalRule && `Regla: ${wizardDraft.personalRule}`].filter(Boolean);
+      wizardView.innerHTML = `<div class="pcai-summary-card"><div class="pcai-summary-identity"><span>✦</span><div><small>ASISTENTE PERSONALIZADO</small><strong>${escapeProfileName(currentAccount?.artist_name || 'Identidad pendiente')}</strong></div></div>${list('Personalidad', wizardDraft.personality)}${list('Intereses', wizardDraft.interests)}${list('Preferencias de interacción', [...wizardDraft.visitor_types, ...wizardDraft.conversation_dynamics])}<div class="pcai-summary-row"><strong>Estilo</strong><span>${escapeHTML([wizardDraft.response_style.length || 'longitud por definir', wizardDraft.response_style.tone.join(', ') || 'tono neutral', wizardDraft.response_style.emoji_policy || 'emojis según contexto'].join(' · '))}</span></div>${list('Idiomas', wizardDraft.languages.map((lang) => lang === 'auto' ? 'Detección automática' : lang))}${list('Límites personales', boundaries)}</div><p class="pcai-inline-note">Al guardar, el backend confirmará que el perfil y todas sus secciones estén completos. La extensión nunca enviará mensajes.</p>`;
     }
   }
-  async function profileAction(action) {
-    try {
-      abortPending();
-      const selected = await action();
-      results.replaceChildren();
-      await loadProfiles();
-      if (selected?.id) {
-        $('#pcai-profile-select').value = selected.id;
-        editProfile(selected);
-      }
-    } catch (error) { $('#pcai-profile-status').textContent = error.message; }
+  function syncWizardDraft() {
+    if (!wizardDraft || wizardStep < 3 || wizardStep > 7) return;
+    const checked = (field) => [...(wizardView.querySelectorAll?.(`[data-wizard-list="${field}"]:checked`) || [])].map((input) => input.value);
+    const value = (field) => wizardView.querySelector?.(`[data-wizard-value="${field}"]`)?.value || '';
+    const customList = (raw) => String(raw || '').split(/[,\n;]/).map((part) => part.trim()).filter(Boolean);
+    if (wizardStep === 3) {
+      const selectedPersonality = checked('personality');
+      wizardDraft.personalityCustomSelected = selectedPersonality.includes('Personalizada');
+      wizardDraft.personality = selectedPersonality;
+      const custom = value('personality_custom').trim();
+      wizardDraft.personality = wizardDraft.personality.filter((item) => item !== 'Personalizada');
+      if (custom) wizardDraft.personality.push(`Personalizada: ${custom}`);
+      wizardDraft.personality_custom = custom;
+    } else if (wizardStep === 4) {
+      wizardDraft.interests = [...checked('interests'), ...customList(value('interests_custom'))];
+      wizardDraft.interests_custom = value('interests_custom');
+    } else if (wizardStep === 5) {
+      wizardDraft.visitor_types = [...checked('visitor_types'), ...customList(value('visitor_custom'))];
+      wizardDraft.visitor_custom = value('visitor_custom');
+      wizardDraft.conversation_dynamics = checked('conversation_dynamics');
+    } else if (wizardStep === 6) {
+      wizardDraft.response_style = { tone: checked('tone'), length: value('length') || null, emoji_policy: value('emoji_policy') || null, custom_instructions: value('custom_instructions') };
+      wizardDraft.languages = checked('languages');
+    } else if (wizardStep === 7) {
+      wizardDraft.allowedTopics = value('allowedTopics').trim();
+      wizardDraft.avoidedTopics = value('avoidedTopics').trim();
+      wizardDraft.personalRule = value('personalRule').trim();
+      wizardDraft.personal_boundaries = [
+        wizardDraft.allowedTopics && `Temas permitidos: ${wizardDraft.allowedTopics}`,
+        wizardDraft.avoidedTopics && `Temas a evitar: ${wizardDraft.avoidedTopics}`,
+        wizardDraft.personalRule && `Límites personales: ${wizardDraft.personalRule}`,
+      ].filter(Boolean);
+    }
+    return wizardDraft;
   }
-  $('#pcai-profile-select').onchange = () => editProfile(profileSnapshot.profiles.find((item) => item.id === $('#pcai-profile-select').value));
-  $('#pcai-profile-new').onclick = () => {
-    $('#pcai-profile-select').value = '';
-    editProfile(null);
-    $('#pcai-profile-status').textContent = 'Nuevo perfil: completa los campos y guarda; después pulsa Activar.';
-  };
-  $('#pcai-profile-reload').onclick = loadProfiles;
-  $('#pcai-profile-save').onclick = () => profileAction(async () => {
-    const payload = Object.fromEntries(profileFields.map((field) => [field, $(`#pcai-profile-${field}`).value.trim()]));
-    if (!payload.name) throw new Error('Indica un nombre para el perfil.');
-    const saved = await api(editingProfileId ? `/api/profiles/${encodeURIComponent(editingProfileId)}` : '/api/profiles', { method: editingProfileId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+  function persistWizardDraftSoon() {
+    if (!currentAccountId || !wizardDraft || wizardStep < 3 || wizardStep > 7) return;
+    if (wizardProgressTimer !== null) clearTimeout(wizardProgressTimer);
+    wizardProgressTimer = setTimeout(() => {
+      wizardProgressTimer = null;
+      const progress = {
+        accountId: currentAccountId, profileId: editingProfileId, step: wizardStep,
+        editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)),
+      };
+      void chrome.storage.local.set({ pcaiSetupProgress: progress }).catch(() => {
+        wizardStatus('No se pudo guardar la copia local del progreso. Tus selecciones siguen en pantalla; pulsa Continuar para guardarlas en el backend.', true);
+      });
+    }, 250);
+  }
+  function validateWizardStep() {
+    syncWizardDraft();
+    const none = (field) => Boolean(wizardView.querySelector?.(`[data-wizard-none="${field}"]`)?.checked);
+    if (wizardStep === 3 && !wizardDraft.personality.length) return 'Elige al menos un rasgo de personalidad.';
+    if (wizardStep === 3 && wizardDraft.personalityCustomSelected && !wizardDraft.personality_custom) return 'Describe brevemente la personalidad personalizada.';
+    if (wizardStep === 4 && !wizardDraft.interests.length && !none('interests')) return 'Elige algún interés o confirma que prefieres dejarlo vacío.';
+    if (wizardStep === 5 && !wizardDraft.visitor_types.length && !none('visitors')) return 'Elige preferencias o confirma que no quieres fijarlas.';
+    if (wizardStep === 6 && (!wizardDraft.response_style.length || !wizardDraft.response_style.emoji_policy || !wizardDraft.languages.length)) return 'Elige la longitud, el uso de emojis y al menos un idioma.';
+    if (wizardStep === 7 && !wizardDraft.personal_boundaries.length && !none('boundaries')) return 'Añade un límite o confirma que no quieres límites adicionales.';
+    return '';
+  }
+  async function saveWizardProfile(step, complete = false) {
+    syncWizardDraft();
+    const payload = globalThis.PCAIAccountSetup.buildProfilePayload(wizardDraft, step, complete);
+    const path = `/api/accounts/${encodeURIComponent(currentAccountId)}/profiles${editingProfileId ? `/${encodeURIComponent(editingProfileId)}` : ''}`;
+    const saved = await api(path, { method: editingProfileId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+    editingProfileId = saved.id;
+    wizardDraft = profileDraft(saved);
+    await chrome.storage.local.set({ pcaiSetupProgress: { accountId: currentAccountId, profileId: editingProfileId, step: complete ? 8 : Math.min(8, step + 1), editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)) } });
     return saved;
-  });
-  $('#pcai-profile-activate').onclick = () => profileAction(async () => {
-    if (!editingProfileId) throw new Error('Guarda el perfil antes de activarlo.');
-    await api(`/api/profiles/${encodeURIComponent(editingProfileId)}/activate`, { method: 'POST' });
-  });
-  $('#pcai-profile-delete').onclick = () => {
-    if (!editingProfileId || editingProfileId === 'default') return;
-    if (confirm('¿Eliminar este perfil personalizado?')) void profileAction(() => api(`/api/profiles/${encodeURIComponent(editingProfileId)}`, { method: 'DELETE' }));
+  }
+  function startAccountObserver() {
+    accountObserver?.stop?.();
+    if (!AccountDetector?.observeAccount) return;
+    accountObserver = AccountDetector.observeAccount(document, (result) => {
+      identityDetection = result;
+      detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, result) || null;
+      logIdentityDiagnostic(result);
+      if (!currentAccountId) {
+        refreshIdentityStep(result);
+        return;
+      }
+      const identityUnavailable = result.status === 'unavailable';
+      const sameName = result.status === 'candidate' && result.artistName.toLocaleLowerCase() === currentAccount?.artist_name?.toLocaleLowerCase();
+      const conflictingPlatformId = result.status === 'candidate' && result.platformUserId
+        && result.platformUserId !== currentAccount?.platform_user_id;
+      const nameOnlyAuthenticatedContinuity = sameName && !result.platformUserId
+        && ['authenticated-header', 'editable-own-profile'].includes(result.identitySource);
+      const lostStableIdentity = result.status === 'candidate' && currentAccount?.platform_user_id
+        && !result.platformUserId && !nameOnlyAuthenticatedContinuity;
+      if (identityUnavailable || result.status === 'ambiguous' || (result.status === 'candidate' && (!sameName || conflictingPlatformId || lostStableIdentity))) {
+        currentAccountId = null;
+        currentAccount = null;
+        accountReady = false;
+        results.replaceChildren();
+        abortPending();
+        wizardDraft = blankDraft();
+        wizardStep = 2;
+        detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, result) || null;
+        showOnboarding(2, false);
+        wizardStatus(identityUnavailable
+          ? 'No podemos verificar la cuenta activa en esta página. Confirma tu identidad antes de continuar.'
+          : 'Detectamos un cambio o una identidad ambigua. Confirma la cuenta antes de continuar.', true);
+        setPanelOpen(true);
+      }
+    });
+  }
+  async function activateAccount(account) {
+    currentAccountId = account.id;
+    currentAccount = account;
+    await chrome.storage.local.set({ pcaiLastAccountId: account.id });
+    updateHeader();
+    const data = await api(`/api/accounts/${encodeURIComponent(account.id)}/profiles`);
+    profileSnapshot = data;
+    const resume = await chrome.storage.local.get(['pcaiSetupProgress']);
+    const savedProgress = resume.pcaiSetupProgress;
+    if (savedProgress?.accountId === account.id && (savedProgress.profileId || savedProgress.draft)) {
+      const pending = data.profiles.find((item) => item.id === savedProgress.profileId);
+      if ((pending || savedProgress.draft) && (!data.onboarding_complete || savedProgress.editing)) {
+        editingProfileId = pending?.id || null;
+        wizardDraft = profileDraft(savedProgress.draft || pending);
+        showOnboarding(Math.max(3, Math.min(8, savedProgress.step || 3)), Boolean(savedProgress.editing));
+        setPanelOpen(true);
+        return;
+      }
+    }
+    if (globalThis.PCAIAccountSetup.profileIsReady(data)) {
+      editingProfileId = null;
+      profileSnapshot = data;
+      accountReady = true;
+      await chrome.storage.local.remove?.('pcaiSetupProgress');
+      await loadProfiles();
+      return;
+    }
+    const pending = data.profiles.find((item) => !item.onboarding_complete);
+    editingProfileId = pending?.id || null;
+    wizardDraft = pending ? profileDraft(pending) : blankDraft();
+    const step = savedProgress?.accountId === account.id ? Math.max(3, Math.min(8, savedProgress.step || 3)) : pending ? 3 : 3;
+    showOnboarding(step, false);
+    setPanelOpen(true);
+  }
+  async function recoverPendingAccountCreation() {
+    const stored = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+    const pending = stored.pcaiPendingAccountCreation;
+    if (!pending?.key || !pending?.payload) return;
+    try {
+      const account = await api('/api/accounts', {
+        method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify(pending.payload),
+      });
+      if (!account?.id || !account.confirmed) return;
+      modelAccounts = [...modelAccounts.filter((item) => item.id !== account.id), account];
+      await chrome.storage.local.set({
+        pcaiLastAccountId: account.id,
+        pcaiSetupProgress: { accountId: account.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) },
+      });
+      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+    } catch (error) {
+      console.warn?.('[PERSONAL_CHAT_AI] No se pudo recuperar una solicitud local de cuenta; se conserva para reintentar.');
+    }
+  }
+  async function confirmIdentity() {
+    if (identityConfirmInFlight) return;
+    identityConfirmInFlight = true;
+    const confirmButton = $('#pcai-wizard-next');
+    confirmButton.disabled = true;
+    const originalButtonText = confirmButton.textContent;
+    confirmButton.textContent = 'Guardando identidad…';
+    try {
+    const name = String(wizardView.querySelector?.('#pcai-wizard-artist')?.value || '').trim().replace(/\s+/g, ' ');
+    const selectedId = wizardView.querySelector?.('#pcai-wizard-account')?.value || '';
+    if (!name) throw new Error('Escribe o confirma el nombre artístico.');
+    const previous = modelAccounts.find((item) => item.id === selectedId);
+    const sameNameAccounts = modelAccounts.filter((item) => item.platform === 'stripchat' && item.artist_name?.trim().toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (!previous && sameNameAccounts.length && !confirm(`Ya existen ${sameNameAccounts.length} cuentas locales con el nombre “${name}”. Crearás una cuenta independiente y no se combinarán sus datos. ¿Quieres continuar?`)) return;
+    if (previous && identityDetection.platformUserId && previous.platform_user_id && previous.platform_user_id !== identityDetection.platformUserId) {
+      throw new Error('La cuenta seleccionada no coincide con la identidad detectada. Elige la cuenta correcta o crea una nueva.');
+    }
+    const usesDetectedName = identityDetection.status === 'candidate' && name.toLocaleLowerCase() === identityDetection.artistName.toLocaleLowerCase();
+    const accountPayload = {
+      platform: 'stripchat', artist_name: name,
+      platform_user_id: identityDetection.status === 'candidate' ? identityDetection.platformUserId || previous?.platform_user_id || null : previous?.platform_user_id || null,
+      identity_source: usesDetectedName ? 'dom' : 'manual', confirmed: true,
+    };
+    let saved;
+    if (previous) saved = await api(`/api/accounts/${encodeURIComponent(previous.id)}`, { method: 'PUT', body: JSON.stringify(accountPayload) });
+    else {
+      const pendingResult = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+      let pending = pendingResult.pcaiPendingAccountCreation;
+      if (pending?.key && pending.payload && JSON.stringify(pending.payload) !== JSON.stringify(accountPayload)) {
+        throw new Error('Hay una creación de cuenta pendiente con otra identidad. Reintenta primero con el nombre confirmado originalmente para recuperar su UUID.');
+      }
+      if (!pending?.key) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        const key = [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
+        pending = { key, payload: accountPayload };
+        await chrome.storage.local.set({ pcaiPendingAccountCreation: pending });
+      }
+      saved = await api('/api/accounts', { method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify(pending.payload) });
+      await chrome.storage.local.set({ pcaiLastAccountId: saved.id, pcaiSetupProgress: { accountId: saved.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) } });
+      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+    }
+    if (!saved?.id || !saved.confirmed) throw new Error('El backend no confirmó la identidad de la cuenta.');
+    modelAccounts = [...modelAccounts.filter((item) => item.id !== saved.id), saved];
+    wizardDraft = profileDraft(wizardDraft || blankDraft());
+    wizardDraft.account_id = saved.id;
+    currentAccountId = saved.id;
+    currentAccount = saved;
+    await chrome.storage.local.set({ pcaiLastAccountId: saved.id });
+    await activateAccount(saved);
+    if (accountReady) return;
+    wizardStep = Math.max(3, wizardStep === 2 ? 3 : wizardStep);
+    showOnboarding(wizardStep, wizardEditing);
+    wizardStatus('Identidad confirmada. Ahora configura tus preferencias.');
+    } finally {
+      identityConfirmInFlight = false;
+      confirmButton.disabled = false;
+      if (wizardStep === 2) confirmButton.textContent = originalButtonText;
+    }
+  }
+  async function initializeAssistant() {
+    try {
+      const accountData = await api('/api/accounts');
+      modelAccounts = Array.isArray(accountData.accounts) ? accountData.accounts : [];
+      await recoverPendingAccountCreation();
+      identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [], reason: 'detector_module_missing' };
+      logIdentityDiagnostic(identityDetection);
+      detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, identityDetection) || null;
+      const saved = await chrome.storage.local.get(['pcaiLastAccountId', 'pcaiSetupProgress']);
+      startAccountObserver();
+      const detectedNameMatchesSaved = detectedAccountMatch?.status === 'platform_match'
+        && detectedAccountMatch.account.artist_name?.toLocaleLowerCase() === identityDetection.artistName?.toLocaleLowerCase();
+      if (identityDetection.status === 'candidate' && identityDetection.platformUserId && detectedNameMatchesSaved && detectedAccountMatch.account.confirmed) {
+        await activateAccount(detectedAccountMatch.account);
+        return;
+      }
+      const last = modelAccounts.find((item) => item.id === saved.pcaiLastAccountId);
+      wizardDraft = blankDraft();
+      wizardStep = modelAccounts.length || identityDetection.status !== 'unavailable' || last ? 2 : 1;
+      showOnboarding(wizardStep, false);
+      wizardStatus(identityStatusMessage(identityDetection), identityDetection.status === 'ambiguous' || identityDetection.status === 'unavailable');
+      setPanelOpen(true);
+    } catch (error) {
+      currentAccountId = null;
+      currentAccount = null;
+      wizardDraft = blankDraft();
+      showOnboarding(1, false);
+      wizardStatus(`No se pudo conectar con la configuración local: ${error.message}. Revisa el backend e inténtalo de nuevo.`, true);
+      setPanelOpen(true);
+    }
+  }
+  async function loadProfiles() {
+    if (!currentAccountId) return;
+    try {
+      const data = await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles`);
+      profileSnapshot = data;
+      const select = $('#pcai-profile-select');
+      select.replaceChildren();
+      for (const profile of data.profiles || []) {
+        const option = document.createElement('option');
+        option.value = profile.id;
+        option.textContent = profile.name || 'Mi asistente';
+        select.append(option);
+      }
+      select.value = data.active_id || '';
+      const active = data.profiles?.find((profile) => profile.id === data.active_id);
+      $('#pcai-profile-active').textContent = active?.name || 'Pendiente';
+      $('#pcai-profile-summary').textContent = active
+        ? `${active.personality.join(' · ') || 'Personalidad sin etiquetas'} · ${active.languages.map((language) => language === 'auto' ? 'detección automática' : language).join(', ') || 'idiomas por configurar'}`
+        : 'Aún no hay una configuración activa para esta cuenta.';
+      $('#pcai-profile-status').textContent = 'Perfiles y recuerdos guardados por separado para esta cuenta.';
+      accountReady = globalThis.PCAIAccountSetup.profileIsReady(data);
+      updateHeader();
+      $('#pcai-main-content').hidden = !accountReady;
+      $('#pcai-onboarding').hidden = accountReady;
+      updateGenerateAvailability();
+      if (accountReady) applyMode();
+      else {
+        const active = data.profiles?.find((profile) => profile.id === data.active_id);
+        const pending = active || data.profiles?.find((profile) => !profile.onboarding_complete);
+        editingProfileId = pending?.id || null;
+        wizardDraft = pending ? profileDraft(pending) : blankDraft();
+        showOnboarding(3, false);
+        setPanelOpen(true);
+      }
+    } catch (error) {
+      $('#pcai-profile-status').textContent = error.message;
+      accountReady = false;
+      updateHeader();
+      showOnboarding(2, false);
+    }
+  }
+  async function nextWizardStep() {
+    try {
+      wizardStatus('');
+      if (wizardStep === 1) { wizardStep = 2; renderWizard(); return; }
+      if (wizardStep === 2) { await confirmIdentity(); return; }
+      if (wizardStep === 8) {
+        await saveWizardProfile(8, true);
+        const confirmed = await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles`);
+        if (!globalThis.PCAIAccountSetup.profileIsReady(confirmed)) throw new Error('El backend todavía no confirma una configuración completa. Revisa los pasos pendientes.');
+        await chrome.storage.local.remove?.('pcaiSetupProgress');
+        profileSnapshot = confirmed;
+        accountReady = true;
+        results.replaceChildren();
+        await loadProfiles();
+        wizardStatus('Configuración guardada y confirmada. Ya puedes revisar borradores.');
+        return;
+      }
+      const validation = validateWizardStep();
+      if (validation) { wizardStatus(validation, true); return; }
+      await saveWizardProfile(wizardStep, false);
+      wizardStep += 1;
+      renderWizard();
+    } catch (error) { wizardStatus(error.message || 'No se pudo guardar el progreso. Puedes reintentar.', true); }
+  }
+  $('#pcai-wizard-view').addEventListener('input', () => { syncWizardDraft(); persistWizardDraftSoon(); });
+  $('#pcai-wizard-view').addEventListener('change', () => { syncWizardDraft(); persistWizardDraftSoon(); });
+  $('#pcai-wizard-next').onclick = () => { void nextWizardStep(); };
+  $('#pcai-wizard-back').onclick = () => { if (wizardStep > 1) { syncWizardDraft(); wizardStep -= 1; renderWizard(); wizardStatus(''); } };
+  $('#pcai-wizard-cancel').onclick = async () => {
+    try {
+      const progress = await chrome.storage.local.get(['pcaiSetupProgress']);
+      if (progress.pcaiSetupProgress?.editing && progress.pcaiSetupProgress.profileId) {
+        await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles/${encodeURIComponent(progress.pcaiSetupProgress.profileId)}`, { method: 'DELETE' });
+      }
+      await chrome.storage.local.remove?.('pcaiSetupProgress');
+      editingProfileId = null;
+      await loadProfiles();
+    } catch (error) { wizardStatus(`No se pudo cancelar la edición: ${error.message}`, true); }
   };
-  $('#pcai-profile-restore').onclick = () => {
-    if (confirm('¿Restaurar y activar ChubbyKriz? Se conservan los perfiles personalizados.')) void profileAction(() => api('/api/profiles/restore', { method: 'POST' }));
+  $('#pcai-profile-select').onchange = () => {
+    const selected = profileSnapshot.profiles.find((profile) => profile.id === $('#pcai-profile-select').value);
+    $('#pcai-profile-active').textContent = selected?.name || 'Pendiente';
   };
-  $('#pcai-save-settings').onclick = async () => { try { base = normalizeLoopback($('#pcai-url').value.trim()); await chrome.storage.local.set({ backendUrl: base }); await loadProfiles(); check(); } catch (e) { status.textContent = e.message; } };
+  $('#pcai-profile-edit').onclick = () => {
+    const selected = profileSnapshot.profiles.find((profile) => profile.id === $('#pcai-profile-select').value) || profileSnapshot.profiles.find((profile) => profile.id === profileSnapshot.active_id);
+    if (!selected) { wizardDraft = blankDraft(); editingProfileId = null; }
+    else { wizardDraft = profileDraft(selected); editingProfileId = null; }
+    wizardEditing = true;
+    showOnboarding(3, true);
+    wizardStatus(selected ? `Editando «${selected.name}». El perfil actual seguirá disponible hasta guardar los cambios.` : 'Elige tus preferencias; se guardarán al continuar.');
+  };
+  $('#pcai-profile-new').onclick = () => {
+    if (!currentAccountId) return;
+    wizardDraft = blankDraft();
+    editingProfileId = null;
+    wizardEditing = true;
+    showOnboarding(3, true);
+    wizardStatus('Crea otra configuración para esta misma cuenta.');
+  };
+  $('#pcai-profile-activate').onclick = async () => {
+    try {
+      const profileId = $('#pcai-profile-select').value;
+      if (!profileId) throw new Error('No hay un perfil para activar.');
+      await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles/${encodeURIComponent(profileId)}/activate`, { method: 'POST' });
+      await loadProfiles();
+    } catch (error) { $('#pcai-profile-status').textContent = error.message; }
+  };
+  $('#pcai-save-settings').onclick = async () => {
+    try {
+      const nextUrl = BackendConfig.normalizeBackendUrl($('#pcai-url').value.trim());
+      const hostPermissions = chrome.runtime?.getManifest?.().host_permissions || [];
+      if (!BackendConfig.isCoveredByHostPermissions(nextUrl, hostPermissions)) throw new Error('Chrome no ha concedido permiso de conexión para esta URL local. Recarga la extensión y vuelve a intentarlo.');
+      base = nextUrl;
+      await chrome.storage.local.set({ backendUrl: base });
+      await check();
+    } catch (e) { status.textContent = e.message; }
+  };
   $('#pcai-test-selectors').onclick = () => {
     const candidate = formSelectors();
     const tester = new Detector({ document, onUpdate: () => {}, onIncoming: () => {} });
@@ -1059,27 +1572,27 @@
   };
   $('#pcai-save-note').onclick = async () => {
     if (!alias.value.trim()) { status.textContent = 'Escribe un alias para asociar la nota.'; return; }
-    try { await api(`/api/memory/${encodeURIComponent(alias.value.trim())}/notes`, { method: 'POST', body: JSON.stringify({ text: $('#pcai-note').value }) }); $('#pcai-note').value = ''; await loadNotes(); }
+    try { await api(accountScopedPath(`/api/memory/${encodeURIComponent(alias.value.trim())}/notes`), { method: 'POST', body: JSON.stringify({ text: $('#pcai-note').value }) }); $('#pcai-note').value = ''; await loadNotes(); }
     catch (e) { status.textContent = e.message; }
   };
   async function loadNotes() {
     const requestedAlias = alias.value.trim();
     if (!requestedAlias) { notes.replaceChildren(); status.textContent = 'Escribe un alias antes de consultar la memoria.'; return; }
     try {
-      const data = await api(`/api/memory/${encodeURIComponent(requestedAlias)}`);
+      const data = await api(accountScopedPath(`/api/memory/${encodeURIComponent(requestedAlias)}`));
       if (alias.value.trim() !== requestedAlias) return;
       notes.replaceChildren();
       data.notes.forEach((note) => {
         const row = document.createElement('div'); row.className = 'pcai-note';
         const input = document.createElement('input'); input.value = note.text; input.maxLength = 1000;
-        const save = document.createElement('button'); save.textContent = 'Guardar'; save.onclick = async () => { try { await api(`/api/memory/${encodeURIComponent(requestedAlias)}/notes/${note.id}`, { method: 'PUT', body: JSON.stringify({ text: input.value }) }); } catch (e) { status.textContent = e.message; } };
-        const del = document.createElement('button'); del.textContent = 'Borrar'; del.onclick = async () => { try { await api(`/api/memory/${encodeURIComponent(requestedAlias)}/notes/${note.id}`, { method: 'DELETE' }); if (alias.value.trim() === requestedAlias) await loadNotes(); } catch (e) { status.textContent = e.message; } };
+        const save = document.createElement('button'); save.textContent = 'Guardar'; save.onclick = async () => { try { await api(accountScopedPath(`/api/memory/${encodeURIComponent(requestedAlias)}/notes/${note.id}`), { method: 'PUT', body: JSON.stringify({ text: input.value }) }); } catch (e) { status.textContent = e.message; } };
+        const del = document.createElement('button'); del.textContent = 'Borrar'; del.onclick = async () => { try { await api(accountScopedPath(`/api/memory/${encodeURIComponent(requestedAlias)}/notes/${note.id}`), { method: 'DELETE' }); if (alias.value.trim() === requestedAlias) await loadNotes(); } catch (e) { status.textContent = e.message; } };
         row.append(input, save, del); notes.append(row);
       });
     } catch (e) { status.textContent = 'No se pudo cargar la memoria local. Revisa Diagnóstico.'; status.className = 'pcai-status is-error'; showTechnicalError(e.message); }
   }
   $('#pcai-load-notes').onclick = loadNotes;
-  $('#pcai-clear-memory').onclick = async () => { if (!alias.value.trim() || !confirm(`¿Eliminar toda la memoria local de ${alias.value.trim()}?`)) return; try { await api(`/api/memory/${encodeURIComponent(alias.value.trim())}`, { method: 'DELETE' }); await loadNotes(); } catch (e) { status.textContent = e.message; } };
+  $('#pcai-clear-memory').onclick = async () => { if (!alias.value.trim() || !confirm(`¿Eliminar toda la memoria local de ${alias.value.trim()}?`)) return; try { await api(accountScopedPath(`/api/memory/${encodeURIComponent(alias.value.trim())}`), { method: 'DELETE' }); await loadNotes(); } catch (e) { status.textContent = e.message; } };
   loadPrefs();
   window.__personalChatAIInstalled = true;
 })();

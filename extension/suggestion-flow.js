@@ -35,13 +35,14 @@
       return normalized;
     }
 
-    constructor({ request, getMode, getConversationKey, getLatestIncomingFingerprint, getContextWindow, getContextCharBudget, onLoading, onSuccess, onEmpty, onError }) {
+    constructor({ request, getMode, getConversationKey, getLatestIncomingFingerprint, getContextWindow, getContextCharBudget, getAccountId, onLoading, onSuccess, onEmpty, onError }) {
       this.request = request;
       this.getMode = getMode;
       this.getConversationKey = getConversationKey;
       this.getLatestIncomingFingerprint = getLatestIncomingFingerprint || (() => null);
       this.getContextWindow = getContextWindow || (() => 100);
       this.getContextCharBudget = getContextCharBudget || (() => 12000);
+      this.getAccountId = getAccountId || (() => null);
       this.onLoading = onLoading || (() => {});
       this.onSuccess = onSuccess || (() => {});
       this.onEmpty = onEmpty || (() => {});
@@ -151,6 +152,7 @@
           maxChars: this.getContextCharBudget(),
         });
         const data = await this.request({
+          model_account_id: this.getAccountId() || null,
           configured_mode: mode,
           generation_trigger: automatic ? 'automatic' : 'manual',
           message: text.slice(0, 4000), interlocutor: alias,
@@ -173,6 +175,7 @@
         }, controller.signal);
         responseReceived = true;
         if (controller.signal.aborted || (conversationKey && conversationKey !== this.getConversationKey())
+          || (this.getAccountId() && data?.model_account_id && data.model_account_id !== this.getAccountId())
           || (data?.conversation_id && conversationKey && data.conversation_id !== conversationKey)
           || (typeof data?.interlocutor === 'string' && normalizeAlias(data.interlocutor) !== normalizeAlias(alias))
           || (targetFingerprint && data?.target_message_id && data.target_message_id !== targetFingerprint)

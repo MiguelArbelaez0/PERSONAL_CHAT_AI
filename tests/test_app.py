@@ -1,6 +1,7 @@
 import json
 import asyncio
 import re
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,7 @@ from backend.knowledge import read_knowledge
 from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.main import create_app
 from backend.memory import MemoryStore
+from backend.profiles import AccountInput, ProfileInput, PROFILE_SECTIONS
 from backend.schemas import SuggestRequest, TranslationRequest
 
 
@@ -89,7 +91,25 @@ class FakeLLM:
 
 def build(tmp_path, llm=None):
     cfg = Settings(database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge")
-    return create_app(cfg, llm=llm or FakeLLM())
+    app = create_app(cfg, llm=llm or FakeLLM())
+    _seed_ready_account(app)
+    return app
+
+
+def _seed_ready_account(app, artist_name="Synthetic Model"):
+    account = app.state.profiles.create_account(AccountInput(
+        platform="stripchat", artist_name=artist_name, identity_source="manual", confirmed=True,
+    ))
+    profile = ProfileInput(
+        name="Synthetic profile", personality=["warm"], interests=["music"],
+        visitor_types=["regular visitor"], conversation_dynamics=["friendly"],
+        response_style={"tone": ["natural"], "length": "short", "emoji_policy": "match_context"},
+        languages=["en", "es", "fr", "pt"], personal_boundaries=["No personal data"],
+        completed_sections=PROFILE_SECTIONS, onboarding_complete=True,
+    )
+    app.state.profiles.save_profile(account["id"], profile)
+    app.state.test_account_id = account["id"]
+    return account["id"]
 
 
 def run_immediate_coroutine(coroutine):
@@ -123,6 +143,76 @@ def test_suggestions_and_alias_empty(tmp_path):
     assert response.json()["memory_available"] is False
     assert response.json()["api_version"] == "1.0"
     assert response.json()["conversation_id"] == "chat-test-1"
+
+
+def test_fresh_install_onboarding_persistence_account_isolation_and_generation_e2e(tmp_path):
+    config = Settings(database_path=tmp_path / "fresh-install.sqlite3", knowledge_path=tmp_path / "knowledge")
+    llm = FakeLLM()
+    app = create_app(config, llm=llm)
+
+    assert request(app, "GET", "/api/accounts").json()["accounts"] == []
+    created = request(app, "POST", "/api/accounts", json={
+        "platform": "stripchat", "artist_name": "Manual Star", "identity_source": "manual", "confirmed": True,
+    })
+    assert created.status_code == 201
+    account_id = created.json()["id"]
+
+    blocked = request(app, "POST", "/api/suggestions", json={
+        "model_account_id": account_id, "target_message": "What do you like?", "interlocutor_alias": "Viewer",
+    })
+    assert blocked.status_code == 409
+    assert "onboarding_required" in blocked.text
+
+    partial = request(app, "POST", f"/api/accounts/{account_id}/profiles", json={
+        "name": "Mi asistente", "personality": ["Dominante y segura"],
+        "completed_sections": ["personality"], "onboarding_complete": False,
+    })
+    assert partial.status_code == 201
+    profile_id = partial.json()["id"]
+    sections = sorted(PROFILE_SECTIONS)
+    completed = request(app, "PUT", f"/api/accounts/{account_id}/profiles/{profile_id}", json={
+        "schema_version": 2, "name": "Mi asistente", "personality": ["Dominante y segura"],
+        "interests": ["Música"], "visitor_types": ["Conversadores"],
+        "conversation_dynamics": ["Directa y clara"],
+        "response_style": {"tone": ["Seguro"], "length": "medium", "emoji_policy": "few"},
+        "languages": ["English", "auto"], "personal_boundaries": ["Temas a evitar: datos privados"],
+        "completed_sections": sections, "onboarding_complete": True,
+    })
+    assert completed.status_code == 200
+
+    ready = request(app, "GET", f"/api/accounts/{account_id}/profiles").json()
+    assert ready["onboarding_complete"] is True
+    assert ready["active_id"] == profile_id
+    assert ready["profiles"][0]["personality"] == ["Dominante y segura"]
+
+    # Same visitor alias in another model account remains a different memory namespace.
+    second = request(app, "POST", "/api/accounts", json={
+        "platform": "stripchat", "artist_name": "Second Star", "identity_source": "manual", "confirmed": True,
+    }).json()
+    for owner_id, note in ((account_id, "first account note"), (second["id"], "second account note")):
+        saved_note = request(app, "POST", f"/api/memory/shared-visitor/notes?account_id={owner_id}", json={"text": note})
+        assert saved_note.status_code == 201
+
+    # Re-open the same isolated SQLite database, then verify persisted profile and memory through read-only queries.
+    reopened = create_app(config, llm=llm)
+    restored = request(reopened, "GET", f"/api/accounts/{account_id}/profiles").json()
+    assert restored["active_id"] == profile_id and restored["onboarding_complete"] is True
+    first_memory = request(reopened, "GET", f"/api/memory/shared-visitor?account_id={account_id}").json()
+    second_memory = request(reopened, "GET", f"/api/memory/shared-visitor?account_id={second['id']}").json()
+    assert [note["text"] for note in first_memory["notes"]] == ["first account note"]
+    assert [note["text"] for note in second_memory["notes"]] == ["second account note"]
+    with sqlite3.connect(f"{config.database_path.resolve().as_uri()}?mode=ro", uri=True) as db:
+        stored = json.loads(db.execute("SELECT payload FROM profiles WHERE id = ?", (profile_id,)).fetchone()[0])
+        assert stored["personality"] == ["Dominante y segura"]
+
+    generated = request(reopened, "POST", "/api/suggestions", json={
+        "model_account_id": account_id, "target_message": "What do you like?",
+        "interlocutor_alias": "shared-visitor", "configured_mode": "manual",
+    })
+    assert generated.status_code == 200
+    assert generated.json()["original_response"]
+    assert generated.json()["spanish_translation"]
+    assert any("Dominante y segura" in message["content"] for message in llm.last_messages)
 
 
 def test_suggestion_request_accepts_canonical_and_legacy_contract_fields():
@@ -181,7 +271,7 @@ def test_real_generation_path_sends_profile_style_examples_and_safe_diagnostics_
         "# Examples\n\n## Short replies\nViewer: EXAMPLE_INCLUDED_SENTINEL, keep it playful.\n"
         "Respuesta deseada: Keep it short and natural.", encoding="utf-8"
     )
-    app.state.memory.add_note("Viewer-1", "MEMORY_INCLUDED_SENTINEL")
+    app.state.memory.add_note(app.state.test_account_id, "Viewer-1", "MEMORY_INCLUDED_SENTINEL")
     endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/suggestions")
 
     coroutine = endpoint(SuggestRequest(
@@ -333,6 +423,7 @@ def test_model_context_budget_discards_oldest_dom_rows_and_reports_truncation(tm
         lm_studio_context_tokens=6000, lm_studio_output_tokens=500, max_context_chars=20000,
     )
     app = create_app(config, llm=llm)
+    _seed_ready_account(app)
     endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/api/suggestions")
     context = "\n".join(
         f"- Interlocutor (10:{index:02d}): old-marker-{index} {'reference detail ' * 34}"
@@ -404,8 +495,8 @@ def test_suggestions_respect_available_evidence_and_do_not_write_generated_memor
 
     llm = EvidenceAwareLLM()
     app = build(tmp_path, llm)
-    app.state.memory.add_note("Viewer", "Likes playful teasing")
-    before = app.state.memory.list_notes("Viewer")
+    app.state.memory.add_note(app.state.test_account_id, "Viewer", "Likes playful teasing")
+    before = app.state.memory.list_notes(app.state.test_account_id, "Viewer")
     history = (
         "- Interlocutor (10:00): That blue outfit looks great.\n"
         "- Usuario (10:01): Thanks, you have good taste."
@@ -424,7 +515,7 @@ def test_suggestions_respect_available_evidence_and_do_not_write_generated_memor
     else:
         assert all(any(word in text.casefold() for word in ("hint", "guess", "messages")) for text in texts)
         assert all("i promised" not in text.casefold() for text in texts)
-    assert app.state.memory.list_notes("Viewer") == before
+    assert app.state.memory.list_notes(app.state.test_account_id, "Viewer") == before
 
 
 @pytest.mark.parametrize(("message", "mentions_tokens"), [
@@ -833,7 +924,7 @@ def test_configuration_validation(monkeypatch):
     monkeypatch.setenv("BACKEND_PORT", "70000")
     with pytest.raises(ValueError, match="BACKEND_PORT"):
         Settings.from_env()
-    monkeypatch.setenv("BACKEND_PORT", "8765")
+    monkeypatch.setenv("BACKEND_PORT", "8000")
     monkeypatch.setenv("LM_STUDIO_BASE_URL", "https://api.example.com/v1")
     with pytest.raises(ValueError, match="LM_STUDIO_BASE_URL"):
         Settings.from_env()
@@ -842,6 +933,12 @@ def test_configuration_validation(monkeypatch):
     monkeypatch.setenv("LM_STUDIO_OUTPUT_TOKENS", "500")
     with pytest.raises(ValueError, match="LM_STUDIO_CONTEXT_TOKENS"):
         Settings.from_env()
+
+
+def test_backend_port_defaults_to_8000(monkeypatch):
+    from backend.config import Settings
+    monkeypatch.delenv("BACKEND_PORT", raising=False)
+    assert Settings.from_env().port == 8000
 
 
 @pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.20", "localhost", "127.0.0.2", ""])

@@ -4,7 +4,7 @@ import math
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +15,7 @@ from backend.knowledge import read_knowledge_with_sources
 from backend.language import classify_language, detect_language
 from backend.lm_studio import LMStudioClient, LMStudioError
 from backend.memory import MemoryStore, normalize_alias
-from backend.profiles import ProfileInput, ProfileStore
+from backend.profiles import AccountInput, ProfileInput, ProfileStore
 from backend.validation import RecentDrafts, response_rejection, remove_unsupported_clauses, owner_notes
 from backend.grounding import review_messages, review_rejection, verified_wellbeing_exchange
 from backend.evidence import viewer_preference_required, viewer_evidence
@@ -101,7 +101,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     logging.basicConfig(level=getattr(logging, config.log_level, logging.INFO))
     client = llm or LMStudioClient(config.lm_studio_base_url, config.lm_studio_model, config.lm_studio_timeout, config.lm_studio_output_tokens)
     store = memory or MemoryStore(config.database_path, config.memory_max_notes)
-    profiles = ProfileStore(config.database_path.parent / "personalities.sqlite3")
+    profiles = ProfileStore(config.database_path)
     recent_drafts = RecentDrafts()
     translation_retries = TranslationRetries()
 
@@ -109,11 +109,11 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     async def lifespan(app):
         yield
 
-    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.1.0", lifespan=lifespan)
-    app.state.llm, app.state.memory = client, store
+    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.2.0", lifespan=lifespan)
+    app.state.llm, app.state.memory, app.state.profiles = client, store, profiles
     app.add_middleware(RequestLimitsMiddleware)
     # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
-    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type"])
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type", "idempotency-key"])
 
     def error_code(status_code: int, detail: object) -> tuple[str, str]:
         text = detail if isinstance(detail, str) else ""
@@ -136,6 +136,14 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             return "lm_studio_timeout", text or "LM Studio agotó el tiempo de espera."
         if status_code == 404:
             return "not_found", text or "No se encontró el recurso solicitado."
+        if status_code == 409:
+            if "onboarding_required" in lowered:
+                return "onboarding_required", "Confirma una cuenta y completa su configuración antes de generar respuestas."
+            if "account_required" in lowered:
+                return "account_required", "Indica la cuenta de modelo para esta operación."
+            if "account_unconfirmed" in lowered:
+                return "account_unconfirmed", "Confirma la identidad de la cuenta antes de usar sus datos."
+            return "state_conflict", text or "La operación no es válida en el estado actual."
         return "http_error", text or f"La solicitud falló (HTTP {status_code})."
 
     @app.exception_handler(HTTPException)
@@ -179,8 +187,35 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         except LMStudioError as exc:
             return {"available": False, "models": [], "error": str(exc)}
 
+    def resolve_account_id(account_id: str | None) -> str:
+        if account_id:
+            account = profiles.get_account(account_id)
+            if not account:
+                raise HTTPException(404, "No se encontró la cuenta de modelo.")
+            return account_id
+        accounts = profiles.list_accounts()
+        if len(accounts) == 1:
+            return accounts[0]["id"]
+        if not accounts:
+            raise HTTPException(409, "onboarding_required: primero crea y confirma una cuenta.")
+        raise HTTPException(409, "account_required: hay varias cuentas locales; indica el identificador.")
+
+    def require_confirmed_account(account_id: str) -> dict:
+        account = profiles.get_account(account_id)
+        if not account or not account["confirmed"] or not account["artist_name"]:
+            raise HTTPException(409, "account_unconfirmed: confirma el nombre artístico antes de continuar.")
+        return account
+
+    def require_ready_account(account_id: str) -> dict:
+        account = require_confirmed_account(account_id)
+        if not profiles.account_ready(account_id):
+            raise HTTPException(409, "onboarding_required: completa un perfil de respuesta para esta cuenta.")
+        return account
+
     @app.post("/api/suggestions", response_model=SuggestResponse)
     async def suggest(request: SuggestRequest):
+        account_id = resolve_account_id(request.model_account_id)
+        account = require_ready_account(account_id)
         if request.configured_mode == "off" or (request.generation_trigger == "automatic" and request.configured_mode != "auto"):
             raise HTTPException(422, "El modo configurado no permite esta generación.")
         # Manual pasted text is not a DOM row; the extension marks it false.
@@ -189,12 +224,15 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         if len(request.message) > config.max_message_chars or len(request.additional_context) > 4000:
             raise HTTPException(422, "El mensaje o contexto supera el límite configurado.")
         alias = " ".join((request.interlocutor or "").split()) or None
-        profile = profiles.active()
-        draft_key = (normalize_alias(alias)[0] if alias else request.conversation_id, profile["id"])
-        if not draft_key[0]:
+        profile = profiles.active(account_id)
+        if profile is None:
+            raise HTTPException(409, "onboarding_required: la cuenta no tiene un perfil activo y completo.")
+        subject = (account_id, normalize_alias(alias)[0] if alias else request.conversation_id)
+        draft_key = (subject, profile["id"])
+        if not subject[1]:
             draft_key = None
         previous_responses = recent_drafts.get(draft_key)
-        notes = store.relevant_notes(alias, request.message) if hasattr(store, "relevant_notes") else store.list_notes(alias)
+        notes = store.relevant_notes(account_id, alias, request.message) if hasattr(store, "relevant_notes") else store.list_notes(account_id, alias)
         knowledge, source_status = read_knowledge_with_sources(config.knowledge_path)
         incoming_context = "\n".join(part for part in (request.context, request.additional_context) if part.strip())
         language_decision = detect_language(request.message, incoming_context, config.default_language)
@@ -589,6 +627,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             configured_mode=request.configured_mode,
             generation_trigger=request.generation_trigger,
             active_profile_id=profile["id"],
+            model_account_id=account_id,
             conversation_id=request.conversation_id,
             target_message_id=request.target_message_id,
             generation_id=uuid.uuid4().hex,
@@ -636,41 +675,108 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             ),
         )
 
+    @app.get("/api/accounts")
+    async def get_accounts():
+        return {"accounts": profiles.list_accounts()}
+
+    @app.post("/api/accounts", status_code=201)
+    async def create_account(payload: AccountInput, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
+        try:
+            return profiles.create_account(payload, idempotency_key)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc))
+
+    @app.get("/api/accounts/{account_id}")
+    async def get_account(account_id: str):
+        account = profiles.get_account(account_id)
+        if not account:
+            raise HTTPException(404, "No se encontró la cuenta de modelo.")
+        return account
+
+    @app.put("/api/accounts/{account_id}")
+    async def update_account(account_id: str, payload: AccountInput):
+        try:
+            account = profiles.update_account(account_id, payload)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc))
+        if not account:
+            raise HTTPException(404, "No se encontró la cuenta de modelo.")
+        return account
+
+    @app.get("/api/accounts/{account_id}/profiles")
+    async def get_account_profiles(account_id: str):
+        try:
+            return profiles.snapshot(account_id)
+        except KeyError:
+            raise HTTPException(404, "No se encontró la cuenta de modelo.")
+
+    @app.post("/api/accounts/{account_id}/profiles", status_code=201)
+    async def create_account_profile(account_id: str, payload: ProfileInput):
+        try:
+            return profiles.save_profile(account_id, payload)
+        except KeyError as exc:
+            raise HTTPException(404, "No se encontró la cuenta de modelo.") from exc
+
+    @app.put("/api/accounts/{account_id}/profiles/{profile_id}")
+    async def edit_account_profile(account_id: str, profile_id: str, payload: ProfileInput):
+        try:
+            return profiles.save_profile(account_id, payload, profile_id)
+        except KeyError as exc:
+            message = "No se encontró la cuenta de modelo." if str(exc).strip("'") == "account" else "Perfil no encontrado para esta cuenta."
+            raise HTTPException(404, message) from exc
+
+    @app.post("/api/accounts/{account_id}/profiles/{profile_id}/activate")
+    async def activate_account_profile(account_id: str, profile_id: str):
+        try:
+            return profiles.select(account_id, profile_id)
+        except KeyError as exc:
+            raise HTTPException(404, "Perfil no encontrado para esta cuenta.") from exc
+
+    @app.delete("/api/accounts/{account_id}/profiles/{profile_id}", status_code=204)
+    async def delete_account_profile(account_id: str, profile_id: str):
+        if not profiles.delete(account_id, profile_id):
+            raise HTTPException(404, "Perfil no encontrado para esta cuenta.")
+        return Response(status_code=204)
+
+    # v1.1 compatibility: omitted account_id resolves only when exactly one local
+    # account exists. No process-wide active-account or active-profile is used.
     @app.get("/api/profiles")
-    async def get_profiles():
-        return profiles.snapshot()
+    async def get_profiles(account_id: str | None = None):
+        if account_id is None and not profiles.list_accounts():
+            return {"account": None, "active_id": None, "onboarding_complete": False, "profiles": []}
+        return profiles.snapshot(resolve_account_id(account_id))
 
     @app.post("/api/profiles", status_code=201)
-    async def create_profile(payload: ProfileInput):
-        return profiles.save(payload)
+    async def create_profile(payload: ProfileInput, account_id: str | None = None):
+        return profiles.save_profile(resolve_account_id(account_id), payload)
 
     @app.put("/api/profiles/{profile_id}")
-    async def edit_profile(profile_id: str, payload: ProfileInput):
+    async def edit_profile(profile_id: str, payload: ProfileInput, account_id: str | None = None):
         try:
-            return profiles.save(payload, profile_id)
+            return profiles.save_profile(resolve_account_id(account_id), payload, profile_id)
         except KeyError:
-            raise HTTPException(404, "Perfil no encontrado.")
+            raise HTTPException(404, "Perfil no encontrado para esa cuenta.")
 
     @app.post("/api/profiles/{profile_id}/activate")
-    async def activate_profile(profile_id: str):
+    async def activate_profile(profile_id: str, account_id: str | None = None):
         try:
-            return profiles.select(profile_id)
+            return profiles.select(resolve_account_id(account_id), profile_id)
         except KeyError:
-            raise HTTPException(404, "Perfil no encontrado.")
+            raise HTTPException(404, "Perfil no encontrado para esa cuenta.")
 
     @app.delete("/api/profiles/{profile_id}", status_code=204)
-    async def delete_profile(profile_id: str):
-        try:
-            profiles.delete(profile_id)
-        except KeyError:
-            raise HTTPException(404, "Perfil no encontrado.")
-        except ValueError as exc:
-            raise HTTPException(422, str(exc))
+    async def delete_profile(profile_id: str, account_id: str | None = None):
+        if not profiles.delete(resolve_account_id(account_id), profile_id):
+            raise HTTPException(404, "Perfil no encontrado para esa cuenta.")
         return Response(status_code=204)
 
     @app.post("/api/profiles/restore")
     async def restore_profiles():
-        return profiles.restore()
+        raise HTTPException(409, "El perfil personal predeterminado fue retirado; crea o edita un perfil de cuenta.")
+
+    @app.get("/api/migrations")
+    async def get_migration_status():
+        return {"migrations": profiles.migration_status()}
 
     @app.post("/api/translation/retry", response_model=TranslationRetryResponse)
     async def retry_translation(request: TranslationRequest):
@@ -697,34 +803,44 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             raise HTTPException(422, "Indica un alias para consultar o guardar memoria.")
 
     @app.get("/api/memory/{alias}")
-    async def get_memory(alias: str):
-        return {"interlocutor": alias, "notes": store.list_notes(alias)}
+    async def get_memory(alias: str, account_id: str | None = None):
+        account_id = resolve_account_id(account_id)
+        require_confirmed_account(account_id)
+        return {"account_id": account_id, "interlocutor": alias, "notes": store.list_notes(account_id, alias)}
 
     @app.post("/api/memory/{alias}/notes")
-    async def create_note(alias: str, payload: NoteInput, response: Response):
+    async def create_note(alias: str, payload: NoteInput, response: Response, account_id: str | None = None):
+        account_id = resolve_account_id(account_id)
+        require_confirmed_account(account_id)
         require_alias(alias)
-        note = store.add_note(alias, payload.text)
+        note = store.add_note(account_id, alias, payload.text)
         response.status_code = 201
         return note
 
     @app.put("/api/memory/{alias}/notes/{note_id}")
-    async def update_note(alias: str, note_id: int, payload: NoteInput):
-        note = store.edit_note(alias, note_id, payload.text)
+    async def update_note(alias: str, note_id: int, payload: NoteInput, account_id: str | None = None):
+        account_id = resolve_account_id(account_id)
+        require_confirmed_account(account_id)
+        note = store.edit_note(account_id, alias, note_id, payload.text)
         if not note:
-            raise HTTPException(404, "No se encontró esa nota para este interlocutor.")
+            raise HTTPException(404, "No se encontró esa nota para esta cuenta e interlocutor.")
         return note
 
     @app.delete("/api/memory/{alias}/notes/{note_id}", status_code=204)
-    async def delete_note(alias: str, note_id: int):
-        if not store.delete_note(alias, note_id):
-            raise HTTPException(404, "No se encontró esa nota para este interlocutor.")
+    async def delete_note(alias: str, note_id: int, account_id: str | None = None):
+        account_id = resolve_account_id(account_id)
+        require_confirmed_account(account_id)
+        if not store.delete_note(account_id, alias, note_id):
+            raise HTTPException(404, "No se encontró esa nota para esta cuenta e interlocutor.")
         return Response(status_code=204)
 
     @app.delete("/api/memory/{alias}")
-    async def clear_memory(alias: str):
+    async def clear_memory(alias: str, account_id: str | None = None):
+        account_id = resolve_account_id(account_id)
+        require_confirmed_account(account_id)
         require_alias(alias)
-        recent_drafts.clear_subject(normalize_alias(alias)[0])
-        return {"deleted": store.clear(alias)}
+        recent_drafts.clear_subject((account_id, normalize_alias(alias)[0]))
+        return {"deleted": store.clear(account_id, alias), "account_id": account_id}
 
     return app
 

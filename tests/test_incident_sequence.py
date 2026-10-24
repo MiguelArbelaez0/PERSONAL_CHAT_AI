@@ -95,7 +95,7 @@ def test_two_targets_and_retry_preserve_current_message_and_draft_is_not_history
         assert first.json()['original_response'] not in history_block
     assert SECOND in llm.prompts[2][-1]['content']
     assert first.json()['original_response'] not in '- Interlocutor: '+FIRST
-    assert not app.state.memory.list_notes('Synthetic-Incident')
+    assert not app.state.memory.list_notes(app.state.test_account_id, 'Synthetic-Incident')
 
 
 @pytest.mark.parametrize('source', ['target_incoming', 'previous_unsubmitted_draft'])

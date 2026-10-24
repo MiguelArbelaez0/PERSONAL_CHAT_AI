@@ -93,7 +93,7 @@ No se modificaron perfiles guardados, notas persistentes, esquema de memoria, pu
 
 ## Validación manual pendiente
 
-1. Cierra y reinicia el backend para cargar este código. Recarga la extensión en `chrome://extensions` y después Stripchat. Selecciona y activa ChubbyKriz sin borrar tus perfiles.
+1. Cierra y reinicia el backend para cargar este código. Recarga la extensión en `chrome://extensions` y después Stripchat. Selecciona y activa nombre de prueba sin borrar tus perfiles.
 2. En un alias de prueba usa los dos mensajes ingleses consecutivos, verificando el historial visible. Comprueba ausencia de charlas, actividades y reciprocidad inventadas; cambia de tema y regenera. Un rechazo tras dos intentos debe mostrar un error, nunca el borrador rechazado.
 3. Prueba el caso francés. Compara original y traducción completos, incluyendo negación, agentes, tono y saludo. Si falla, pulsa Reintentar: debe conservarse el original y mostrarse un resultado o un motivo comprensible. Si recupera la traducción, edita después el original y verifica el aviso de traducción desactualizada.
 4. Prueba el portugués. No debe copiar la entrada ni devolver la pregunta como si fuera propia. Verifica «Tudo bem, obrigado» como afirmación y la conservación de otras preguntas reales.

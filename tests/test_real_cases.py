@@ -67,7 +67,7 @@ def test_case2_partial_phrase_repetition_is_corrected_across_requests(tmp_path):
     assert second.json()["original_response"] == "It's good to hear from you again."
     assert llm.calls == 3
     assert "Borradores previos no enviados" in llm.prompts[-1][1]["content"]
-    assert not app.state.memory.list_notes("Synthetic")
+    assert not app.state.memory.list_notes(app.state.test_account_id, "Synthetic")
 
 
 @pytest.mark.parametrize("draft", [PT, PT + " Estou feliz por você estar aqui, obrigado pelo carinho!", "Oi, tudo bem com você? Fico feliz por você estar aqui."])

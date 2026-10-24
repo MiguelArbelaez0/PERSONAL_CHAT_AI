@@ -28,7 +28,7 @@ _load_local_env()
 @dataclass(frozen=True)
 class Settings:
     host: str = "127.0.0.1"
-    port: int = 8765
+    port: int = 8000
     lm_studio_base_url: str = "http://127.0.0.1:1234/v1"
     lm_studio_model: str = ""
     lm_studio_timeout: float = 90.0
@@ -38,7 +38,10 @@ class Settings:
     max_message_chars: int = 4000
     max_context_chars: int = 12000
     memory_max_notes: int = 100
-    database_path: Path = ROOT / "data" / "personal_chat_ai.sqlite3"
+    # v1.2 writes to a new store; the v1.1 paths remain read-only migration sources.
+    database_path: Path = ROOT / "data" / "personal_chat_ai_v2.sqlite3"
+    legacy_database_path: Path = ROOT / "data" / "personal_chat_ai.sqlite3"
+    legacy_profiles_path: Path = ROOT / "data" / "personalities.sqlite3"
     knowledge_path: Path = ROOT / "knowledge"
     log_level: str = "INFO"
 
@@ -57,15 +60,21 @@ class Settings:
         output_tokens = integer("LM_STUDIO_OUTPUT_TOKENS", 1200)
         if context_tokens <= output_tokens + 128:
             raise ValueError("LM_STUDIO_CONTEXT_TOKENS debe superar LM_STUDIO_OUTPUT_TOKENS en al menos 129 tokens")
-        port = integer("BACKEND_PORT", 8765)
+        port = integer("BACKEND_PORT", 8000)
         if port > 65535:
             raise ValueError("BACKEND_PORT debe ser <= 65535")
         host = os.getenv("BACKEND_HOST", "127.0.0.1").strip()
         if host != "127.0.0.1":
             raise ValueError("BACKEND_HOST debe ser 127.0.0.1; el acceso remoto no está soportado")
-        database_path = Path(os.getenv("DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai.sqlite3")))
+        database_path = Path(os.getenv("PCAI_DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai_v2.sqlite3")))
         if not database_path.is_absolute():
             database_path = ROOT / database_path
+        legacy_database_path = Path(os.getenv("DATABASE_PATH", str(ROOT / "data" / "personal_chat_ai.sqlite3")))
+        if not legacy_database_path.is_absolute():
+            legacy_database_path = ROOT / legacy_database_path
+        legacy_profiles_path = Path(os.getenv("PERSONALITIES_DATABASE_PATH", str(legacy_database_path.parent / "personalities.sqlite3")))
+        if not legacy_profiles_path.is_absolute():
+            legacy_profiles_path = ROOT / legacy_profiles_path
         knowledge_path = Path(os.getenv("KNOWLEDGE_PATH", str(ROOT / "knowledge")))
         if not knowledge_path.is_absolute():
             knowledge_path = ROOT / knowledge_path
@@ -85,6 +94,8 @@ class Settings:
             max_context_chars=integer("MAX_CONTEXT_CHARS", 12000),
             memory_max_notes=integer("MEMORY_MAX_NOTES", 100),
             database_path=database_path,
+            legacy_database_path=legacy_database_path,
+            legacy_profiles_path=legacy_profiles_path,
             knowledge_path=knowledge_path,
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         )

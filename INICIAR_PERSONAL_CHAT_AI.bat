@@ -4,6 +4,7 @@ cd /d "%~dp0"
 echo === PERSONAL_CHAT_AI: inicio ===
 if exist ".venv\Scripts\python.exe" (
   set "PYTHON_EXE=.venv\Scripts\python.exe"
+  set "PYTHON_ARGS="
 ) else (
   where py >nul 2>&1
   if errorlevel 1 (
@@ -14,9 +15,11 @@ if exist ".venv\Scripts\python.exe" (
       exit /b 1
     ) else (
       set "PYTHON_EXE=python"
+      set "PYTHON_ARGS="
     )
   ) else (
-    set "PYTHON_EXE=py -3"
+    set "PYTHON_EXE=py"
+    set "PYTHON_ARGS=-3"
   )
 )
 if not exist "backend\main.py" (
@@ -25,28 +28,34 @@ if not exist "backend\main.py" (
   exit /b 1
 )
 if exist ".env" ( echo Configuracion local .env encontrada. ) else ( echo AVISO: No existe .env; se usaran valores predeterminados. )
-%PYTHON_EXE% -c "import fastapi,httpx,uvicorn; print('Dependencias: correctas')"
+"%PYTHON_EXE%" %PYTHON_ARGS% -c "import fastapi,httpx,uvicorn; print('Dependencias: correctas')"
 if errorlevel 1 (
-  echo ERROR: Faltan dependencias. Ejecuta %PYTHON_EXE% -m pip install -r requirements.txt
+  echo ERROR: Faltan dependencias. Ejecuta "%PYTHON_EXE%" %PYTHON_ARGS% -m pip install -r requirements.txt
   pause
   exit /b 1
 )
-curl.exe --silent --fail http://127.0.0.1:8765/api/health >nul 2>&1
+for /f %%P in ('"%PYTHON_EXE%" %PYTHON_ARGS% -c "from backend.config import settings; print(settings.port)"') do set "BACKEND_PORT=%%P"
+if not defined BACKEND_PORT (
+  echo ERROR: No se pudo leer BACKEND_PORT. Revisa la configuracion local sin borrar .env.
+  pause
+  exit /b 1
+)
+curl.exe --silent --fail http://127.0.0.1:%BACKEND_PORT%/api/health >nul 2>&1
 if not errorlevel 1 (
-  echo Backend ya responde en 127.0.0.1:8765. No se iniciara otra instancia.
-  start "" http://127.0.0.1:8765/api/diagnostics/lm-studio
+  echo Backend ya responde en 127.0.0.1:%BACKEND_PORT%. No se iniciara otra instancia.
+  start "" http://127.0.0.1:%BACKEND_PORT%/api/diagnostics/lm-studio
   pause
   exit /b 0
 )
-powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -State Listen -LocalPort 8765 -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"
+powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -State Listen -LocalPort %BACKEND_PORT% -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }"
 if errorlevel 1 (
-  echo ERROR: El puerto 8765 esta ocupado por otro servicio. No se detuvo ningun proceso.
+  echo ERROR: El puerto %BACKEND_PORT% esta ocupado por otro servicio. No se detuvo ningun proceso.
   pause
   exit /b 1
 )
 curl.exe --silent --fail http://127.0.0.1:1234/v1/models >nul 2>&1
 if errorlevel 1 echo AVISO: LM Studio no responde. Inicia su servidor local antes de generar sugerencias.
 echo Iniciando backend en esta ventana. Detenlo con Ctrl+C.
-%PYTHON_EXE% -m backend
+"%PYTHON_EXE%" %PYTHON_ARGS% -m backend
 if errorlevel 1 echo ERROR: El backend termino con un error. Revisa Python y requirements.txt.
 pause

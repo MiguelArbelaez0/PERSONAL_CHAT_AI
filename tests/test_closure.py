@@ -90,7 +90,7 @@ def test_viewer_note_cannot_support_an_owner_claim_even_with_reviewer_approval(t
                 'personal_claims': [{'claim': 'Owner likes cobalt-731', 'source': 'notes',
                                      'evidence_quote': 'Explicit viewer preference: favorite color is cobalt-731.'}]})]
     app = build(tmp_path, Reviewed(['Cobalt-731 has a glow I love.'] * 2))
-    app.state.memory.add_note('Synthetic', 'Explicit viewer preference: favorite color is cobalt-731.')
+    app.state.memory.add_note(app.state.test_account_id, 'Synthetic', 'Explicit viewer preference: favorite color is cobalt-731.')
     result = request(app, 'POST', '/api/suggestions', json={'message': 'Which color do I like?', 'interlocutor': 'Synthetic'})
     assert result.status_code == 502
     assert result.json()['error']['reason_code'] == 'unsupported_claim'

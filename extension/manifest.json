@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "PERSONAL_CHAT_AI",
-  "version": "1.1.0",
-  "version_name": "1.1.0",
+  "version": "1.2.0",
+  "version_name": "1.2.0",
   "description": "Borradores privados de respuesta con IA local.",
   "permissions": ["storage", "clipboardWrite"],
-  "host_permissions": ["http://127.0.0.1:8765/*"],
+  "host_permissions": ["http://127.0.0.1/*"],
   "content_scripts": [{
     "matches": ["https://stripchat.com/*", "https://*.stripchat.com/*"],
-    "js": ["conversation-detector.js", "suggestion-flow.js", "content.js"],
+    "js": ["backend-config.js", "account-detector.js", "account-setup.js", "conversation-detector.js", "suggestion-flow.js", "content.js"],
     "css": ["panel.css"],
     "run_at": "document_idle"
   }]

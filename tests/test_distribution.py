@@ -1,7 +1,7 @@
 """Distribution must never select private/local state or overwrite a release."""
 import zipfile
 import pytest
-from tools.build_distribution import ROOT_FILES, build, distribution_files
+from tools.build_distribution import DISTRIBUTION_DOCS, ROOT_FILES, build, distribution_files
 
 
 def fixture_tree(tmp_path):
@@ -11,8 +11,11 @@ def fixture_tree(tmp_path):
         (root / name).write_text("synthetic example", encoding="utf-8")
     for folder in ("backend", "extension", "knowledge", "docs"):
         (root / folder).mkdir()
-    for name in ("backend/main.py", "extension/content.js", "extension/manifest.json", "knowledge/perfil.md", "docs/INSTALLATION.md"):
+    for name in ("backend/main.py", "extension/content.js", "knowledge/perfil.md"):
         (root / name).write_text("synthetic", encoding="utf-8")
+    (root / "extension/manifest.json").write_text('{"manifest_version":3,"version":"1.2.0"}', encoding="utf-8")
+    for name in DISTRIBUTION_DOCS:
+        (root / "docs" / name).write_text("synthetic public documentation", encoding="utf-8")
     for name in (".env", "data/memory.sqlite3", "knowledge/local/perfil.md", "backend/__pycache__/cache.pyc", "docs/private.json", "docs/PROFILE_LOADING_2026_10_22.md"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -22,12 +25,13 @@ def fixture_tree(tmp_path):
 
 def test_archive_allowlist_excludes_local_data_and_preserves_previous_release(tmp_path):
     root = fixture_tree(tmp_path)
-    output = tmp_path / "distribution" / "PERSONAL_CHAT_AI_v1.1.0.zip"
+    output = tmp_path / "distribution" / "PERSONAL_CHAT_AI_v1.2.0.zip"
     report = build(root, output)
     with zipfile.ZipFile(output) as archive:
         assert archive.testzip() is None
-        assert all(name.startswith("PERSONAL_CHAT_AI_v1.1.0/") for name in archive.namelist())
+        assert all(name.startswith("PERSONAL_CHAT_AI_v1.2.0/") for name in archive.namelist())
         assert all(b"PRIVATE_SENTINEL" not in archive.read(name) for name in archive.namelist())
+        assert not any("PROFILE_LOADING" in name or "RC1_REAL_CASES" in name for name in archive.namelist())
         assert len(archive.namelist()) == len(report["files"])
     original = output.read_bytes()
     with pytest.raises(FileExistsError):
