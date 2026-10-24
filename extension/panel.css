@@ -55,8 +55,8 @@
   right: 18px;
   bottom: 78px;
   display: flex;
-  width: min(350px, calc(100vw - 24px));
-  max-height: min(72vh, 640px);
+  width: min(470px, calc(100vw - 24px));
+  max-height: min(84vh, 760px);
   flex-direction: column;
   overflow: auto;
   padding: 0 12px 10px;
@@ -210,11 +210,84 @@
 #pcai-panel .pcai-check-control input { display: inline-block; width: auto; min-width: auto; margin: 1px 0 0; }
 .pcai-auto-diagnostic { margin-top: 8px; padding: 8px; border-radius: 8px; background: #f0f1f6; color: #535e76; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* Guided first-run setup */
+.pcai-onboarding { display: grid; gap: 16px; padding: 7px 3px 16px; animation: pcai-enter 240ms ease both; }
+.pcai-wizard-intro { padding: 4px 2px 0; }
+.pcai-wizard-intro > span { color: #6c62d4; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.pcai-wizard-intro h1 { margin: 7px 0 5px; color: #222b43; font-size: clamp(20px, 5vw, 27px); line-height: 1.12; letter-spacing: -.04em; }
+.pcai-wizard-intro p { max-width: 54ch; margin: 0; color: #778198; font-size: 11px; line-height: 1.55; }
+.pcai-progress { display: grid; gap: 6px; }
+.pcai-progress-track { height: 5px; overflow: hidden; border-radius: 9px; background: #e9eaf3; }
+.pcai-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #786cf0, #a48ff4); transition: width 220ms ease; }
+.pcai-progress-caption { display: flex; justify-content: space-between; color: #8a91a4; font-size: 9px; font-weight: 650; }
+.pcai-wizard-view { min-height: 200px; animation: pcai-step-in 180ms ease both; }
+.pcai-welcome-card,
+.pcai-step-card,
+.pcai-summary-card { padding: 16px; border: 1px solid #e3e5f0; border-radius: 16px; background: linear-gradient(150deg, #fff, #fbfaff); box-shadow: 0 8px 24px #332a790c; }
+.pcai-welcome-icon { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #e1ddff; border-radius: 14px; background: linear-gradient(145deg, #f4f2ff, #e9e6ff); color: #6459d0; font-size: 22px; box-shadow: 0 5px 16px #6559ce18; }
+.pcai-welcome-card h2 { margin: 13px 0 6px; color: #252e48; font-size: 17px; letter-spacing: -.02em; }
+.pcai-welcome-card p { margin: 0; color: #68738a; font-size: 11px; line-height: 1.65; }
+.pcai-trust-points { display: grid; gap: 8px; margin-top: 16px; padding-top: 13px; border-top: 1px solid #ececf4; color: #4b5670; font-size: 10px; }
+.pcai-trust-points span::first-letter { color: #39a77a; }
+.pcai-step-card { display: grid; gap: 12px; padding: 14px; }
+.pcai-detection-card { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid #e5e5f1; border-radius: 12px; background: #f6f6fb; }
+.pcai-detection-card.is-detected { border-color: #d8d3ff; background: linear-gradient(110deg, #f3f1ff, #fff); }
+.pcai-detection-card > span { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border-radius: 9px; background: #e8e5ff; color: #5d52cc; }
+.pcai-detection-card p { flex: 1; margin: 2px 0 0; color: #505b73; font-size: 10px; line-height: 1.5; }
+#pcai-panel button.pcai-link-button { min-height: 24px; padding: 2px 4px; border: 0; background: transparent; color: #6259c9; font-size: 9px; }
+.pcai-step-card label { margin: 0 !important; color: #47526a !important; font-size: 10px !important; }
+.pcai-step-card input:not([type="checkbox"]),
+.pcai-step-card textarea,
+.pcai-step-card select { width: 100% !important; margin-top: 6px !important; padding: 10px 11px !important; border: 1px solid #dfe2ec !important; border-radius: 10px !important; background: #fff !important; color: #28334d !important; font-size: 11px !important; }
+.pcai-step-card textarea { min-height: 65px; resize: vertical; line-height: 1.5; }
+.pcai-form-lead { margin: 0; color: #56617a; font-size: 11px; line-height: 1.5; }
+.pcai-step-card h3 { margin: 2px 0 -4px; color: #48536b; font-size: 10px; font-weight: 750; }
+.pcai-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.pcai-choice-card { position: relative; display: flex !important; min-height: 43px; align-items: center; gap: 8px; margin: 0 !important; padding: 8px 9px; border: 1px solid #e1e4ed; border-radius: 11px; background: #fff; color: #4a556e !important; font-size: 9px !important; line-height: 1.35; cursor: pointer; transition: border-color 140ms ease, background 140ms ease, transform 140ms ease, box-shadow 140ms ease; }
+.pcai-choice-card:hover { transform: translateY(-1px); border-color: #c5c0f4; box-shadow: 0 4px 12px #41358e10; }
+.pcai-choice-card:has(input:checked) { border-color: #9388ee; background: #f4f2ff; color: #4840a1 !important; box-shadow: inset 0 0 0 1px #aaa2f4; }
+.pcai-choice-card input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.pcai-choice-card input:focus-visible + .pcai-choice-check { outline: 2px solid #766cf0; outline-offset: 2px; }
+.pcai-choice-check { display: grid; width: 17px; height: 17px; flex: 0 0 17px; place-items: center; border: 1px solid #d8dce7; border-radius: 5px; background: #fff; color: transparent; font-size: 10px; }
+.pcai-choice-card:has(input:checked) .pcai-choice-check { border-color: #6c61db; background: #6c61db; color: #fff; }
+.pcai-check-row { display: flex !important; align-items: flex-start; gap: 8px; color: #68738a !important; font-size: 9px !important; font-weight: 500 !important; line-height: 1.5; }
+.pcai-check-row input { width: auto !important; margin: 1px 0 0 !important; accent-color: #675bd3; }
+.pcai-inline-note { margin: 0; color: #81899c; font-size: 9px; line-height: 1.55; }
+.pcai-form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.pcai-summary-card { display: grid; gap: 0; padding: 0 14px; }
+.pcai-summary-identity { display: flex; align-items: center; gap: 10px; padding: 13px 0; border-bottom: 1px solid #ececf3; }
+.pcai-summary-identity > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; background: #eeecff; color: #6258d2; font-size: 17px; }
+.pcai-summary-identity div { display: grid; gap: 2px; }
+.pcai-summary-identity small { color: #8b91a3; font-size: 8px; font-weight: 750; letter-spacing: .1em; }
+.pcai-summary-identity strong { color: #303a53; font-size: 12px; }
+.pcai-summary-row { display: grid; gap: 3px; padding: 9px 0; border-bottom: 1px solid #eff0f5; }
+.pcai-summary-row:last-child { border-bottom: 0; }
+.pcai-summary-row strong { color: #515c73; font-size: 9px; }
+.pcai-summary-row span { color: #788196; font-size: 9px; line-height: 1.45; overflow-wrap: anywhere; }
+.pcai-wizard-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pcai-wizard-nav > div { display: flex; align-items: center; gap: 7px; }
+#pcai-panel .pcai-wizard-nav button { min-height: 37px; padding: 8px 14px; border-radius: 10px; font-size: 10px; }
+#pcai-panel .pcai-wizard-nav button.primary { min-width: 132px; box-shadow: 0 5px 12px #5b50d12a; }
+.pcai-wizard-status { min-height: 16px; margin: -8px 1px 0; color: #68806f; font-size: 9px; line-height: 1.5; }
+.pcai-wizard-status.is-error { color: #ad4651; }
+.pcai-profile-summary { padding: 8px 10px; border-radius: 9px; background: #f0efff; color: #625a9d; font-size: 10px; line-height: 1.5; }
+#pcai-main-content[hidden],
+#pcai-onboarding[hidden] { display: none !important; }
+@keyframes pcai-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pcai-step-in { from { opacity: .4; transform: translateX(5px); } to { opacity: 1; transform: translateX(0); } }
+
 @media (max-width: 480px) {
-  #pcai-panel { width: calc(100vw - 16px); max-height: 84vh; }
+  #pcai-panel { width: calc(100vw - 16px); max-height: 88vh; }
+  .pcai-welcome-card, .pcai-step-card { padding: 12px; }
+  .pcai-choice-grid { gap: 6px; }
+  .pcai-choice-card { min-height: 40px; padding: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #pcai-toggle,
-  #pcai-panel button { transition: none; }
+  #pcai-panel button,
+  .pcai-onboarding,
+  .pcai-wizard-view,
+  .pcai-progress-track span,
+  .pcai-choice-card { animation: none; transition: none; }
 }
