@@ -4,7 +4,7 @@ import math
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,7 +113,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     app.state.llm, app.state.memory, app.state.profiles = client, store, profiles
     app.add_middleware(RequestLimitsMiddleware)
     # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
-    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type"])
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type", "idempotency-key"])
 
     def error_code(status_code: int, detail: object) -> tuple[str, str]:
         text = detail if isinstance(detail, str) else ""
@@ -680,9 +680,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         return {"accounts": profiles.list_accounts()}
 
     @app.post("/api/accounts", status_code=201)
-    async def create_account(payload: AccountInput):
+    async def create_account(payload: AccountInput, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")):
         try:
-            return profiles.create_account(payload)
+            return profiles.create_account(payload, idempotency_key)
         except ValueError as exc:
             raise HTTPException(409, str(exc))
 

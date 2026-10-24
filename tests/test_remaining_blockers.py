@@ -167,7 +167,7 @@ def test_actual_http_startup_and_restart_use_only_ephemeral_ports_and_synthetic_
     probe(Path(__file__).resolve().parents[1],copies,output)
     result=json.loads(output.read_text())
     assert result['original_snapshot_matches'] and result['restart_persistence']
-    assert result['copied_inputs_unchanged'] and all(port!=8765 for port in result['ports'])
+    assert result['copied_inputs_unchanged'] and all(port!=8000 for port in result['ports'])
 
 
 def test_french_api_keeps_both_real_courtesies_despite_false_reviewer_verdict(tmp_path):

@@ -230,6 +230,7 @@
 .pcai-trust-points { display: grid; gap: 8px; margin-top: 16px; padding-top: 13px; border-top: 1px solid #ececf4; color: #4b5670; font-size: 10px; }
 .pcai-trust-points span::first-letter { color: #39a77a; }
 .pcai-step-card { display: grid; gap: 12px; padding: 14px; }
+.pcai-account-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #66708a; font-size: 9px; }
 .pcai-detection-card { display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid #e5e5f1; border-radius: 12px; background: #f6f6fb; }
 .pcai-detection-card.is-detected { border-color: #d8d3ff; background: linear-gradient(110deg, #f3f1ff, #fff); }
 .pcai-detection-card > span { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border-radius: 9px; background: #e8e5ff; color: #5d52cc; }

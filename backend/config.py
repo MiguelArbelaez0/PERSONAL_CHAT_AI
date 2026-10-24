@@ -28,7 +28,7 @@ _load_local_env()
 @dataclass(frozen=True)
 class Settings:
     host: str = "127.0.0.1"
-    port: int = 8765
+    port: int = 8000
     lm_studio_base_url: str = "http://127.0.0.1:1234/v1"
     lm_studio_model: str = ""
     lm_studio_timeout: float = 90.0
@@ -60,7 +60,7 @@ class Settings:
         output_tokens = integer("LM_STUDIO_OUTPUT_TOKENS", 1200)
         if context_tokens <= output_tokens + 128:
             raise ValueError("LM_STUDIO_CONTEXT_TOKENS debe superar LM_STUDIO_OUTPUT_TOKENS en al menos 129 tokens")
-        port = integer("BACKEND_PORT", 8765)
+        port = integer("BACKEND_PORT", 8000)
         if port > 65535:
             raise ValueError("BACKEND_PORT debe ser <= 65535")
         host = os.getenv("BACKEND_HOST", "127.0.0.1").strip()

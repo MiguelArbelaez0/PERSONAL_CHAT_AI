@@ -57,7 +57,7 @@
         <label>Mensajes para el contexto<select id="pcai-context-window"><option value="8">8 mensajes</option><option value="12">12 mensajes</option><option value="20">20 mensajes</option><option value="30">30 mensajes</option><option value="40">40 mensajes</option><option value="100" selected>100 mensajes</option></select></label>
         <label>Límite de caracteres del historial<select id="pcai-context-char-budget"><option value="3000">3.000 caracteres</option><option value="6000">6.000 caracteres</option><option value="8000">8.000 caracteres</option><option value="12000" selected>12.000 caracteres</option></select></label>
         <div id="pcai-auto-diagnostic" class="pcai-auto-diagnostic" role="status" aria-live="polite"></div>
-        <label>URL del backend<input id="pcai-url" value="http://127.0.0.1:8765" /></label><button id="pcai-save-settings" type="button">Guardar URL</button>
+        <label>URL del backend<input id="pcai-url" value="http://127.0.0.1:8000" /></label><button id="pcai-save-settings" type="button">Guardar URL</button>
         <p>Usa «Elegir en página» para proponer un selector desde un elemento real, o inspecciónalo en DevTools. El candidato debe probarse con el DOM actual y no queda verificado al guardarlo.</p>
         ${selectorField('conversation', 'Contenedor del chat activo', 'Agrupa el alias y las filas de una sola conversación.')}
         ${selectorField('alias', 'Alias del interlocutor', 'Debe coincidir una vez dentro del chat activo.')}
@@ -114,7 +114,8 @@
   let autoTimer = null;
   const pendingAutoPayloads = new Map();
   const processedAutomaticKeys = new Set();
-  let base = 'http://127.0.0.1:8765';
+  const BackendConfig = globalThis.PCAIBackendConfig;
+  let base = BackendConfig.DEFAULT_URL;
   let currentAccountId = null;
   let currentAccount = null;
   let accountReady = false;
@@ -126,7 +127,9 @@
   let wizardEditing = false;
   let wizardDraft = null;
   let wizardProgressTimer = null;
+  let identityConfirmInFlight = false;
   let identityDetection = { status: 'unavailable', candidates: [] };
+  let wizardIdentityPrefillName = '';
   let detectedAccountMatch = null;
 
   function discoverStripchatSelectors() {
@@ -136,14 +139,6 @@
     probe.configure(Detector.stripchatSelectors);
     const report = probe.diagnose();
     return { selectors: { ...Detector.stripchatSelectors }, report };
-  }
-
-  function normalizeLoopback(raw) {
-    const url = new URL(raw);
-    if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || url.username || url.password || !['', '/'].includes(url.pathname) || url.search || url.hash) {
-      throw new Error('La URL del backend debe ser local: http://127.0.0.1:PUERTO');
-    }
-    return url.origin;
   }
 
   function clampPosition(element, left, top) {
@@ -213,7 +208,11 @@
   async function loadPrefs() {
     try {
       const data = await chrome.storage.local.get(['backendUrl', 'interlocutor', 'mode', 'selectors', 'processedAutomaticKeys', 'contextWindow', 'contextCharBudget', 'pcaiPanelPosition', 'pcaiTogglePosition']);
-      try { base = normalizeLoopback(data.backendUrl || base); } catch (_) { base = 'http://127.0.0.1:8765'; }
+      try {
+        const storedBackend = BackendConfig.resolveStoredBackendUrl(data.backendUrl);
+        base = storedBackend.url;
+        if (storedBackend.migrated) await chrome.storage.local.set({ backendUrl: base });
+      } catch (_) { base = BackendConfig.DEFAULT_URL; }
       $('#pcai-url').value = base;
       alias.value = data.interlocutor || '';
       selectors = data.selectors || {};
@@ -984,6 +983,48 @@
     node.textContent = text || '';
     node.className = `pcai-wizard-status${error ? ' is-error' : ''}`;
   }
+  function identityStatusMessage(detection) {
+    if (detection.status === 'ambiguous') return 'La identificación no es única; elige y confirma la cuenta correcta.';
+    if (detection.reason === 'authenticated_avatar_alt_unrecognized') return 'Stripchat reconoce la cabecera de modelo, pero su etiqueta de avatar no tiene un formato reconocido. Escribe tu nombre artístico manualmente.';
+    if (detection.reason === 'authenticated_name_not_in_dom') return 'Stripchat reconoce la sesión de modelo, pero no expone el nombre en esta página. Abre el menú de cuenta o escribe tu nombre artístico.';
+    if (detection.reason === 'detector_module_missing') return 'No se cargó el módulo de detección de identidad. Recarga la extensión y la página.';
+    if (detection.status === 'candidate') return 'Confirma la identidad detectada antes de usar el asistente.';
+    return 'No encontramos una señal fiable de identidad. Escribe tu nombre artístico para continuar.';
+  }
+  function logIdentityDiagnostic(detection) {
+    let runtimeDom = null;
+    try {
+      runtimeDom = {
+        authenticatedHeaderSelectorCount: document.querySelectorAll('.header-top.is-model-user').length,
+        dropdownControlCount: document.querySelectorAll('.header-top.is-model-user .nav-right .dropdown-link').length,
+        dropdownAvatarAltCount: document.querySelectorAll('.header-top.is-model-user .nav-right .dropdown-link img[alt]').length,
+      };
+    } catch (_) { runtimeDom = { readError: true }; }
+    console.info?.('[PERSONAL_CHAT_AI] identity diagnostic', {
+      diagnosticVersion: 2,
+      detectorLoaded: Boolean(AccountDetector?.detectAccount),
+      status: detection.status,
+      source: detection.identitySource || null,
+      platformIdAvailable: Boolean(detection.platformUserId),
+      reason: detection.reason || null,
+      counts: detection.diagnostics || null,
+      runtimeDom,
+    });
+  }
+  function refreshIdentityStep(detection) {
+    if (wizardEditing) return;
+    if (wizardStep === 1 && detection.status === 'candidate') wizardStep = 2;
+    if (wizardStep !== 2) return;
+    const currentName = String(wizardView.querySelector?.('#pcai-wizard-artist')?.value || '').trim();
+    const currentAccountChoice = String(wizardView.querySelector?.('#pcai-wizard-account')?.value || '');
+    const preserveManualName = Boolean(currentName && currentName !== wizardIdentityPrefillName);
+    renderWizard();
+    const nextName = wizardView.querySelector?.('#pcai-wizard-artist');
+    const nextAccount = wizardView.querySelector?.('#pcai-wizard-account');
+    if (nextName) nextName.value = preserveManualName ? currentName : (detection.status === 'candidate' ? detection.artistName : '');
+    if (nextAccount && currentAccountChoice) nextAccount.value = currentAccountChoice;
+    wizardStatus(identityStatusMessage(detection), detection.status !== 'candidate');
+  }
   function updateHeader() {
     const title = currentAccount?.confirmed && currentAccount.artist_name
       ? `Asistente de ${currentAccount.artist_name}` : 'Configura tu asistente';
@@ -1027,16 +1068,39 @@
       wizardView.innerHTML = '<div class="pcai-welcome-card"><span class="pcai-welcome-icon">✦</span><h2>Tu voz, tus reglas</h2><p>PERSONAL_CHAT_AI lee el contexto visible de tus conversaciones y prepara una respuesta original en el idioma del visitante, con traducción al español cuando corresponde.</p><div class="pcai-trust-points"><span>✓ Tus mensajes no se envían automáticamente</span><span>✓ Tus perfiles y recuerdos quedan separados por cuenta</span><span>✓ Puedes editar o copiar cada borrador antes de usarlo</span></div></div>';
     } else if (wizardStep === 2) {
       const candidate = identityDetection.status === 'candidate' ? identityDetection : null;
-      const preferredId = wizardDraft?.account_id || currentAccountId || detectedAccountMatch?.account?.id || '';
-      const choices = modelAccounts.map((account, index) => `<option value="${escapeHTML(account.id)}" ${account.id === preferredId ? 'selected' : ''}>${escapeHTML(account.artist_name || 'Cuenta sin nombre')}${modelAccounts.filter((item) => item.artist_name?.toLocaleLowerCase() === account.artist_name?.toLocaleLowerCase()).length > 1 ? ` · cuenta ${index + 1}` : ''}</option>`).join('');
+      wizardIdentityPrefillName = candidate?.artistName || '';
+      const preferredId = wizardDraft?.account_id || currentAccountId || '';
+      const choices = modelAccounts.map((account) => {
+        const created = account.created_at ? new Date(account.created_at).toLocaleDateString() : 'fecha desconocida';
+        const state = account.configured ? 'Configurada' : account.profile_count ? 'Configuración pendiente' : 'Sin perfil';
+        const shortId = String(account.id || '').slice(-8);
+        return `<option value="${escapeHTML(account.id)}" ${account.id === preferredId ? 'selected' : ''}>${escapeHTML(account.artist_name || 'Cuenta sin nombre')} · ${state} · ${created} · ID …${escapeHTML(shortId)}</option>`;
+      }).join('');
+      const duplicateNameCount = candidate
+        ? modelAccounts.filter((item) => item.platform === 'stripchat' && item.artist_name?.trim().toLocaleLowerCase() === candidate.artistName.toLocaleLowerCase()).length
+        : 0;
       const detectionText = candidate
         ? `Señal de cabecera detectada: ${escapeHTML(candidate.artistName)}. Confirma que corresponde a tu cuenta.`
         : identityDetection.status === 'ambiguous'
           ? 'La página muestra señales ambiguas. No seleccionaremos ninguna cuenta automáticamente; elige una cuenta o escribe el nombre.'
           : 'No encontramos una señal fiable en la cabecera. Escribe tu nombre artístico o selecciona una cuenta local.';
-      wizardView.innerHTML = `<div class="pcai-step-card"><div class="pcai-detection-card ${candidate ? 'is-detected' : 'is-manual'}"><span aria-hidden="true">${candidate ? '✦' : '◎'}</span><p>${detectionText}</p><button id="pcai-detect-account" type="button" class="pcai-link-button">Volver a detectar</button></div><label>Cuenta local<select id="pcai-wizard-account"><option value="">Crear una cuenta nueva</option>${choices}</select></label><label>Nombre artístico<input id="pcai-wizard-artist" maxlength="80" autocomplete="off" value="${escapeHTML(candidate?.artistName || currentAccount?.artist_name || '')}" placeholder="Escribe tu nombre artístico"></label><p class="pcai-inline-note">La identidad se confirma con tu elección. No leemos cookies, contraseñas ni tokens.</p></div>`;
+      wizardView.innerHTML = `<div class="pcai-step-card"><div class="pcai-detection-card ${candidate ? 'is-detected' : 'is-manual'}"><span aria-hidden="true">${candidate ? '✦' : '◎'}</span><p>${detectionText}</p><button id="pcai-detect-account" type="button" class="pcai-link-button">Volver a detectar</button></div><div class="pcai-account-list-heading"><span>${modelAccounts.length} ${modelAccounts.length === 1 ? 'cuenta local' : 'cuentas locales'}</span><button id="pcai-refresh-accounts" type="button" class="pcai-link-button">Actualizar lista</button></div><label>Cuenta local<select id="pcai-wizard-account"><option value="">Crear una cuenta nueva</option>${choices}</select></label><label>Nombre artístico<input id="pcai-wizard-artist" maxlength="80" autocomplete="off" value="${escapeHTML(candidate?.artistName || currentAccount?.artist_name || '')}" placeholder="Escribe tu nombre artístico"></label><p class="pcai-inline-note">La identidad se confirma con tu elección. No leemos cookies, contraseñas ni tokens.</p></div>`;
+      $('#pcai-refresh-accounts').onclick = async () => {
+        const selected = wizardView.querySelector?.('#pcai-wizard-account')?.value || '';
+        const name = wizardView.querySelector?.('#pcai-wizard-artist')?.value || '';
+        try {
+          const response = await api('/api/accounts');
+          modelAccounts = Array.isArray(response.accounts) ? response.accounts : [];
+          renderWizard();
+          const nextSelect = wizardView.querySelector?.('#pcai-wizard-account');
+          const nextInput = wizardView.querySelector?.('#pcai-wizard-artist');
+          if (nextSelect) nextSelect.value = selected;
+          if (nextInput) nextInput.value = name;
+          wizardStatus('Lista de cuentas actualizada. Elige explícitamente la cuenta correcta o crea otra.');
+        } catch (error) { wizardStatus(`No se pudo actualizar la lista: ${error.message}`, true); }
+      };
       $('#pcai-detect-account').onclick = () => {
-        identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [] };
+        identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [], reason: 'detector_module_missing' };
         detectedAccountMatch = globalThis.PCAIAccountSetup.matchDetectedAccount(modelAccounts, identityDetection);
         renderWizard();
         wizardStatus('Señales de identidad actualizadas; confirma manualmente la selección.');
@@ -1101,7 +1165,9 @@
         accountId: currentAccountId, profileId: editingProfileId, step: wizardStep,
         editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)),
       };
-      void chrome.storage.local.set({ pcaiSetupProgress: progress }).catch(() => {});
+      void chrome.storage.local.set({ pcaiSetupProgress: progress }).catch(() => {
+        wizardStatus('No se pudo guardar la copia local del progreso. Tus selecciones siguen en pantalla; pulsa Continuar para guardarlas en el backend.', true);
+      });
     }, 250);
   }
   function validateWizardStep() {
@@ -1131,21 +1197,32 @@
     accountObserver = AccountDetector.observeAccount(document, (result) => {
       identityDetection = result;
       detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, result) || null;
-      if (!currentAccountId || result.status === 'unavailable') return;
+      logIdentityDiagnostic(result);
+      if (!currentAccountId) {
+        refreshIdentityStep(result);
+        return;
+      }
+      const identityUnavailable = result.status === 'unavailable';
       const sameName = result.status === 'candidate' && result.artistName.toLocaleLowerCase() === currentAccount?.artist_name?.toLocaleLowerCase();
       const conflictingPlatformId = result.status === 'candidate' && result.platformUserId
         && result.platformUserId !== currentAccount?.platform_user_id;
-      const lostStableIdentity = result.status === 'candidate' && currentAccount?.platform_user_id && !result.platformUserId;
-      if (result.status === 'ambiguous' || (result.status === 'candidate' && (!sameName || conflictingPlatformId || lostStableIdentity))) {
+      const nameOnlyAuthenticatedContinuity = sameName && !result.platformUserId
+        && ['authenticated-header', 'editable-own-profile'].includes(result.identitySource);
+      const lostStableIdentity = result.status === 'candidate' && currentAccount?.platform_user_id
+        && !result.platformUserId && !nameOnlyAuthenticatedContinuity;
+      if (identityUnavailable || result.status === 'ambiguous' || (result.status === 'candidate' && (!sameName || conflictingPlatformId || lostStableIdentity))) {
         currentAccountId = null;
         currentAccount = null;
+        accountReady = false;
         results.replaceChildren();
         abortPending();
         wizardDraft = blankDraft();
         wizardStep = 2;
         detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, result) || null;
         showOnboarding(2, false);
-        wizardStatus('Detectamos un cambio o una identidad ambigua. Confirma la cuenta antes de continuar.', true);
+        wizardStatus(identityUnavailable
+          ? 'No podemos verificar la cuenta activa en esta página. Confirma tu identidad antes de continuar.'
+          : 'Detectamos un cambio o una identidad ambigua. Confirma la cuenta antes de continuar.', true);
         setPanelOpen(true);
       }
     });
@@ -1184,11 +1261,39 @@
     showOnboarding(step, false);
     setPanelOpen(true);
   }
+  async function recoverPendingAccountCreation() {
+    const stored = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+    const pending = stored.pcaiPendingAccountCreation;
+    if (!pending?.key || !pending?.payload) return;
+    try {
+      const account = await api('/api/accounts', {
+        method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify(pending.payload),
+      });
+      if (!account?.id || !account.confirmed) return;
+      modelAccounts = [...modelAccounts.filter((item) => item.id !== account.id), account];
+      await chrome.storage.local.set({
+        pcaiLastAccountId: account.id,
+        pcaiSetupProgress: { accountId: account.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) },
+      });
+      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+    } catch (error) {
+      console.warn?.('[PERSONAL_CHAT_AI] No se pudo recuperar una solicitud local de cuenta; se conserva para reintentar.');
+    }
+  }
   async function confirmIdentity() {
+    if (identityConfirmInFlight) return;
+    identityConfirmInFlight = true;
+    const confirmButton = $('#pcai-wizard-next');
+    confirmButton.disabled = true;
+    const originalButtonText = confirmButton.textContent;
+    confirmButton.textContent = 'Guardando identidad…';
+    try {
     const name = String(wizardView.querySelector?.('#pcai-wizard-artist')?.value || '').trim().replace(/\s+/g, ' ');
     const selectedId = wizardView.querySelector?.('#pcai-wizard-account')?.value || '';
     if (!name) throw new Error('Escribe o confirma el nombre artístico.');
     const previous = modelAccounts.find((item) => item.id === selectedId);
+    const sameNameAccounts = modelAccounts.filter((item) => item.platform === 'stripchat' && item.artist_name?.trim().toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (!previous && sameNameAccounts.length && !confirm(`Ya existen ${sameNameAccounts.length} cuentas locales con el nombre “${name}”. Crearás una cuenta independiente y no se combinarán sus datos. ¿Quieres continuar?`)) return;
     if (previous && identityDetection.platformUserId && previous.platform_user_id && previous.platform_user_id !== identityDetection.platformUserId) {
       throw new Error('La cuenta seleccionada no coincide con la identidad detectada. Elige la cuenta correcta o crea una nueva.');
     }
@@ -1200,7 +1305,23 @@
     };
     let saved;
     if (previous) saved = await api(`/api/accounts/${encodeURIComponent(previous.id)}`, { method: 'PUT', body: JSON.stringify(accountPayload) });
-    else saved = await api('/api/accounts', { method: 'POST', body: JSON.stringify(accountPayload) });
+    else {
+      const pendingResult = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+      let pending = pendingResult.pcaiPendingAccountCreation;
+      if (pending?.key && pending.payload && JSON.stringify(pending.payload) !== JSON.stringify(accountPayload)) {
+        throw new Error('Hay una creación de cuenta pendiente con otra identidad. Reintenta primero con el nombre confirmado originalmente para recuperar su UUID.');
+      }
+      if (!pending?.key) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        const key = [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
+        pending = { key, payload: accountPayload };
+        await chrome.storage.local.set({ pcaiPendingAccountCreation: pending });
+      }
+      saved = await api('/api/accounts', { method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify(pending.payload) });
+      await chrome.storage.local.set({ pcaiLastAccountId: saved.id, pcaiSetupProgress: { accountId: saved.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) } });
+      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+    }
     if (!saved?.id || !saved.confirmed) throw new Error('El backend no confirmó la identidad de la cuenta.');
     modelAccounts = [...modelAccounts.filter((item) => item.id !== saved.id), saved];
     wizardDraft = profileDraft(wizardDraft || blankDraft());
@@ -1213,27 +1334,33 @@
     wizardStep = Math.max(3, wizardStep === 2 ? 3 : wizardStep);
     showOnboarding(wizardStep, wizardEditing);
     wizardStatus('Identidad confirmada. Ahora configura tus preferencias.');
+    } finally {
+      identityConfirmInFlight = false;
+      confirmButton.disabled = false;
+      if (wizardStep === 2) confirmButton.textContent = originalButtonText;
+    }
   }
   async function initializeAssistant() {
     try {
       const accountData = await api('/api/accounts');
       modelAccounts = Array.isArray(accountData.accounts) ? accountData.accounts : [];
-      identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [] };
+      await recoverPendingAccountCreation();
+      identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [], reason: 'detector_module_missing' };
+      logIdentityDiagnostic(identityDetection);
       detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, identityDetection) || null;
       const saved = await chrome.storage.local.get(['pcaiLastAccountId', 'pcaiSetupProgress']);
       startAccountObserver();
-      if (identityDetection.status === 'candidate' && identityDetection.platformUserId && detectedAccountMatch?.status === 'platform_match' && detectedAccountMatch.account.confirmed) {
+      const detectedNameMatchesSaved = detectedAccountMatch?.status === 'platform_match'
+        && detectedAccountMatch.account.artist_name?.toLocaleLowerCase() === identityDetection.artistName?.toLocaleLowerCase();
+      if (identityDetection.status === 'candidate' && identityDetection.platformUserId && detectedNameMatchesSaved && detectedAccountMatch.account.confirmed) {
         await activateAccount(detectedAccountMatch.account);
         return;
       }
       const last = modelAccounts.find((item) => item.id === saved.pcaiLastAccountId);
       wizardDraft = blankDraft();
-      if (last) wizardDraft.account_id = last.id;
       wizardStep = modelAccounts.length || identityDetection.status !== 'unavailable' || last ? 2 : 1;
       showOnboarding(wizardStep, false);
-      wizardStatus(identityDetection.status === 'ambiguous'
-        ? 'La identificación no es única; elige y confirma la cuenta correcta.'
-        : 'Antes de usar el asistente, confirma la identidad de esta cuenta.', identityDetection.status === 'ambiguous');
+      wizardStatus(identityStatusMessage(identityDetection), identityDetection.status === 'ambiguous' || identityDetection.status === 'unavailable');
       setPanelOpen(true);
     } catch (error) {
       currentAccountId = null;
@@ -1352,7 +1479,16 @@
       await loadProfiles();
     } catch (error) { $('#pcai-profile-status').textContent = error.message; }
   };
-  $('#pcai-save-settings').onclick = async () => { try { base = normalizeLoopback($('#pcai-url').value.trim()); await chrome.storage.local.set({ backendUrl: base }); await check(); } catch (e) { status.textContent = e.message; } };
+  $('#pcai-save-settings').onclick = async () => {
+    try {
+      const nextUrl = BackendConfig.normalizeBackendUrl($('#pcai-url').value.trim());
+      const hostPermissions = chrome.runtime?.getManifest?.().host_permissions || [];
+      if (!BackendConfig.isCoveredByHostPermissions(nextUrl, hostPermissions)) throw new Error('Chrome no ha concedido permiso de conexión para esta URL local. Recarga la extensión y vuelve a intentarlo.');
+      base = nextUrl;
+      await chrome.storage.local.set({ backendUrl: base });
+      await check();
+    } catch (e) { status.textContent = e.message; }
+  };
   $('#pcai-test-selectors').onclick = () => {
     const candidate = formSelectors();
     const tester = new Detector({ document, onUpdate: () => {}, onIncoming: () => {} });

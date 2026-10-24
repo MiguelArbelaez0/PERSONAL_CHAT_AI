@@ -79,6 +79,48 @@ def test_account_identity_is_stable_independent_of_artist_name_and_has_timestamp
     assert store.update_account("missing", AccountInput(confirmed=False)) is None
 
 
+def test_account_creation_idempotency_recovers_same_uuid_and_rejects_key_reuse(tmp_path):
+    app = empty_app(tmp_path)
+    request_header_name = "Idempotency" + "-Key"
+    request_header_value = "0123456789abcdef" * 2
+    headers = {request_header_name: request_header_value}
+    payload = {"artist_name": "Retry Star", "confirmed": True, "identity_source": "dom"}
+    first = request(app, "POST", "/api/accounts", json=payload, headers=headers)
+    retry = request(app, "POST", "/api/accounts", json=payload, headers=headers)
+    assert first.status_code == 201
+    assert retry.status_code == 201
+    assert retry.json()["id"] == first.json()["id"]
+    assert len(request(app, "GET", "/api/accounts").json()["accounts"]) == 1
+    changed = request(app, "POST", "/api/accounts", json={**payload, "artist_name": "Other Star"}, headers=headers)
+    assert changed.status_code == 409
+    assert len(request(app, "GET", "/api/accounts").json()["accounts"]) == 1
+
+
+def test_stripchat_cors_preflight_allows_account_idempotency_header_only_for_allowed_origin(tmp_path):
+    app = empty_app(tmp_path)
+    headers = {
+        "Origin": "https://es.stripchat.com",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,idempotency-key",
+    }
+    allowed = request(app, "OPTIONS", "/api/accounts", headers=headers)
+    assert allowed.status_code == 200
+    assert "idempotency-key" in allowed.headers["access-control-allow-headers"].lower()
+    denied = request(app, "OPTIONS", "/api/accounts", headers={**headers, "Origin": "https://example.com"})
+    assert denied.status_code == 400
+
+
+def test_account_list_includes_configuration_metadata_for_duplicate_names(tmp_path):
+    app = empty_app(tmp_path)
+    first = request(app, "POST", "/api/accounts", json={"artist_name": "Same", "confirmed": True}).json()
+    second = request(app, "POST", "/api/accounts", json={"artist_name": "Same", "confirmed": True}).json()
+    accounts = request(app, "GET", "/api/accounts").json()["accounts"]
+    assert len(accounts) == 2
+    assert len({item["id"] for item in accounts}) == 2
+    assert all(item["profile_count"] == 0 and item["configured"] is False for item in accounts)
+    assert first["id"] != second["id"]
+
+
 def test_platform_user_id_is_unique_only_when_present_and_confirmed_requires_name(tmp_path):
     with pytest.raises(ValidationError):
         AccountInput(platform="stripchat", confirmed=True)

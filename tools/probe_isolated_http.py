@@ -29,7 +29,7 @@ synthetic_id=None
 for restart in range(2):
     listener=socket.socket(); listener.bind(('127.0.0.1',0)); listener.listen(128)
     port=listener.getsockname()[1]; report['ports'].append(port)
-    assert port != 8765
+    assert port != 8000
     server=uvicorn.Server(uvicorn.Config(create_app(replace(settings,port=port)),host='127.0.0.1',port=port,access_log=False,log_level='error'))
     thread=threading.Thread(target=server.run,kwargs={'sockets':[listener]},daemon=True)
     thread.start()
@@ -86,7 +86,7 @@ def probe(source, copies, output):
         ))
         (root/'probe.py').write_text(CHILD,encoding='utf-8')
         env=os.environ.copy()
-        env.update(PCAI_DATABASE_PATH=str(target),DATABASE_PATH=str(root/'data/personal_chat_ai.sqlite3'),PERSONALITIES_DATABASE_PATH=str(root/'data/personalities.sqlite3'),KNOWLEDGE_PATH=str(root/'knowledge'),BACKEND_HOST='127.0.0.1',BACKEND_PORT='8765',LOG_LEVEL='ERROR',LM_STUDIO_BASE_URL='http://127.0.0.1:1234/v1',LM_STUDIO_MODEL='qwen/qwen3-4b-2507')
+        env.update(PCAI_DATABASE_PATH=str(target),DATABASE_PATH=str(root/'data/personal_chat_ai.sqlite3'),PERSONALITIES_DATABASE_PATH=str(root/'data/personalities.sqlite3'),KNOWLEDGE_PATH=str(root/'knowledge'),BACKEND_HOST='127.0.0.1',BACKEND_PORT='8000',LOG_LEVEL='ERROR',LM_STUDIO_BASE_URL='http://127.0.0.1:1234/v1',LM_STUDIO_MODEL='qwen/qwen3-4b-2507')
         result=subprocess.run([sys.executable,'probe.py'],cwd=root,env=env,capture_output=True,text=True,timeout=60)
         if result.returncode:
             raise RuntimeError(result.stderr[-3000:])

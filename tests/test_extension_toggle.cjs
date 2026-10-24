@@ -44,7 +44,8 @@ test('floating button mounts in body, opens/closes the panel, and avoids duplica
   const window = {};
   const context = vm.createContext({
     window, document, URL, console, setTimeout, PCAISuggestionFlow: SuggestionFlow,
-    chrome: { storage: { local: { get: async () => ({}), set: async () => {} } } },
+    PCAIBackendConfig: require('../extension/backend-config.js'),
+    chrome: { runtime: { getManifest: () => JSON.parse(fs.readFileSync(path.join(rootDir, 'extension', 'manifest.json'), 'utf8')) }, storage: { local: { get: async () => ({}), set: async () => {} } } },
     fetch: async () => ({ ok: true, status: 200, json: async () => ({ available: false }) }),
     navigator: { clipboard: { writeText: async () => {} } },
     confirm: () => true,

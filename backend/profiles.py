@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import sqlite3
 import uuid
@@ -155,6 +156,12 @@ class ProfileStore:
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS model_accounts_platform_id_uq
                     ON model_accounts(platform, platform_user_id) WHERE platform_user_id IS NOT NULL;
+                CREATE TABLE IF NOT EXISTS account_creation_requests (
+                    idempotency_key TEXT PRIMARY KEY,
+                    payload_hash TEXT NOT NULL,
+                    account_id TEXT NOT NULL REFERENCES model_accounts(id) ON DELETE CASCADE,
+                    created_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS profiles (
                     id TEXT PRIMARY KEY,
                     account_id TEXT NOT NULL REFERENCES model_accounts(id) ON DELETE CASCADE,
@@ -215,7 +222,18 @@ class ProfileStore:
     def list_accounts(self) -> list[dict]:
         with self._connect() as db:
             rows = db.execute("SELECT * FROM model_accounts ORDER BY created_at,id").fetchall()
-            return [self._account(row) for row in rows]
+            accounts = []
+            for row in rows:
+                setting = db.execute("SELECT active_profile_id FROM account_settings WHERE account_id=?", (row["id"],)).fetchone()
+                profiles = db.execute("SELECT * FROM profiles WHERE account_id=? ORDER BY created_at,id", (row["id"],)).fetchall()
+                profile_dicts = [self._profile(profile) for profile in profiles]
+                active = next((p for p in profile_dicts if setting and p["id"] == setting["active_profile_id"]), None)
+                accounts.append({
+                    **self._account(row),
+                    "profile_count": len(profiles),
+                    "configured": self._is_ready(row, active),
+                })
+            return accounts
 
     @staticmethod
     def _account(row: sqlite3.Row) -> dict:
@@ -230,19 +248,39 @@ class ProfileStore:
             row = db.execute("SELECT * FROM model_accounts WHERE id=?", (account_id,)).fetchone()
             return self._account(row) if row else None
 
-    def create_account(self, payload: AccountInput) -> dict:
+    def create_account(self, payload: AccountInput, idempotency_key: str | None = None) -> dict:
+        if idempotency_key is not None and (not re.fullmatch(r"[a-fA-F0-9-]{32,36}", idempotency_key)):
+            raise ValueError("La clave de reintento de creación no tiene un formato válido.")
+        payload_hash = hashlib.sha256(payload.model_dump_json(exclude_none=False).encode("utf-8")).hexdigest()
         account_id = uuid.uuid4().hex
         now = _now()
         try:
             with self._connect() as db:
+                if idempotency_key:
+                    previous = db.execute("SELECT payload_hash,account_id FROM account_creation_requests WHERE idempotency_key=?", (idempotency_key,)).fetchone()
+                    if previous:
+                        if previous["payload_hash"] != payload_hash:
+                            raise ValueError("La clave de reintento ya se utilizó con otra identidad. Confirma una nueva creación.")
+                        row = db.execute("SELECT * FROM model_accounts WHERE id=?", (previous["account_id"],)).fetchone()
+                        if row:
+                            return self._account(row)
                 db.execute("INSERT INTO model_accounts VALUES (?,?,?,?,?,?,?,?)", (
                     account_id, payload.platform, payload.artist_name, payload.platform_user_id,
                     payload.identity_source, int(payload.confirmed), now, now,
                 ))
                 db.execute("INSERT INTO account_settings(account_id,active_profile_id,updated_at) VALUES (?,NULL,?)", (account_id, now))
+                if idempotency_key:
+                    db.execute("INSERT INTO account_creation_requests VALUES (?,?,?,?)", (idempotency_key, payload_hash, account_id, now))
                 row = db.execute("SELECT * FROM model_accounts WHERE id=?", (account_id,)).fetchone()
                 return self._account(row)
         except sqlite3.IntegrityError as exc:
+            if idempotency_key:
+                with self._connect() as db:
+                    previous = db.execute("SELECT payload_hash,account_id FROM account_creation_requests WHERE idempotency_key=?", (idempotency_key,)).fetchone()
+                    if previous and previous["payload_hash"] == payload_hash:
+                        row = db.execute("SELECT * FROM model_accounts WHERE id=?", (previous["account_id"],)).fetchone()
+                        if row:
+                            return self._account(row)
             if payload.platform_user_id:
                 raise ValueError("Ya existe una cuenta local con ese identificador de plataforma.") from exc
             raise
