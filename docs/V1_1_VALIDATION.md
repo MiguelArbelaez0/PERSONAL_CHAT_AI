@@ -1,6 +1,8 @@
 # Registro histórico de validación previa
 
-La verificación vigente de la tarea integral está en [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md) y [benchmarks/RESULTS.md](benchmarks/RESULTS.md). Las cifras y afirmaciones inferiores describen etapas anteriores, conservadas como evidencia. Chrome/Stripchat real continúa pendiente.
+> Este documento registra etapas de v1.1.0-rc.1. Sus estados de validación pendiente y publicación describen aquella candidata; no describen v1.2.0, que está publicada como versión estable.
+
+En el momento de ese registro, la verificación vigente de la tarea integral estaba en [STABILIZATION_2026_10_21.md](STABILIZATION_2026_10_21.md) y [benchmarks/RESULTS.md](benchmarks/RESULTS.md). Las cifras y afirmaciones inferiores describen etapas anteriores, conservadas como evidencia. Chrome/Stripchat real continuaba pendiente para aquella candidata.
 
 # v1.1.0-rc.1: auditoría y validación
 

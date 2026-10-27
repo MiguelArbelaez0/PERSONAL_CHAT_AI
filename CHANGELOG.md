@@ -1,5 +1,7 @@
 # v1.2.0 — versión estable
 
+La Release estable v1.2.0 está publicada en GitHub. Los registros posteriores a la sección de v1.1.0 documentan etapas de desarrollo fechadas anteriores a esa publicación; cualquier estado de aprobación o publicación indicado allí corresponde únicamente al momento descrito y no al estado actual.
+
 - Instalación neutral y cuentas de modelo con UUID, onboarding de ocho pasos y perfiles por cuenta.
 - Separación de memoria por cuenta y visitante; migración v1.1 explícita y conservadora.
 - Confirmación humana de identidad Stripchat; no se envían mensajes automáticamente.
@@ -10,20 +12,20 @@
 
 Publicación estable autorizada tras aprobación manual de Chrome/Stripchat. Metadatos finales de backend/extensión y documentación; sin cambios funcionales respecto a 9b51913. Se conservan las limitaciones descritas en RELEASE_NOTES.md y todo el historial previo.
 
-# Cambios
+# Registros históricos de desarrollo anteriores a la publicación de v1.2.0
 
 ## Cierre de los tres casos — 22 de octubre de 2026
 
-Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. 311 Python y 71 JavaScript aprobadas; HTTP real en puertos aislados, sin detener 8765. Resultados y límites vigentes: [docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se respalda únicamente develop; no hay publicación estable ni cambios en main. Los apartados inferiores son históricos.
+Registro del 22 de octubre de 2026: se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. En ese cierre se reportaron 311 pruebas Python y 71 JavaScript aprobadas, además de HTTP real en puertos aislados. Los resultados de esa etapa están en [docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). La nota de que solo se respaldaba `develop` y no había publicación corresponde al estado de esa fecha, anterior a la Release v1.2.0.
 
-## Finalización vigente — 22 de octubre de 2026
+## Finalización registrada el 22 de octubre de 2026 (estado previo a la Release v1.2.0)
 
-MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [docs/FINALIZATION_2026_10_22.md](docs/FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. El informe [docs/FINALIZATION_2026_10_22.md](docs/FINALIZATION_2026_10_22.md) registra el estado y los resultados de aquella etapa. La condición de publicación descrita allí fue sustituida por la publicación estable de v1.2.0.
 
 
-## Auditoría vigente — 22 de octubre de 2026
+## Auditoría registrada el 22 de octubre de 2026 (previa a la Release v1.2.0)
 
-Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). En esa etapa, el proyecto estaba en preparación para aprobación y sin publicar. El usuario había confirmado pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. En aquel momento la licencia seguía pendiente y la evaluación sintética de esa etapa conservaba fallos semánticos; no se declaraba estable. La Release v1.2.0 se publicó posteriormente.
 
 
 ## Cierre adicional de 1.1.0-rc.1 (2026-10-21; respaldo de desarrollo autorizado)

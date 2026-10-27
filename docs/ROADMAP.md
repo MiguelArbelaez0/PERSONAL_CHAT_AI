@@ -1,21 +1,25 @@
-# Hoja de ruta
+# Hoja de ruta posterior a v1.2.0
 
-La secuencia siguiente es una propuesta de trabajo, no una promesa de publicación.
+La versión estable v1.2.0 está publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0). Esta hoja propone áreas para mantenimiento y una posible v1.3.0; no promete fechas ni funciones y no indica que el trabajo ya esté implementado.
 
-## Antes de una versión pública
+## P0 — Coherencia documental y seguridad local
 
-- Mantener el backend limitado a loopback; el acceso remoto no está soportado en esta versión.
-- Migrar las referencias activas del repositorio de desarrollo a la historia limpia solo con autorización del titular; evaluar el alcance y las limitaciones de copias externas.
-- Acordar el número de versión y la estrategia de rama predeterminada.
-- Completar pruebas manuales con Chrome, Stripchat y LM Studio local.
-- Elegir una licencia y revisar licencias de dependencias/modelos para el uso previsto.
+- Mantener sincronizados los documentos de estado, instalación y seguridad con las versiones publicadas.
+- Revisar la frontera de confianza de la API local sin quitar la restricción de loopback ni asumir que CORS es autenticación.
 
-## Estabilización
+## P1 — Estabilidad y confiabilidad
 
-- Mantener pruebas para roles, idioma, traducción, errores, cambios de chat y modos Automático/Manual/Desactivado.
-- Documentar los cambios de selectores del sitio y el procedimiento de diagnóstico sin datos privados.
-- Revisar dependencias fijadas y aplicar actualizaciones con regresión automatizada.
+- Mantener pruebas de regresión para onboarding, aislamiento por cuenta, memoria, cambio de chat, roles, idiomas, traducción y modos Automático/Manual/Desactivado.
+- Añadir validación reproducible en Chrome para señales de identidad, cambios del DOM y cambios de cuenta; distinguir esos resultados de fixtures simulados.
+- Revisar cómo se identifica un visitante cuando el alias cambia o no es único, sin fusionar recuerdos por nombre.
+- Continuar evaluando las respuestas y traducciones con conjuntos sintéticos y conservar también los rechazos y fallos.
 
-## Posible comercialización
+## P2 — Rendimiento y mantenibilidad
 
-No hay pagos, licencias comerciales, cuentas ni activación remota implementados. Antes de explorar una oferta comercial se requiere definir titularidad y licencia, empaquetado, soporte, actualización segura, protección de datos, costos del modelo y condiciones del sitio. Esta sección no constituye una decisión legal ni una promesa de funciones.
+- Medir latencia y uso de recursos con modelo, equipo, configuración y revisión de código identificados.
+- Reforzar integridad referencial SQLite y recuperación ante bases existentes mediante migraciones probadas en copias temporales.
+- Revisar dependencias fijadas con análisis de seguridad y pruebas de regresión antes de actualizar.
+
+## P3 — Funciones opcionales
+
+No se propone aquí una función de pago, acceso remoto, envío automático ni gestión remota de modelos. Cualquier cambio de ese tipo requeriría una decisión de producto y una revisión de seguridad y privacidad independiente.

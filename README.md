@@ -157,4 +157,4 @@ El código original está bajo [licencia MIT](LICENSE), Copyright (c) 2026 Migue
 
 ## Estado y hoja de ruta
 
-Las [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md) describen condiciones operativas y las [notas v1.2.0](docs/RELEASE_NOTES_V1_2.md) resumen los cambios. La publicación permanece pendiente de revisar y aprobar los cambios locales y la privacidad del historial Git. El historial anterior a v1.2.0 se conserva en `CHANGELOG.md`.
+La [Release estable v1.2.0](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0) está publicada en GitHub. Las [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md) describen las condiciones operativas; el [CHANGELOG](CHANGELOG.md) conserva los registros históricos de desarrollo y publicación anteriores.

@@ -1,6 +1,6 @@
-# Seguridad — v1.2.0 en auditoría
+# Seguridad — PERSONAL_CHAT_AI v1.2.0
 
-v1.2.0 aún no está publicada. Esta nota describe la configuración de la rama auditada; no es una certificación de seguridad.
+La versión estable v1.2.0 está publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0). Esta nota describe los controles y límites conocidos; no constituye una certificación de seguridad ni una evaluación externa.
 
 ## Límites de red y navegador
 
@@ -18,11 +18,11 @@ v1.2.0 aún no está publicada. Esta nota describe la configuración de la rama 
 - La identidad se infiere de elementos visibles del DOM y requiere confirmación. No se leen cookies, tokens ni contraseñas.
 - La migración v1.1 es explícita; el arranque normal no importa datos ni asigna memorias a cuentas nuevas.
 
-## Verificaciones de esta auditoría
+## Verificaciones registradas para la publicación v1.2.0
 
-Las pruebas automatizadas comprueban host loopback, permisos del manifiesto, CORS, validación de entradas e aislamiento por cuenta. Gitleaks se ejecutó sobre la historia y los cambios que se incluirían en la revisión; consulta el informe de auditoría v1.2.0 para el resultado exacto. Las pruebas no sustituyen una evaluación externa ni la revisión de los objetos públicos históricos.
+La documentación de publicación registra pruebas automatizadas para host loopback, permisos del manifiesto, CORS, validación de entradas e aislamiento por cuenta, además de una ejecución de Gitleaks sobre la historia y los cambios de publicación. Son resultados de aquella auditoría, no comprobaciones ejecutadas al actualizar este documento. Las pruebas no sustituyen una evaluación externa ni la revisión de los objetos públicos históricos.
 
-La historia anterior de v1.1 contiene referencias documentales a un nombre artístico usado en esa versión. El paquete v1.2 debe incluir solo la documentación pública revisada. Esta auditoría no reescribe la historia Git ni declara que copias externas hayan sido eliminadas.
+La historia anterior de v1.1 contiene referencias documentales a un nombre artístico usado en esa versión. El empaquetador local [tools/build_distribution.py](../tools/build_distribution.py) utiliza una lista explícita de documentación pública para su ZIP; eso no sanea el historial Git ni elimina forks, cachés o copias externas.
 
 ## Uso seguro
 

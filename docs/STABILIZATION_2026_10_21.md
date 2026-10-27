@@ -1,5 +1,7 @@
 # Estabilización integral del 21 de octubre de 2026
 
+> **Registro histórico de v1.1.0-rc.1, anterior a la Release estable v1.2.0.** Los estados de revisión, publicación y validación pendientes describen esa etapa y no el estado actual.
+
 **Informe histórico de la tarea anterior.** El cierre vigente con correcciones adicionales, pruebas y respaldo autorizado está en [CLOSURE_2026_10_21.md](CLOSURE_2026_10_21.md). Los estados sin commit/push y las cifras inferiores corresponden a aquella tarea.
 
 Estado: PERSONAL_CHAT_AI v1.1.0-rc.1 en desarrollo, **todavía bloqueada para aprobación como estable**. Trabajo local sobre `develop`, base `9fb0ba4bba9779f71478a285762ff4fe1689371f`. No se hicieron commit, push, merge, tags ni releases durante esta tarea. `main` se conserva en `d4ba4df447765708bb2a79c430222fe3f3e49fe0`.

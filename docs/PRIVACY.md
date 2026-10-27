@@ -24,6 +24,6 @@ El backend y LM Studio deben permanecer en loopback. Esta versión no admite acc
 
 ## Publicación y documentación histórica
 
-El paquete v1.2.0 debe excluir bases, conversaciones, memorias, respaldos y reportes internos. El repositorio ya contiene documentación histórica de v1.1 con un nombre artístico real de esa versión; este trabajo no reescribe la historia Git ni puede eliminar forks, cachés o copias externas. La distribución selecciona una lista explícita de documentación revisada.
+El empaquetador local `tools/build_distribution.py` selecciona una lista explícita de archivos y excluye bases, conversaciones, memorias, respaldos y reportes internos del ZIP que genera. El historial Git conserva documentación histórica de v1.1 con un nombre artístico usado en esa versión; esta nota no afirma que forks, cachés o copias externas hayan sido eliminados.
 
 Para reportar problemas, comparte códigos y mensajes técnicos redactados. No compartas alias, mensajes, notas, capturas de chats, `.env` ni rutas de usuario.

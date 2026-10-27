@@ -1,5 +1,7 @@
 # Cierre de los tres bloqueos — 22 de octubre de 2026
 
+> **Registro histórico previo a la Release v1.2.0.** La frase “no se publica main, PR, tag ni Release” describe únicamente el estado de desarrollo de este informe, anterior a la publicación estable de v1.2.0.
+
 Base: develop, commit 3ed11fc. MIT aprobada. Se trabaja únicamente en desarrollo; no se publica main, PR, tag ni Release. Este informe sustituye las conclusiones sobre estos tres casos del informe FINALIZATION_2026_10_22.md, conservado como evidencia histórica.
 
 ## Reproducción anterior a las correcciones

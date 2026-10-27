@@ -30,7 +30,7 @@ El backend solo inicia con `BACKEND_HOST=127.0.0.1`; valores externos o ambiguos
 
 ## Versiones
 
-El manifiesto y FastAPI declaran `1.2.0`; esta rama está en auditoría y no equivale a publicación. La API conserva el contrato `1.0` para las solicitudes existentes. La última versión estable publicada es `v1.1.0`.
+El manifiesto y FastAPI declaran `1.2.0`. La versión estable v1.2.0 está publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0); v1.1.0 es la versión estable anterior. La API conserva el contrato `1.0` para las solicitudes existentes.
 
 ## Cuentas y perfiles en v1.2
 

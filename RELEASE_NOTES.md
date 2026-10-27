@@ -2,6 +2,8 @@
 
 PERSONAL_CHAT_AI v1.2.0 — Personalized Assistant. Las funciones, validaciones y limitaciones se describen en las [notas de v1.2.0](docs/RELEASE_NOTES_V1_2.md) y [limitaciones conocidas](docs/KNOWN_ISSUES_V1_2.md). Las secciones inferiores conservan las notas históricas de v1.1.0 y versiones anteriores; sus puertos e instrucciones son históricos cuando difieren de la configuración actual. La usuaria confirmó manualmente el flujo v1.2.0 en Chrome/Stripchat.
 
+> **Archivo histórico:** desde la sección siguiente se conservan notas de v1.1.0 y etapas previas a la publicación de v1.2.0. Los estados de “pendiente”, “bloqueada” o “sin publicar” y las instrucciones de esos registros describen su fecha original, no el estado ni el procedimiento vigente. Para instalar la versión actual, consulta [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
 # PERSONAL_CHAT_AI v1.1.0 — Stable Release
 
 Publicación aprobada por el propietario tras pruebas manuales finales satisfactorias en Chrome y Stripchat. Las etapas rc.1 inferiores se conservan como historial y no describen el estado vigente.
@@ -43,19 +45,19 @@ MIT, Copyright (c) 2026 Miguel Arbeláez Vallejo. Los componentes de terceros co
 
 ## Cierre de los tres casos — 22 de octubre de 2026
 
-Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. 311 Python y 71 JavaScript aprobadas; HTTP real en puertos aislados, sin detener 8765. Resultados y límites vigentes: [docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se respalda únicamente develop; no hay publicación estable ni cambios en main. Los apartados inferiores son históricos.
+Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. En esa etapa se reportaron 311 pruebas Python y 71 JavaScript aprobadas, además de HTTP real en puertos aislados. Los resultados de esa fecha están en [docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md](docs/CLOSURE_THREE_BLOCKERS_2026_10_22.md). El respaldo exclusivo a develop y la ausencia de publicación describen el estado previo a v1.2.0.
 
-## Finalización vigente — 22 de octubre de 2026
+## Finalización registrada — 22 de octubre de 2026
 
-MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [docs/FINALIZATION_2026_10_22.md](docs/FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
-
-
-## Auditoría vigente — 22 de octubre de 2026
-
-Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md). Preparación para aprobación, sin publicación. El usuario confirma pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. La licencia sigue pendiente y la evaluación sintética actual conserva fallos semánticos; no se declara estable. Los apartados anteriores en fecha son históricos y sus cifras/pendientes no sustituyen este informe.
+MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. El informe [docs/FINALIZATION_2026_10_22.md](docs/FINALIZATION_2026_10_22.md) conserva el estado y los resultados de esa fecha. La condición de publicación descrita allí precede a la Release estable v1.2.0.
 
 
-## Cierre vigente de rc.1 — respaldo exclusivo de develop
+## Auditoría registrada — 22 de octubre de 2026
+
+Véase [docs/AUDIT_2026_10_22.md](docs/AUDIT_2026_10_22.md), registro de preparación para aprobación anterior a la Release v1.2.0. El usuario había confirmado pruebas manuales satisfactorias en Chrome de perfiles persistentes, cuatro idiomas, modos y copia, sin envío automático. En aquella fecha la licencia seguía pendiente y la evaluación sintética conservaba fallos semánticos; el proyecto no se declaraba estable.
+
+
+## Cierre registrado de rc.1 — respaldo exclusivo de develop
 
 Correcciones adicionales de emoji, evidencia por autor, idioma, variación y reintento de traducción con contexto mínimo. 253 Python y 61 JavaScript aprobadas. Repeticiones reales y fallos en el [informe de cierre](docs/CLOSURE_2026_10_21.md). Se conservan perfiles, nombre de prueba, memoria, modos y copia. Sin nuevas dependencias, permisos o modelo. Calidad, validación humana y licencia siguen pendientes: **no es estable ni aprobación para integrar main**. Las secciones inferiores son históricas.
 

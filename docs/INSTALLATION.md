@@ -1,8 +1,8 @@
 # Instalación
 
-Esta guía describe la instalación local en Windows desde el código de la rama v1.2.0. **v1.2.0 está en auditoría y aún no se ha publicado**; la última versión estable es v1.1.0. No sustituyas una instalación estable ni compartas sus datos.
+Esta guía describe la instalación local en Windows de la versión estable v1.2.0, publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0). Descarga el código fuente de esa Release o clona la etiqueta `v1.2.0`; instálalo en una carpeta propia y conserva los datos de instalaciones anteriores. v1.1.0 es la versión estable anterior.
 
-Para probar v1.2.0, usa una carpeta nueva y una base `PCAI_DATABASE_PATH` separada. El inicio normal no migra datos de v1.1. La importación se realiza únicamente con la herramienta explícita de migración y debe prepararse sobre una copia de seguridad.
+En una instalación nueva, usa una carpeta propia y una base `PCAI_DATABASE_PATH` separada. El inicio normal no migra datos de v1.1. La importación se realiza únicamente con la herramienta explícita de migración y debe prepararse sobre una copia de seguridad.
 
 ## Requisitos
 
@@ -78,10 +78,12 @@ node --test tests/*.cjs
 
 Las limitaciones operativas están en [KNOWN_ISSUES_V1_2.md](KNOWN_ISSUES_V1_2.md). Las pruebas automatizadas no sustituyen la comprobación manual en Chrome y Stripchat.
 
-## Paquete de revisión v1.1.0
+## Instrucciones históricas del paquete v1.1.0
+
+> Esta sección describe el paquete anterior v1.1.0; no son los pasos de instalación de la Release actual. En caso de diferencia, sigue las instrucciones de v1.2.0 anteriores.
 
 Extrae el ZIP en una carpeta nueva; no reemplaces una instalación anterior ni sus datos. La carpeta raíz es PERSONAL_CHAT_AI_v1.1.0. Ejecuta INSTALAR_PERSONAL_CHAT_AI.bat: crea .venv, instala requirements.txt y copia .env.example solo si .env no existe. Necesita Python 3.11+ disponible mediante py o python y acceso al índice de paquetes. No instala LM Studio ni descarga modelos. Si Python falta, instala Python desde su proveedor y habilita el lanzador o PATH; vuelve a ejecutar el instalador.
 
 Configura el modelo Qwen indicado en esta guía. Ejecuta INICIAR_PERSONAL_CHAT_AI.bat; el backend queda en esa ventana y se cierra con Ctrl+C. El lanzador detecta el puerto efectivo del backend desde la configuración existente y evita iniciar una segunda instancia. Para actualizar, conserva una copia verificada de .env, data y knowledge/local; no reemplaces bases ni perfiles por los del paquete (no se incluye ninguno). Usa primero la carpeta nueva sin datos personales y comprueba las funciones.
 
-La licencia MIT fue aprobada por el titular; la publicación depende de las verificaciones funcionales vigentes. El ZIP es material de revisión del propietario. Consulta AUDIT_2026_10_22.md para alcance de instalación limpia realmente comprobado.
+La Release v1.1.0 se publicó antes de v1.2.0. Las afirmaciones sobre verificaciones pendientes y el paquete de revisión reflejan el estado de aquel artefacto y no describen la publicación actual.

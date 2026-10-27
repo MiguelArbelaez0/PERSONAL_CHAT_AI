@@ -1,4 +1,6 @@
-# Estado vigente — 22 de octubre de 2026
+# Archivo histórico de estado — 22 de octubre de 2026
+
+> Este documento conserva estados de trabajo registrados el 22 de octubre de 2026, antes de la publicación de v1.2.0. Las expresiones “vigente”, “pendiente”, “bloqueada” o “sin publicación” describen esa fecha. La versión estable actual es v1.2.0, publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0). Para el estado actual, consulta README.md y docs/KNOWN_ISSUES_V1_2.md.
 
 ## Publicación v1.1.0 aprobada — 22 de octubre de 2026
 
@@ -7,16 +9,16 @@ El propietario confirmó pruebas manuales satisfactorias de los tres casos en Ch
 
 ## Cierre de los tres casos — 22 de octubre de 2026
 
-Se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. 311 Python y 71 JavaScript aprobadas; entrega LM Studio 11/13, traducción 10/10, francés 4/4 y reintentos portugueses reales 2/2. Candidata para revisión final, con limitaciones menores documentadas; HTTP real en puertos aislados, sin detener 8765. Resultados y límites vigentes: [CLOSURE_THREE_BLOCKERS_2026_10_22.md](CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se respalda únicamente develop; no hay publicación estable ni cambios en main. Los apartados inferiores son históricos.
+Registro del 22 de octubre de 2026: se corrigieron el respaldo de preferencias por hablante, las cortesías francesas reproducidas y la resolución/reparación acotada del referente portugués. En ese cierre se reportaron 311 pruebas Python y 71 JavaScript aprobadas; entrega LM Studio 11/13, traducción 10/10, francés 4/4 y reintentos portugueses reales 2/2. Los resultados vigentes en esa fecha están en [CLOSURE_THREE_BLOCKERS_2026_10_22.md](CLOSURE_THREE_BLOCKERS_2026_10_22.md). La mención de una candidata, el respaldo exclusivo a `develop` y la ausencia de publicación describe el estado anterior a v1.2.0.
 
 **Estado histórico anterior a este cierre: BLOQUEADA para publicación estable.** MIT aprobada, dependencias corregidas (pip-audit sin hallazgos conocidos), 291 Python/71 JavaScript aprobadas. LM Studio final: 11/13 aceptadas, traducción 9/10, reintento portugués fallido; persisten afirmaciones del interlocutor sin respaldo aceptadas. Respaldo exclusivo de develop, sin main/PR/tag/Release. Consultar [informe final](FINALIZATION_2026_10_22.md). Los apartados anteriores en fecha son históricos.
 
-## Finalización vigente — 22 de octubre de 2026
+## Finalización registrada el 22 de octubre de 2026 (previa a v1.2.0)
 
-MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. Estado y resultados actuales en [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md). La publicación permanece condicionada a las verificaciones finales, sin convertir las etapas históricas inferiores en garantías actuales.
+Registro de finalización de la etapa previa a v1.2.0: MIT aprobada por el titular; FastAPI/Starlette/pytest actualizados, resolución fijada y pruebas de regresión ampliadas. El informe [FINALIZATION_2026_10_22.md](FINALIZATION_2026_10_22.md) conserva el estado de aquella fecha; sus condiciones de publicación fueron sustituidas por la Release estable v1.2.0.
 
 
-## Auditoría vigente — 22 de octubre de 2026
+## Auditoría registrada el 22 de octubre de 2026 (previa a v1.2.0)
 
 Estado: BLOQUEADA para publicación; v1.1.0-rc.1 preparada únicamente para revisión. 275 Python y 71 JavaScript aprobadas. Último LM Studio: 9/13 generaciones aceptadas, 7/8 traducciones de originales no españoles, secuencia 4/4 aceptada con defectos de contenido aún observados. Licencia pendiente y ocho avisos distintos de dependencias. Primer paso siguiente: resolver los bloqueos descritos en AUDIT_2026_10_22.md; no integrar main ni publicar.
 

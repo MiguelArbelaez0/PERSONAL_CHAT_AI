@@ -1,5 +1,7 @@
 # LM Studio real: resultados completos del 21 de octubre de 2026
 
+> **Evaluación histórica previa a la publicación de v1.2.0.** Las conclusiones de aceptación y los estados de aprobación se refieren al código probado en aquellas ejecuciones. No son una nueva ejecución ni determinan por sí solos el estado de la Release actual.
+
 **Actualización del 22 de octubre:** los resultados del cierre de preferencias/francés/portugués están en [CLOSURE_THREE_BLOCKERS_2026_10_22.md](../CLOSURE_THREE_BLOCKERS_2026_10_22.md). Se conservan allí también los fallos e intermedias; las cifras inferiores son históricas.
 
 **Evaluación anterior, conservada como evidencia.** Los resultados vigentes están en [CLOSURE_2026_10_21.md](../CLOSURE_2026_10_21.md) y en `closure_verified.json`. `final.json` pertenece a la tarea anterior.
