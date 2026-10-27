@@ -3,6 +3,7 @@ import asyncio
 import re
 import sqlite3
 from pathlib import Path
+import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -90,7 +91,10 @@ class FakeLLM:
 
 
 def build(tmp_path, llm=None):
-    cfg = Settings(database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge")
+    cfg = Settings(
+        database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge",
+        auth_state_path=tmp_path / f"auth-{uuid.uuid4().hex}.json",
+    )
     app = create_app(cfg, llm=llm or FakeLLM())
     _seed_ready_account(app)
     return app
@@ -121,8 +125,21 @@ def run_immediate_coroutine(coroutine):
 
 def request(app, method, path, **kwargs):
     async def run():
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            return await client.request(method, path, **kwargs)
+        origin = "chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        base_url = f"http://127.0.0.1:{app.state.port}"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url=base_url) as client:
+            headers = dict(kwargs.pop("headers", {}) or {})
+            request_path = path.split("?", 1)[0]
+            if request_path not in {"/api/health", "/api/auth/pair"} and not getattr(app.state, "test_access_token", None):
+                code = app.state.auth.issue_pairing_code()
+                paired = await client.post("/api/auth/pair", headers={"Origin": origin}, json={"pairing_code": code})
+                assert paired.status_code == 200, paired.text
+                app.state.test_access_token = paired.json()["access_token"]
+            if request_path != "/api/health":
+                headers.setdefault("Origin", origin)
+            if request_path != "/api/health" and request_path != "/api/auth/pair":
+                headers.setdefault("Authorization", f"Bearer {app.state.test_access_token}")
+            return await client.request(method, path, headers=headers, **kwargs)
     return asyncio.run(run())
 
 
@@ -146,7 +163,10 @@ def test_suggestions_and_alias_empty(tmp_path):
 
 
 def test_fresh_install_onboarding_persistence_account_isolation_and_generation_e2e(tmp_path):
-    config = Settings(database_path=tmp_path / "fresh-install.sqlite3", knowledge_path=tmp_path / "knowledge")
+    config = Settings(
+        database_path=tmp_path / "fresh-install.sqlite3", knowledge_path=tmp_path / "knowledge",
+        auth_state_path=tmp_path / "fresh-auth.json",
+    )
     llm = FakeLLM()
     app = create_app(config, llm=llm)
 
@@ -195,6 +215,8 @@ def test_fresh_install_onboarding_persistence_account_isolation_and_generation_e
 
     # Re-open the same isolated SQLite database, then verify persisted profile and memory through read-only queries.
     reopened = create_app(config, llm=llm)
+    # Model the future MV3 service worker retaining its bearer across a backend restart.
+    reopened.state.test_access_token = app.state.test_access_token
     restored = request(reopened, "GET", f"/api/accounts/{account_id}/profiles").json()
     assert restored["active_id"] == profile_id and restored["onboarding_complete"] is True
     first_memory = request(reopened, "GET", f"/api/memory/shared-visitor?account_id={account_id}").json()
@@ -418,6 +440,7 @@ def test_model_context_budget_discards_oldest_dom_rows_and_reports_truncation(tm
     llm = FakeLLM()
     config = Settings(
         database_path=tmp_path / "memory.sqlite3", knowledge_path=tmp_path / "knowledge",
+        auth_state_path=tmp_path / "auth_state.json",
         # The compact prompt fits this history at 8192; force a real budget
         # overflow while preserving all assertions about trimming/diagnostics.
         lm_studio_context_tokens=6000, lm_studio_output_tokens=500, max_context_chars=20000,

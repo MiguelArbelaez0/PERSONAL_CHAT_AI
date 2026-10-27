@@ -131,6 +131,22 @@
   font-weight: 550;
 }
 
+.pcai-connection-needed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(218, 197, 255, .2);
+  border-radius: 12px;
+  color: #f0eaff;
+  background: rgba(83, 61, 145, .22);
+}
+.pcai-connection-needed[hidden] { display: none !important; }
+.pcai-connection-needed p { margin: 0; color: inherit; font-size: 11px; line-height: 1.45; }
+.pcai-connection-needed button { flex: 0 0 auto; padding: 8px 10px; border: 1px solid rgba(214, 193, 255, .28); border-radius: 9px; color: #fff; background: rgba(133, 106, 222, .44); cursor: pointer; font-size: 10px; font-weight: 750; }
+
 .pcai-status::before { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #d7a43d; content: ""; }
 .pcai-status.is-ok::before { background: #2da875; box-shadow: 0 0 0 3px #2da87520; }
 .pcai-status.is-warn::before { background: #d49a29; box-shadow: 0 0 0 3px #d49a2920; }

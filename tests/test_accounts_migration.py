@@ -1,6 +1,7 @@
 """Account, profile, and isolated v1.1 migration tests using temporary SQLite files."""
 import hashlib
 import json
+import re
 import sqlite3
 
 import pytest
@@ -27,7 +28,10 @@ def ready_profile(name="Synthetic profile"):
 
 
 def empty_app(tmp_path, llm=None):
-    return create_app(Settings(database_path=tmp_path / "v12.sqlite3", knowledge_path=tmp_path / "knowledge"), llm=llm or FakeLLM())
+    return create_app(Settings(
+        database_path=tmp_path / "v12.sqlite3", knowledge_path=tmp_path / "knowledge",
+        auth_state_path=tmp_path / "auth_state.json",
+    ), llm=llm or FakeLLM())
 
 
 def make_v11_sources(tmp_path):
@@ -90,6 +94,7 @@ def test_account_creation_idempotency_recovers_same_uuid_and_rejects_key_reuse(t
     assert first.status_code == 201
     assert retry.status_code == 201
     assert retry.json()["id"] == first.json()["id"]
+    assert re.fullmatch(r"[0-9a-f]{32}", first.json()["id"]), "backend account UUIDs use compact uuid4().hex form"
     assert len(request(app, "GET", "/api/accounts").json()["accounts"]) == 1
     changed = request(app, "POST", "/api/accounts", json={**payload, "artist_name": "Other Star"}, headers=headers)
     assert changed.status_code == 409

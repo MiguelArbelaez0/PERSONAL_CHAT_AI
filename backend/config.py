@@ -1,9 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def default_auth_state_path() -> Path:
+    """Keep authentication state outside the checkout and user data SQLite files."""
+    if os.name == "nt":
+        base = Path(os.getenv("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    else:
+        base = Path(os.getenv("XDG_STATE_HOME") or (Path.home() / ".local" / "state"))
+    return base / "PERSONAL_CHAT_AI" / "auth_state.json"
 
 
 def _load_local_env() -> None:
@@ -44,6 +53,7 @@ class Settings:
     legacy_profiles_path: Path = ROOT / "data" / "personalities.sqlite3"
     knowledge_path: Path = ROOT / "knowledge"
     log_level: str = "INFO"
+    auth_state_path: Path = field(default_factory=default_auth_state_path)
 
     @classmethod
     def from_env(cls) -> "Settings":

@@ -42,10 +42,26 @@ test('floating button mounts in body, opens/closes the panel, and avoids duplica
     querySelector: () => null,
   };
   const window = {};
+  const preferences = {};
+  const runtime = {
+    getManifest: () => JSON.parse(fs.readFileSync(path.join(rootDir, 'extension', 'manifest.json'), 'utf8')),
+    sendMessage: async (message) => {
+      if (message.type === 'PREFS_GET') return { ok: true, values: Object.fromEntries(message.keys.filter((key) => key in preferences).map((key) => [key, preferences[key]])) };
+      if (message.type === 'PREFS_SET') { Object.assign(preferences, message.values); return { ok: true, saved: true }; }
+      if (message.type === 'PREFS_REMOVE') { for (const key of message.keys) delete preferences[key]; return { ok: true, removed: true }; }
+      if (message.type === 'API_REQUEST') {
+        const body = message.path === '/api/health' ? { status: 'ok', service: 'personal-chat-ai' }
+          : message.path === '/api/diagnostics/lm-studio' ? { available: false }
+            : message.path === '/api/accounts' ? { accounts: [] } : {};
+        return { ok: true, httpOk: true, status: 200, body };
+      }
+      return { ok: true };
+    },
+  };
   const context = vm.createContext({
     window, document, URL, console, setTimeout, PCAISuggestionFlow: SuggestionFlow,
     PCAIBackendConfig: require('../extension/backend-config.js'),
-    chrome: { runtime: { getManifest: () => JSON.parse(fs.readFileSync(path.join(rootDir, 'extension', 'manifest.json'), 'utf8')) }, storage: { local: { get: async () => ({}), set: async () => {} } } },
+    chrome: { runtime, storage: { local: { get: async () => ({}), set: async () => {}, remove: async () => {} } } },
     fetch: async () => ({ ok: true, status: 200, json: async () => ({ available: false }) }),
     navigator: { clipboard: { writeText: async () => {} } },
     confirm: () => true,

@@ -30,7 +30,8 @@ for restart in range(2):
     listener=socket.socket(); listener.bind(('127.0.0.1',0)); listener.listen(128)
     port=listener.getsockname()[1]; report['ports'].append(port)
     assert port != 8000
-    server=uvicorn.Server(uvicorn.Config(create_app(replace(settings,port=port)),host='127.0.0.1',port=port,access_log=False,log_level='error'))
+    app=create_app(replace(settings,port=port,auth_state_path=ROOT/'data'/f'auth-{restart}.json'))
+    server=uvicorn.Server(uvicorn.Config(app,host='127.0.0.1',port=port,access_log=False,log_level='error'))
     thread=threading.Thread(target=server.run,kwargs={'sockets':[listener]},daemon=True)
     thread.start()
     try:
@@ -40,18 +41,23 @@ for restart in range(2):
             time.sleep(.05)
         assert server.started
         with httpx.Client(base_url=f'http://127.0.0.1:{port}',timeout=10) as c:
-            assert c.get('/api/health').json()['port']==port
-            snapshot=c.get('/api/profiles').json()
+            assert c.get('/api/health').json()=={'status':'ok','service':'personal-chat-ai'}
+            pairing_code=app.state.auth.issue_pairing_code()
+            extension_origin='chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+            paired=c.post('/api/auth/pair',json={'pairing_code':pairing_code},headers={'Origin':extension_origin})
+            assert paired.status_code==200
+            auth_headers={'Authorization':f"Bearer {paired.json()['access_token']}",'Origin':extension_origin}
+            snapshot=c.get('/api/profiles',headers=auth_headers).json()
             if not restart:
                 assert snapshot==expected
                 report['original_snapshot_matches']=True
-                r=c.post('/api/profiles',json={'name':'Synthetic HTTP Probe','rules':'Only isolated data'})
+                r=c.post('/api/profiles',json={'name':'Synthetic HTTP Probe','rules':'Only isolated data'},headers=auth_headers)
                 assert r.status_code==201; synthetic_id=r.json()['id']
-                assert c.post(f'/api/profiles/{synthetic_id}/activate').status_code==200
-                assert c.post('/api/memory/Synthetic-HTTP-Probe/notes',json={'text':'Synthetic isolated network note'}).status_code==201
+                assert c.post(f'/api/profiles/{synthetic_id}/activate',headers=auth_headers).status_code==200
+                assert c.post('/api/memory/Synthetic-HTTP-Probe/notes',json={'text':'Synthetic isolated network note'},headers=auth_headers).status_code==201
             else:
                 assert snapshot['active_id']==synthetic_id
-                assert c.get('/api/memory/Synthetic-HTTP-Probe').json()['notes'][0]['text']=='Synthetic isolated network note'
+                assert c.get('/api/memory/Synthetic-HTTP-Probe',headers=auth_headers).json()['notes'][0]['text']=='Synthetic isolated network note'
                 report['restart_persistence']=True
     finally:
         server.should_exit=True; thread.join(10); listener.close()

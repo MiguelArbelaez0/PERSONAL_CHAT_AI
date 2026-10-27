@@ -1,6 +1,7 @@
 import logging
 import json
 import math
+import time
 import uuid
 from contextlib import asynccontextmanager
 
@@ -21,6 +22,7 @@ from backend.grounding import review_messages, review_rejection, verified_wellbe
 from backend.evidence import viewer_preference_required, viewer_evidence
 from backend.errors import PipelineFailure, transport_failure
 from backend.request_limits import RequestLimitsMiddleware
+from backend.security import AuthStateError, LocalAuthMiddleware, LocalAuthStore, PairingRequest, PairingUnavailable
 from backend.roles import remove_reversed_vocative
 from backend.validation import response_duplicate_source
 from backend.prompt import build_context_analysis_messages, build_suggestion_messages, _bounded_notes
@@ -102,6 +104,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     client = llm or LMStudioClient(config.lm_studio_base_url, config.lm_studio_model, config.lm_studio_timeout, config.lm_studio_output_tokens)
     store = memory or MemoryStore(config.database_path, config.memory_max_notes)
     profiles = ProfileStore(config.database_path)
+    auth_store = LocalAuthStore(config.auth_state_path)
     recent_drafts = RecentDrafts()
     translation_retries = TranslationRetries()
 
@@ -109,15 +112,27 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     async def lifespan(app):
         yield
 
-    app = FastAPI(title="PERSONAL_CHAT_AI", version="1.2.0", lifespan=lifespan)
-    app.state.llm, app.state.memory, app.state.profiles = client, store, profiles
+    app = FastAPI(
+        title="PERSONAL_CHAT_AI", version="1.3.0", lifespan=lifespan,
+        docs_url=None, redoc_url=None, openapi_url=None,
+    )
+    app.state.llm, app.state.memory, app.state.profiles, app.state.auth = client, store, profiles, auth_store
+    app.state.port = config.port
     app.add_middleware(RequestLimitsMiddleware)
-    # Content-script fetch requests carry the Stripchat page origin (not the extension origin).
-    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type", "idempotency-key"])
+    app.add_middleware(LocalAuthMiddleware, auth=auth_store, port=config.port)
+    # Preserve the existing CORS allowlist for diagnostics. LocalAuthMiddleware
+    # still rejects protected requests unless their origin is the paired extension.
+    app.add_middleware(CORSMiddleware, allow_origin_regex=r"(?:chrome-extension://[a-p]{32}|https://(?:[a-z0-9-]+\.)*stripchat\.com)", allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["content-type", "idempotency-key", "authorization"])
 
     def error_code(status_code: int, detail: object) -> tuple[str, str]:
         text = detail if isinstance(detail, str) else ""
         lowered = text.casefold()
+        if status_code == 401:
+            if "pairing_code_invalid" in lowered:
+                return "pairing_code_invalid", "El código de emparejamiento no es válido o expiró."
+            return "authentication_required", "Se requiere una credencial local válida."
+        if status_code == 403:
+            return "access_forbidden", "La solicitud no está autorizada para este origen o Host."
         if status_code == 422:
             return "invalid_request", "La solicitud no cumple el formato esperado. Revisa el mensaje y vuelve a intentarlo."
         if status_code == 413:
@@ -157,6 +172,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             "error": {"code": code, "reason_code": reason, "category": stage, "message": message},
             "diagnostics": {"http_status": exc.status_code, "source": "backend", "failure_reason": reason,
                             "stage": stage, "attempts": attempts,
+                            **({"request_id": exc.request_id} if isinstance(exc, PipelineFailure) and exc.request_id else {}),
+                            **({"duration_ms": exc.duration_ms} if isinstance(exc, PipelineFailure) and exc.duration_ms is not None else {}),
                             **({"duplicate_source": exc.duplicate_source} if isinstance(exc, PipelineFailure) and exc.duplicate_source else {})},
         }, headers=exc.headers)
 
@@ -177,7 +194,18 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
 
     @app.get("/api/health")
     async def health():
-        return {"status": "ok", "service": "personal-chat-ai", "host": config.host, "port": config.port}
+        return {"status": "ok", "service": "personal-chat-ai"}
+
+    @app.post("/api/auth/pair")
+    async def pair_extension(payload: PairingRequest, request: Request):
+        origin = request.headers.get("origin", "")
+        try:
+            token = auth_store.pair(payload.pairing_code, origin)
+        except PairingUnavailable:
+            raise HTTPException(401, "pairing_code_invalid: El código no es válido o expiró.", headers={"WWW-Authenticate": "Pairing"})
+        except AuthStateError:
+            raise HTTPException(503, "El estado de autenticación local no está disponible.")
+        return {"token_type": "Bearer", "access_token": token}
 
     @app.get("/api/diagnostics/lm-studio")
     async def diagnostics():
@@ -214,6 +242,18 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
 
     @app.post("/api/suggestions", response_model=SuggestResponse)
     async def suggest(request: SuggestRequest):
+        generation_request_id = uuid.uuid4().hex
+        generation_started = time.perf_counter()
+
+        def traced_transport_failure(error, stage, attempts):
+            failure = transport_failure(error, stage, attempts)
+            duration_ms = int((time.perf_counter() - generation_started) * 1000)
+            failure.request_id = generation_request_id
+            failure.duration_ms = duration_ms
+            logger.warning("suggestion_generation_final request_id=%s status=failed reason=%s duplicate_source=none attempts=%d duration_ms=%d",
+                           generation_request_id, failure.reason, attempts, duration_ms)
+            return failure
+
         account_id = resolve_account_id(request.model_account_id)
         account = require_ready_account(account_id)
         if request.configured_mode == "off" or (request.generation_trigger == "automatic" and request.configured_mode != "auto"):
@@ -231,7 +271,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
         draft_key = (subject, profile["id"])
         if not subject[1]:
             draft_key = None
-        previous_responses = recent_drafts.get(draft_key)
+        # Keep the five-item in-memory window bounded, but compare and present
+        # only the latest two drafts so an older style phrase cannot block a turn.
+        previous_responses = recent_drafts.get(draft_key)[-2:]
         notes = store.relevant_notes(account_id, alias, request.message) if hasattr(store, "relevant_notes") else store.list_notes(account_id, alias)
         knowledge, source_status = read_knowledge_with_sources(config.knowledge_path)
         incoming_context = "\n".join(part for part in (request.context, request.additional_context) if part.strip())
@@ -359,25 +401,31 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 analyze = getattr(client, "analyze", None)
                 analysis_answers = await analyze(attempt_analysis_messages) if analyze else await client.chat(attempt_analysis_messages, 1)
             except LMStudioError as exc:
-                logger.warning("conversation_analysis_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(analysis_attempt), str(exc))
-                raise transport_failure(exc, "analysis", analysis_attempt + 1) from exc
+                logger.warning("conversation_analysis_failed request_id=%s http_status=%s retry_used=%s reason=%s",
+                               generation_request_id, getattr(exc, "http_status", None), bool(analysis_attempt), exc.reason_code or "unavailable")
+                raise traced_transport_failure(exc, "analysis", analysis_attempt + 1) from exc
             analysis = next((parse_context_analysis(answer) for answer in analysis_answers if answer), None) if analysis_answers else None
             analysis_rejection = _analysis_rejection(analysis)
             logger.info(
-                "conversation_analysis_attempt attempt=%d http_status=200 extracted=%s rejection=%s retry_used=%s",
-                analysis_attempt + 1, bool(analysis), analysis_rejection or "none", bool(analysis_attempt),
+                "conversation_analysis_attempt request_id=%s attempt=%d http_status=200 extracted=%s rejection=%s retry_used=%s duration_ms=%d",
+                generation_request_id, analysis_attempt + 1, bool(analysis), analysis_rejection or "none", bool(analysis_attempt),
+                int((time.perf_counter() - generation_started) * 1000),
             )
             if not analysis_rejection:
                 break
         if analysis_rejection:
-            logger.warning("conversation_analysis_rejected reason=%s retry_used=true", analysis_rejection)
+            logger.warning("conversation_analysis_rejected request_id=%s reason=%s retry_used=true", generation_request_id, analysis_rejection)
             detail = {
                 "missing_context_analysis": "LM Studio no devolvió el análisis contextual estructurado tras un reintento.",
                 "incomplete_context_analysis": "LM Studio devolvió un análisis contextual incompleto tras un reintento.",
                 "invalid_context_confidence": "LM Studio devolvió una confianza de análisis inválida tras un reintento.",
                 "invalid_context_analysis_format": "LM Studio devolvió el análisis contextual con formato inválido tras un reintento.",
             }.get(analysis_rejection, "LM Studio no pudo analizar el contexto de forma válida tras un reintento.")
-            raise PipelineFailure(analysis_rejection, "analysis", 2, f"{detail} Puedes intentarlo de nuevo.")
+            duration_ms = int((time.perf_counter() - generation_started) * 1000)
+            logger.warning("suggestion_generation_final request_id=%s status=failed reason=%s duplicate_source=none attempts=2 duration_ms=%d",
+                           generation_request_id, analysis_rejection, duration_ms)
+            raise PipelineFailure(analysis_rejection, "analysis", 2, f"{detail} Puedes intentarlo de nuevo.",
+                                  request_id=generation_request_id, duration_ms=duration_ms)
         conversation_analysis = analysis
         messages = build_messages()
         estimated_prompt_tokens = _estimate_prompt_tokens(messages)
@@ -408,7 +456,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 retry_reason = (
                     "la respuesta se detectó en un idioma distinto o mezcló idiomas"
                     if retry_language_error or rejection_reason == "wrong_language" else
-                    "la respuesta repitió el mensaje entrante o un borrador previo; redacta con palabras nuevas"
+                    "la respuesta fue igual o casi igual al mensaje entrante o a un borrador previo; "
+                    "cambia el enfoque conversacional de forma sustantiva, no solo los sinónimos. "
+                    "Conserva el tema, la perspectiva y los hechos respaldados, y no inventes detalles"
                     if rejection_reason in {"repeated_response", "repeated_phrase", "repeated_idea", "copied_incoming", "repetitive_question"} else
                     "la revisión contextual detectó contenido fuera de tema o no respaldado: " + rejection_reason
                     if rejection_reason in {
@@ -443,8 +493,9 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 # Generate one original draft; retry once only when it fails validation.
                 answers = await client.chat(attempt_messages, 1)
             except LMStudioError as exc:
-                logger.warning("suggestion_generation_failed http_status=%s retry_used=%s error=%s", getattr(exc, "http_status", None), bool(attempt), str(exc))
-                raise transport_failure(exc, "generation", attempt + 1) from exc
+                logger.warning("suggestion_generation_failed request_id=%s http_status=%s retry_used=%s reason=%s",
+                               generation_request_id, getattr(exc, "http_status", None), bool(attempt), exc.reason_code or "unavailable")
+                raise traced_transport_failure(exc, "generation", attempt + 1) from exc
             candidates = [
                 part
                 for answer in answers
@@ -552,19 +603,20 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                                                        preference_evidence=viewer_evidence(request.message, context + "\n" + additional_context, notes, preferences=True),
                                                        require_viewer_preference=viewer_preference_required(alternatives[0], request.message), draft=alternatives[0])
                 except LMStudioError as exc:
-                    raise transport_failure(exc, "grounding", attempt + 1) from exc
+                    raise traced_transport_failure(exc, "grounding", attempt + 1) from exc
                 if requires_evidence and not rejection_reason:
                     heuristic_overrides.append("unsupported_claim_with_verified_owner_evidence")
             if rejection_reason:
                 rejection_history.append(rejection_reason)
             logger.info(
-                "suggestion_generation_attempt attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s",
-                attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
+                "suggestion_generation_attempt request_id=%s attempt=%d http_status=200 format=%s extracted=%d accepted=%d rejection=%s retry_used=%s duration_ms=%d",
+                generation_request_id, attempt + 1, format_name, len(candidates), len(alternatives), rejection_reason or "none", bool(attempt),
+                int((time.perf_counter() - generation_started) * 1000),
             )
             if len(alternatives) == 1 and len(candidates) == 1 and not rejection_reason:
                 break
         if len(alternatives) != 1 or rejection_reason:
-            logger.warning("suggestion_generation_rejected reason=%s retry_used=%s accepted=%d", rejection_reason or "not_one_response", language_retry_used, len(alternatives))
+            logger.warning("suggestion_generation_rejected request_id=%s reason=%s retry_used=%s accepted=%d", generation_request_id, rejection_reason or "not_one_response", language_retry_used, len(alternatives))
             detail = {
                 "duplicate_or_near_duplicate": "LM Studio devolvió una respuesta repetida tras un reintento.",
                 "multiple_responses": "LM Studio devolvió más de una respuesta original tras un reintento.",
@@ -591,7 +643,11 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
                 "review_language_mismatch": "La revisión contextual detectó un idioma incorrecto tras un reintento.",
             }.get(rejection_reason, "LM Studio no pudo producir una respuesta válida tras un reintento.")
             duplicate_source = response_duplicate_source(alternatives[0], request.message, previous_responses) if rejection_reason == "repeated_response" and alternatives else None
-            raise PipelineFailure(rejection_reason or "empty_response", rejection_stage, 2, f"{detail} Puedes intentarlo de nuevo.", duplicate_source=duplicate_source)
+            duration_ms = int((time.perf_counter() - generation_started) * 1000)
+            logger.warning("suggestion_generation_final request_id=%s status=failed reason=%s duplicate_source=%s attempts=2 duration_ms=%d",
+                           generation_request_id, rejection_reason or "empty_response", duplicate_source or "none", duration_ms)
+            raise PipelineFailure(rejection_reason or "empty_response", rejection_stage, 2, f"{detail} Puedes intentarlo de nuevo.",
+                                  duplicate_source=duplicate_source, request_id=generation_request_id, duration_ms=duration_ms)
         if any(code != language_decision.code for code, _ in (classify_language(text) for text in alternatives)):
             raise HTTPException(
                 502,
@@ -618,6 +674,8 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             if translation.failure_reason:
                 translation_retry_token = translation_retries.save(original_response, language_decision.code, translation.retry_state)
                 notice = f"Respuesta original lista; traducción al español no disponible: {translation_failure_message(translation.failure_reason, translation.http_status)} Puedes reintentarla."
+        logger.info("suggestion_generation_final request_id=%s status=success reason=none duplicate_source=none attempts=%d duration_ms=%d",
+                    generation_request_id, attempt + 1, int((time.perf_counter() - generation_started) * 1000))
         full_prompt = "\n".join(message["content"] for message in messages)
         for name, source in source_status.items():
             source["included_in_prompt"] = f"<{name}>" in full_prompt
@@ -630,7 +688,7 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
             model_account_id=account_id,
             conversation_id=request.conversation_id,
             target_message_id=request.target_message_id,
-            generation_id=uuid.uuid4().hex,
+            generation_id=generation_request_id,
             language=language_decision.code, original_response=original_response,
             spanish_translation=spanish_translation, interlocutor=alias, notice=notice,
             memory_available=bool(alias),

@@ -5,18 +5,24 @@ const test = require('node:test');
 const SuggestionFlow = require('../extension/suggestion-flow.js');
 const contentSource = fs.readFileSync(path.join(__dirname, '..', 'extension', 'content.js'), 'utf8').replace(/\r\n/g, '\n');
 
-function fixture({ mode = 'manual', response, request, latestIncomingFingerprint = null } = {}) {
+function fixture({ mode = 'manual', response, request, latestIncomingFingerprint = null, accountId = null } = {}) {
   let currentMode = mode;
   let conversationKey = 'chat-a';
-  const view = { suggestions: [], state: '', requests: 0 };
+  let currentAccountId = accountId;
+  let currentVisitor = 'Ana';
+  let currentLatestIncomingFingerprint = latestIncomingFingerprint;
+  const view = { suggestions: [], state: '', requests: 0, diagnostics: [] };
   const flow = new SuggestionFlow({
     getMode: () => currentMode,
+    getAccountId: () => currentAccountId,
     getConversationKey: () => conversationKey,
-    getLatestIncomingFingerprint: () => latestIncomingFingerprint,
-    request: async (payload, signal) => {
+    getInterlocutorAlias: () => currentVisitor,
+    getLatestIncomingFingerprint: () => currentLatestIncomingFingerprint,
+    request: async (payload, signal, generationId) => {
       view.requests++;
       view.payload = payload;
-      if (request) return request(payload, signal);
+      view.generationId = generationId;
+      if (request) return request(payload, signal, generationId);
       if (response instanceof Error) throw response;
       return response || { language: 'es', original_response: 'Respuesta de prueba directa', spanish_translation: null };
     },
@@ -24,8 +30,9 @@ function fixture({ mode = 'manual', response, request, latestIncomingFingerprint
     onSuccess: (data) => { view.suggestions.push(data.originalResponse); view.translation = data.spanishTranslation; view.language = data.language; view.initial = data.initial; view.state = 'success'; },
     onEmpty: ({ httpStatus }) => { view.httpStatus = httpStatus; view.state = 'empty'; },
     onError: ({ httpStatus, error }) => { view.httpStatus = httpStatus; view.error = error?.message; view.state = 'error'; },
+    onDiagnostic: (record) => view.diagnostics.push(record),
   });
-  return { flow, view, snapshot: { conversationKey, alias: 'Ana', messages: [] }, setMode: (v) => { currentMode = v; }, setConversation: (v) => { conversationKey = v; }, setLatestIncoming: (v) => { latestIncomingFingerprint = v; } };
+  return { flow, view, snapshot: { conversationKey, alias: 'Ana', messages: [] }, setMode: (v) => { currentMode = v; }, setConversation: (v) => { conversationKey = v; }, setLatestIncoming: (v) => { currentLatestIncomingFingerprint = v; }, setAccount: (v) => { currentAccountId = v; }, setVisitor: (v) => { currentVisitor = v; } };
 }
 
 test('automatic duplicate rejection clears loading and permits retry with the same incoming identity', async () => {
@@ -42,6 +49,30 @@ test('automatic duplicate rejection clears loading and permits retry with the sa
   assert.equal((await f.flow.generate(incoming, f.snapshot, true, null, false, 'second')).state, 'success');
   assert.equal(f.view.payload.target_message, incoming);
   assert.equal(f.view.payload.target_message_id, 'second');
+});
+
+test('repeat, question, and context-analysis rejections all release generation locks and allow retry', async () => {
+  for (const reason of ['repeated_response', 'repetitive_question', 'missing_context_analysis']) {
+    let calls = 0;
+    const f = fixture({ mode: 'manual', latestIncomingFingerprint: 'synthetic-target', request: async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw SuggestionFlow.normalizeApiError({
+          error: { code: 'generation_validation_failed', reason_code: reason, message: `Synthetic ${reason} rejection.` },
+        }, 502);
+      }
+      return { original_response: 'A recovered synthetic response.', language: 'en', conversation_id: 'chat-a', target_message_id: 'synthetic-target' };
+    } });
+    const first = await f.flow.generate('A synthetic target message?', f.snapshot, false, 'Synthetic visitor', false, 'synthetic-target');
+    assert.equal(first.state, 'error', reason);
+    assert.equal(f.view.loading, false, reason);
+    assert.equal(f.flow.pending.size, 0, reason);
+    assert.equal(f.flow.inFlightKeys.size, 0, reason);
+    const recovered = await f.flow.generate('A synthetic target message?', f.snapshot, false, 'Synthetic visitor', false, 'synthetic-target');
+    assert.equal(recovered.state, 'success', reason);
+    assert.equal(f.flow.pending.size, 0, reason);
+    assert.equal(f.flow.inFlightKeys.size, 0, reason);
+  }
 });
 
 test('manual alias change cannot reuse a different interlocutor DOM history', async () => {
@@ -80,6 +111,143 @@ test('manual form generation sends the selected message to the backend', async (
   assert.equal(f.view.state, 'success');
 });
 
+test('generation continues from incoming A through own reply and incoming B without requiring another new message', async () => {
+  let generation = 0;
+  const sentPayloads = [];
+  const f = fixture({
+    latestIncomingFingerprint: 'incoming-a',
+    request: async (payload) => {
+      sentPayloads.push(payload);
+      return {
+        conversation_id: payload.conversation_id, target_message_id: payload.target_message_id,
+        interlocutor: payload.interlocutor_alias, language: 'en', original_response: `Distinct manual reply ${++generation}`,
+      };
+    }
+  });
+  f.snapshot.messages = [{ direction: 'incoming', fingerprint: 'incoming-a', text: 'Tell me about your favorite music.' }];
+  assert.equal((await f.flow.generate('Tell me about your favorite music.', f.snapshot, false, null, false, 'incoming-a', true)).state, 'success');
+  f.snapshot.messages.push({ direction: 'outgoing', fingerprint: 'outgoing-a', text: 'I like discovering new songs.' });
+  assert.equal((await f.flow.generate('Tell me about your favorite music.', f.snapshot, false, null, false, 'incoming-a', true)).state, 'success');
+  f.snapshot.messages.push({ direction: 'incoming', fingerprint: 'incoming-b', text: 'What song should I try next?' });
+  f.setLatestIncoming('incoming-b');
+  assert.equal((await f.flow.generate('What song should I try next?', f.snapshot, false, null, false, 'incoming-b', true)).state, 'success');
+  assert.equal((await f.flow.generate('What song should I try next?', f.snapshot, false, null, false, 'incoming-b', true)).state, 'success');
+  assert.equal(f.view.requests, 4);
+  assert.deepEqual(f.view.suggestions, ['Distinct manual reply 1', 'Distinct manual reply 2', 'Distinct manual reply 3', 'Distinct manual reply 4']);
+  assert.equal(sentPayloads[1].context, '- Usuario: I like discovering new songs.');
+  assert.equal(sentPayloads[2].target_message_id, 'incoming-b');
+  assert.match(sentPayloads[2].context, /Usuario: I like discovering new songs\./);
+  assert.doesNotMatch(sentPayloads[2].context, /What song should I try next\?/);
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+});
+
+test('automatic response remains valid when an outgoing row follows its target without a newer incoming message', async () => {
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'incoming-1' });
+  const result = await f.flow.generate('Same incoming message', f.snapshot, true, null, false, 'incoming-1', true);
+  assert.equal(result.state, 'success');
+  assert.equal(f.view.suggestions.length, 1);
+});
+
+test('snapshot invalidation ignores own-message DOM updates but cancels for a new incoming or visitor', () => {
+  const initial = { conversationKey: 'chat-a', messages: [{ direction: 'incoming', fingerprint: 'in-a', text: 'Hello' }] };
+  const ownReply = { conversationKey: 'chat-a', messages: [...initial.messages, { direction: 'outgoing', fingerprint: 'out-a', text: 'Hi' }] };
+  const nextIncoming = { conversationKey: 'chat-a', messages: [...ownReply.messages, { direction: 'incoming', fingerprint: 'in-b', text: 'How are you?' }] };
+  const otherVisitor = { ...nextIncoming, conversationKey: 'chat-b' };
+  const renamedVisitor = { ...nextIncoming, alias: 'Bea' };
+  assert.equal(SuggestionFlow.shouldCancelForSnapshotChange(initial, ownReply), false);
+  assert.equal(SuggestionFlow.shouldCancelForSnapshotChange(ownReply, nextIncoming), true);
+  assert.equal(SuggestionFlow.shouldCancelForSnapshotChange(nextIncoming, otherVisitor), true);
+  assert.equal(SuggestionFlow.shouldCancelForSnapshotChange(nextIncoming, renamedVisitor), true);
+  assert.match(contentSource, /shouldCancelForSnapshotChange\(currentSnapshot, snapshot\)\) abortPending\(\)/);
+});
+
+test('automatic generation is cancelled on Auto to Manual and its lock clears before manual retry', async () => {
+  let calls = 0;
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'incoming-1', request: async (_payload, signal) => {
+    if (++calls === 1) return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })), { once: true }));
+    return { language: 'en', original_response: 'Manual generation recovered.' };
+  } });
+  const automatic = f.flow.generate('Incoming', f.snapshot, true, null, false, 'incoming-1');
+  assert.equal(f.flow.pending.size, 1);
+  f.setMode('manual');
+  f.flow.cancelAutomatic();
+  assert.equal(f.flow.pending.size, 1, 'cancellation must remain busy until the request settles');
+  assert.equal((await automatic).state, 'stale');
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.view.loading, false);
+  assert.equal((await f.flow.generate('Incoming', f.snapshot, false, null, false, 'incoming-1')).state, 'success');
+  assert.equal(calls, 2);
+});
+
+test('Manual to Auto does not cancel an already requested manual generation', async () => {
+  let complete;
+  const f = fixture({ latestIncomingFingerprint: 'incoming-1', request: () => new Promise((resolve) => { complete = resolve; }) });
+  const manual = f.flow.generate('Incoming', f.snapshot, false, null, false, 'incoming-1');
+  f.setMode('auto');
+  f.flow.cancelAutomatic();
+  complete({ language: 'en', original_response: 'Manual result remains valid.' });
+  assert.equal((await manual).state, 'success');
+  assert.deepEqual(f.view.suggestions, ['Manual result remains valid.']);
+});
+
+test('automatic queue can wait for a cancelled generation to settle before dispatching the next target', async () => {
+  let complete;
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'incoming-a', request: () => new Promise((resolve) => { complete = resolve; }) });
+  const active = f.flow.generate('Incoming A', f.snapshot, true, null, false, 'incoming-a');
+  let idle = false;
+  const waiting = f.flow.whenIdle().then(() => { idle = true; });
+  await Promise.resolve();
+  assert.equal(idle, false);
+  f.flow.cancelPending();
+  complete({ language: 'en', original_response: 'Cancelled result.' });
+  assert.equal((await active).state, 'stale');
+  await waiting;
+  assert.equal(idle, true);
+  assert.equal(f.flow.pending.size, 0);
+  assert.match(contentSource, /await suggestionFlow\?\.whenIdle\(\)/);
+});
+
+test('late completion after an account switch is discarded before rendering', async () => {
+  let complete;
+  const f = fixture({ accountId: 'account-a', latestIncomingFingerprint: 'incoming-1', request: () => new Promise((resolve) => { complete = resolve; }) });
+  const pending = f.flow.generate('Incoming', f.snapshot, false, null, false, 'incoming-1');
+  f.setAccount('account-b');
+  complete({ language: 'en', original_response: 'Must stay with account A.', model_account_id: 'account-a' });
+  assert.equal((await pending).state, 'stale');
+  assert.equal(f.view.suggestions.length, 0);
+});
+
+test('late completion after a visitor switch is discarded even if the conversation key is reused', async () => {
+  let complete;
+  const f = fixture({ latestIncomingFingerprint: 'incoming-1', request: () => new Promise((resolve) => { complete = resolve; }) });
+  const pending = f.flow.generate('Incoming', f.snapshot, false, null, false, 'incoming-1');
+  f.setVisitor('Bea');
+  complete({ language: 'en', original_response: 'Must stay with Ana.', interlocutor: 'Ana' });
+  assert.equal((await pending).state, 'stale');
+  assert.equal(f.view.suggestions.length, 0);
+});
+
+test('generation diagnostics report only request metadata and never the message text', async () => {
+  const privateText = 'PRIVATE-SYNTHETIC-MESSAGE-DO-NOT-LOG';
+  const f = fixture({ latestIncomingFingerprint: 'incoming-1' });
+  await f.flow.generate(privateText, f.snapshot, false, null, false, 'incoming-1');
+  assert.equal(f.view.diagnostics[0].state, 'started');
+  assert.equal(f.view.diagnostics.at(-1).state, 'success');
+  assert.ok(f.view.diagnostics.at(-1).duration_ms >= 0);
+  assert.ok(f.view.diagnostics.at(-1).generation_id);
+  assert.equal(f.view.diagnostics.at(-1).generation_id, f.view.generationId);
+  assert.doesNotMatch(JSON.stringify(f.view.diagnostics), new RegExp(privateText));
+});
+
+test('manual generation can resume after switching from automatic mode', async () => {
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'incoming-1' });
+  f.setMode('manual');
+  const result = await f.flow.generate('Same incoming message', f.snapshot, false, null, false, 'incoming-1', true);
+  assert.equal(result.state, 'success');
+  assert.equal(f.view.payload.configured_mode, 'manual');
+});
+
 test('automatic new incoming message generates in auto mode', async () => {
   assert.match(contentSource, /onIncoming:[\s\S]*?queueAutomaticSuggestion\(\{ message: incomingMessage/);
   const f = fixture({ mode: 'auto' });
@@ -107,11 +275,11 @@ test('opening a chat generates only for the latest incoming baseline message', (
   assert.match(contentSource, /processedAutomaticKeys/);
 });
 
-test('last own message is not a valid automatic target; emoji incoming remains a valid target', () => {
+test('automatic target remains the newest incoming despite later own or unclassified rows', () => {
   const incoming = { direction: 'incoming', text: 'hello', fingerprint: 'in-1' };
   const outgoing = { direction: 'outgoing', text: 'my reply', fingerprint: 'out-1' };
-  assert.equal(SuggestionFlow.isLatestIncoming({ messages: [incoming, outgoing] }, incoming.fingerprint), false);
-  assert.equal(SuggestionFlow.isLatestIncoming({ messages: [incoming, { direction: 'unknown', text: 'unclassified row' }] }, incoming.fingerprint), false);
+  assert.equal(SuggestionFlow.isLatestIncoming({ messages: [incoming, outgoing] }, incoming.fingerprint), true);
+  assert.equal(SuggestionFlow.isLatestIncoming({ messages: [incoming, { direction: 'unknown', text: 'unclassified row' }] }, incoming.fingerprint), true);
   const emoji = { direction: 'incoming', text: '😏😉', fingerprint: 'in-2' };
   assert.equal(SuggestionFlow.isLatestIncoming({ messages: [incoming, emoji] }, emoji.fingerprint), true);
   assert.equal(SuggestionFlow.latestIncoming({ messages: [incoming, emoji] }), emoji);
@@ -220,6 +388,53 @@ test('manual regeneration requests one new original and replaces the displayed c
   assert.match(contentSource, /results\.querySelectorAll\?\.\('\.pcai-suggestion'\)\.forEach\(\(item\) => item\.remove\(\)\)/);
 });
 
+test('manual mode permits 50 consecutive regenerations for one unchanged incoming message', async () => {
+  const f = fixture({ latestIncomingFingerprint: 'incoming-fixed', request: async () => ({
+    language: 'en', original_response: `Manual synthetic regeneration ${f.view.requests}`,
+  }) });
+  f.snapshot.messages = [{ direction: 'incoming', fingerprint: 'incoming-fixed', text: 'What should we do for fun?' }];
+
+  for (let count = 1; count <= 50; count++) {
+    if (count === 6) f.snapshot.messages.push({ direction: 'outgoing', fingerprint: 'own-after-first-five', text: 'My own response before regeneration.' });
+    const result = await f.flow.generate('What should we do for fun?', f.snapshot, false, null, false, 'incoming-fixed', true);
+    assert.equal(result.state, 'success', `manual regeneration ${count}`);
+    if ([2, 10, 50].includes(count)) assert.equal(f.view.requests, count);
+  }
+
+  assert.equal(f.view.suggestions.length, 50);
+  assert.equal(new Set(f.view.suggestions).size, 50);
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+  assert.match(f.view.payload.conversation_history, /Usuario: My own response before regeneration\./);
+  assert.match(contentSource, /if \(mode === 'off' \|\| suggestionFlow\.pending\.size > 0\) return;/);
+  const manualButtonHandler = contentSource.match(/\$\('#pcai-generate'\)\.onclick = async \(\) => \{([\s\S]*?)\n  \};/)?.[1] || '';
+  assert.doesNotMatch(manualButtonHandler, /processedAutomaticKeys|generationCount|regenerationLimit/);
+});
+
+test('Auto mode generates once for the incoming event then permits 50 user-requested regenerations', async () => {
+  const f = fixture({ mode: 'auto', latestIncomingFingerprint: 'incoming-fixed', request: async (payload) => ({
+    language: 'en', original_response: `${payload.generation_trigger} synthetic result ${f.view.requests}`,
+  }) });
+  f.snapshot.messages = [{ direction: 'incoming', fingerprint: 'incoming-fixed', text: 'What should we do for fun?' }];
+
+  assert.equal((await f.flow.generate('What should we do for fun?', f.snapshot, true, null, false, 'incoming-fixed', true)).state, 'success');
+  assert.equal(f.view.requests, 1);
+  f.snapshot.messages.push({ direction: 'outgoing', fingerprint: 'own-after-auto', text: 'My own reply after automatic suggestion.' });
+  for (let count = 1; count <= 50; count++) {
+    const result = await f.flow.generate('What should we do for fun?', f.snapshot, false, null, false, 'incoming-fixed', true);
+    assert.equal(result.state, 'success', `Auto mode manual regeneration ${count}`);
+    if ([2, 10, 50].includes(count)) assert.equal(f.view.requests, count + 1);
+  }
+
+  assert.equal(f.view.suggestions.length, 51);
+  assert.equal(new Set(f.view.suggestions).size, 51);
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+  assert.match(f.view.payload.conversation_history, /Usuario: My own reply after automatic suggestion\./);
+  assert.match(contentSource, /if \(mode === 'auto' && verifiedSelectorSignature !== JSON\.stringify\(selectors\)\)/);
+  assert.match(contentSource, /processedAutomaticKeys\.has\(key\)/);
+});
+
 test('main manual action explains missing incoming context without making a request', async () => {
   assert.match(contentSource, /if \(!latestIncoming\) \{[\s\S]*?no se envió ninguna solicitud/);
   const f = fixture();
@@ -239,12 +454,36 @@ test('same conversation message cannot trigger concurrent duplicate backend call
   assert.equal((await first).state, 'success');
 });
 
+test('manual generation blocks a concurrent duplicate request for the same incoming target', async () => {
+  let finish;
+  const f = fixture({ latestIncomingFingerprint: 'msg-1', request: () => new Promise((resolve) => { finish = resolve; }) });
+  const first = f.flow.generate('same incoming', f.snapshot, false, null, false, 'msg-1', true);
+  assert.equal(f.view.requests, 1);
+  const concurrent = await f.flow.generate('same incoming', f.snapshot, false, null, false, 'msg-1', true);
+  assert.equal(concurrent.state, 'duplicate');
+  finish({ language: 'en', original_response: 'One manual result.' });
+  assert.equal((await first).state, 'success');
+  assert.equal(f.view.requests, 1);
+});
+
 test('empty LM Studio response is rejected so the UI can show a retryable error', async () => {
   assert.match(contentSource, /No se pudieron generar respuestas:[\s\S]*?Reintentar/);
   const f = fixture({ response: { language: 'fr', original_response: '', spanish_translation: null, notice: 'Sin respuesta' } });
   assert.equal((await f.flow.generate('Hola', f.snapshot)).state, 'error');
   assert.equal(f.view.state, 'error');
   assert.match(f.view.error, /una respuesta original/);
+});
+
+test('empty response releases the manual request lock and a subsequent attempt can succeed', async () => {
+  let attempt = 0;
+  const f = fixture({ request: async () => ++attempt === 1
+    ? { language: 'en', original_response: '', spanish_translation: null }
+    : { language: 'en', original_response: 'A fresh retry response.', spanish_translation: 'Una respuesta nueva.' } });
+  assert.equal((await f.flow.generate('Same incoming message', f.snapshot, false, null, false, 'incoming-1')).state, 'error');
+  assert.equal(f.flow.pending.size, 0);
+  assert.equal(f.flow.inFlightKeys.size, 0);
+  assert.equal((await f.flow.generate('Same incoming message', f.snapshot, false, null, false, 'incoming-1')).state, 'success');
+  assert.deepEqual(f.view.suggestions, ['A fresh retry response.']);
 });
 
 test('flow accepts one original response and never treats its translation as another draft', async () => {
@@ -290,16 +529,20 @@ test('closing the floating panel does not stop an enabled detector', () => {
 });
 
 test('automatic mode and processed message keys persist and selectors revalidate after restart', () => {
-  assert.match(contentSource, /get\(\['backendUrl',[^\]]*'mode',[^\]]*'selectors',[^\]]*'processedAutomaticKeys'/);
+  assert.match(contentSource, /storageGet\(\['backendUrl',[^\]]*'mode',[^\]]*'selectors',[^\]]*'processedAutomaticKeys'/);
+  assert.doesNotMatch(contentSource, /chrome\.storage\.local/);
   assert.match(contentSource, /if \(mode === 'auto' && verifiedSelectorSignature !== JSON\.stringify\(selectors\)\) \{\s*const report = detector\.diagnose\(\)/);
   assert.match(contentSource, /detector\.start\(\)/);
 });
 
 test('automatic diagnostic shows event, observer, counts, HTTP, and LM result without chat text', () => {
-  for (const field of ['Observador del DOM:', 'Último evento:', 'Mensajes:', 'Última petición backend:', 'Último resultado LM Studio:']) {
+  for (const field of ['Observador del DOM:', 'Último evento:', 'Mensajes:', 'ID de solicitud:', 'Última petición backend:', 'Último resultado LM Studio:']) {
     assert.ok(contentSource.includes(field));
   }
   assert.match(contentSource, /autoDiagnostic\.lastIncoming/);
+  assert.match(contentSource, /request: \(payload, signal, requestId\) => api\('\/api\/suggestions'/);
+  assert.match(contentSource, /const requestId = options\.requestId \|\|/);
+  assert.doesNotMatch(contentSource, /Conversación: \$\{connected \? 'identificada' : 'no identificada'\} · Alias:/);
   assert.doesNotMatch(contentSource.slice(contentSource.indexOf('function renderAutoDiagnostic'), contentSource.indexOf('suggestionFlow = new SuggestionFlow')), /\.text\}/);
 });
 

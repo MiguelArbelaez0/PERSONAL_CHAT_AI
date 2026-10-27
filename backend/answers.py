@@ -35,6 +35,21 @@ def _is_duplicate(candidate: str, previous: str) -> bool:
     return False
 
 
+def _is_repeated_draft(candidate: str, previous: str) -> bool:
+    """Reject exact repeats and strong near-copies without blocking short, similar replies."""
+    left, right = _normalize(candidate), _normalize(previous)
+    if not left or not right:
+        return candidate.strip() == previous.strip()
+    if left == right:
+        return True
+    left_words, right_words = set(left.split()), set(right.split())
+    if min(len(left_words), len(right_words)) < 10:
+        # Short greetings commonly share wording while remaining useful replies.
+        return False
+    overlap = len(left_words & right_words) / len(left_words | right_words)
+    return overlap >= 0.90 and SequenceMatcher(None, left, right).ratio() >= 0.90
+
+
 def distinct_answers(answers: list[str], limit: int = 2) -> list[str]:
     """Remove empty and repeated drafts without padding the result."""
     if limit <= 0:

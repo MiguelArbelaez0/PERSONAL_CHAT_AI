@@ -138,7 +138,15 @@ def build_suggestion_messages(
         f"{additional_context or 'Ninguno.'}"
     )
     if previous_responses:
-        user += "\nBorradores previos no enviados: evita repetirlos; no son hechos ni memoria:\n" + json.dumps(previous_responses, ensure_ascii=False)
+        user += (
+            "\nBorradores previos no enviados: son solo contraejemplos, no hechos ni memoria. "
+            "Esta es una nueva sugerencia para el mismo objetivo: elige un enfoque conversacional "
+            "genuinamente distinto (por ejemplo, una observación, una reacción breve, una invitación "
+            "concreta o una curiosidad pertinente). No basta con cambiar sinónimos ni reutilizar la "
+            "misma frase de apertura. Mantén el tema, la perspectiva, el tono elegido y los hechos "
+            "respaldados; no fuerces una diferencia radical ni inventes detalles:\n"
+            + json.dumps(previous_responses, ensure_ascii=False)
+        )
     # Keep the actual target after history and rejected drafts: the last salient
     # text must not be an old suggestion that the model can continue or imitate.
     user += (

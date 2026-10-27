@@ -77,6 +77,14 @@ No se incluyen ni descargan modelos. Revisa la licencia del modelo elegido antes
 
 Mantén `BACKEND_HOST=127.0.0.1`. El backend rechaza cualquier otro valor y esta versión no soporta acceso remoto. La API local no tiene autenticación; protege el equipo y ejecuta solo software local de confianza.
 
+### Rama v1.3.0: conexión autenticada en Chrome
+
+La integración de autenticación de la rama `feature/v1.3.0-security-hardening` no forma parte de la Release v1.2.0 y no está publicada. Requiere Chrome 109 o posterior por el uso de Offscreen Documents. Para vincularla, inicia `python -m backend.auth_admin pair`, introduce el código temporal solo en la página local de conexión y comprueba el estado conectado. No pegues el código en Stripchat ni en DevTools. La [guía de conexión y recuperación](docs/CHROME_AUTH_V1_3.md) documenta emparejamiento, rotación y revocación; las [notas de seguridad](docs/SECURITY.md) describen sus límites.
+
+El 27 de octubre de 2026, la usuaria confirmó en Chrome regeneración consecutiva en Manual y Automático, generación real con LM Studio, persistencia de cuenta/personalidad/memoria al recargar Stripchat y persistencia de autenticación y generación tras reiniciar Chrome. Siguen pendientes la revocación/recuperación manual de credenciales y una generación real superior a 30 segundos mientras se reinicia el service worker.
+
+La validación automatizada local registrada el 26 de octubre de 2026 ejecutó 353 pruebas Python y 155 JavaScript; `pip check`, sintaxis, manifiesto y `git diff --check` también pasaron. Gitleaks no encontró secretos en los cambios examinados y pip-audit no encontró vulnerabilidades conocidas en los requisitos fijados. Bandit señaló cinco patrones revisados como falsos positivos de heurística, sin hallazgos de severidad alta. La llamada real de LM Studio se hizo con datos sintéticos: cuatro análisis aislados de Qwen3 4B fueron parseables; en dos solicitudes completas, una terminó con respuesta y traducción y la otra fue rechazada por `repetitive_question`. La aparición anterior de `missing_context_analysis` no se reprodujo en esa ejecución y su causa exacta no puede determinarse sin los metadatos de aquella respuesta. Estos resultados no sustituyen la validación manual ni verifican Chrome real.
+
 ## Primer uso
 
 - **Automático:** valida los selectores en el chat actual. Tras sincronizar, puede preparar una respuesta para el último mensaje entrante visible y aún no procesado; los mensajes nuevos pueden activar otra generación.

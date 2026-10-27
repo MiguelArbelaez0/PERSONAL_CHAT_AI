@@ -24,6 +24,10 @@
       </section>
       <div id="pcai-main-content">
       <div class="pcai-status" id="pcai-status" role="status">Comprobando servicios locales…</div>
+      <section id="pcai-connection-needed" class="pcai-connection-needed" hidden aria-label="Conexión segura">
+        <p id="pcai-connection-message">Vincula la extensión con el backend local para continuar.</p>
+        <button id="pcai-connect-button" type="button">Abrir conexión segura</button>
+      </section>
       <div class="pcai-conversation-card">
         <div class="pcai-conversation-heading"><strong id="pcai-active-alias">Sin conversación identificada</strong></div>
         <div id="pcai-last-incoming" class="pcai-last-message" aria-live="polite"></div>
@@ -97,7 +101,7 @@
   let selectors = {};
   let verifiedSelectorSignature = null;
   const autoDiagnostic = {
-    event: 'ninguno', lastIncoming: 'no detectado', generation: 'pendiente',
+    event: 'ninguno', lastIncoming: 'no detectado', generation: 'pendiente', requestId: 'ninguno',
     http: 'sin petición', backendError: '', lmCount: 'sin resultado',
     profileSources: 'sin comprobar', memoryStatus: 'sin consultar', language: 'sin detectar', responseLanguage: 'sin validar',
     contextCount: '0', targetFound: 'no', contextSent: 'no',
@@ -131,6 +135,37 @@
   let identityDetection = { status: 'unavailable', candidates: [] };
   let wizardIdentityPrefillName = '';
   let detectedAccountMatch = null;
+  let apiRequestSequence = 0;
+
+  async function extensionMessage(payload) {
+    const result = await chrome.runtime.sendMessage(payload);
+    if (!result || result.ok !== true) {
+      const error = new Error(result?.error?.message || 'La extensión no pudo completar la operación.');
+      error.code = result?.error?.code || 'extension_message_failed';
+      error.httpStatus = Number(result?.httpStatus) || null;
+      throw error;
+    }
+    return result;
+  }
+
+  async function storageGet(keys) {
+    return (await extensionMessage({ type: 'PREFS_GET', keys: Array.isArray(keys) ? keys : [keys] })).values || {};
+  }
+
+  async function storageSet(values) {
+    return extensionMessage({ type: 'PREFS_SET', values });
+  }
+
+  async function storageRemove(keys) {
+    return extensionMessage({ type: 'PREFS_REMOVE', keys: Array.isArray(keys) ? keys : [keys] });
+  }
+
+  function setConnectionNotice(visible, text = 'Vincula la extensión con el backend local para continuar.') {
+    const box = $('#pcai-connection-needed');
+    if (!box) return;
+    box.hidden = !visible;
+    $('#pcai-connection-message').textContent = text;
+  }
 
   function discoverStripchatSelectors() {
     const hostname = location.hostname.toLowerCase();
@@ -200,18 +235,18 @@
     const { element, key, moved } = dragState;
     if (moved) {
       ignoreToggleClick = key === 'toggle';
-      void chrome.storage.local.set({ [key]: { left: Number.parseFloat(element.style.left), top: Number.parseFloat(element.style.top) } });
+      void storageSet({ [key]: { left: Number.parseFloat(element.style.left), top: Number.parseFloat(element.style.top) } }).catch(() => {});
     }
     dragState = null;
   }
 
   async function loadPrefs() {
     try {
-      const data = await chrome.storage.local.get(['backendUrl', 'interlocutor', 'mode', 'selectors', 'processedAutomaticKeys', 'contextWindow', 'contextCharBudget', 'pcaiPanelPosition', 'pcaiTogglePosition']);
+      const data = await storageGet(['backendUrl', 'interlocutor', 'mode', 'selectors', 'processedAutomaticKeys', 'contextWindow', 'contextCharBudget', 'pcaiPanelPosition', 'pcaiTogglePosition']);
       try {
         const storedBackend = BackendConfig.resolveStoredBackendUrl(data.backendUrl);
         base = storedBackend.url;
-        if (storedBackend.migrated) await chrome.storage.local.set({ backendUrl: base });
+        if (storedBackend.migrated) await storageSet({ backendUrl: base });
       } catch (_) { base = BackendConfig.DEFAULT_URL; }
       $('#pcai-url').value = base;
       alias.value = data.interlocutor || '';
@@ -226,7 +261,7 @@
           }
           if (discovered.report.ok) {
             verifiedSelectorSignature = JSON.stringify(selectors);
-            await chrome.storage.local.set({ selectors });
+            await storageSet({ selectors });
             $('#pcai-selector-diagnostic').textContent = 'Selectores Stripchat detectados y comprobados contra el DOM visible en esta sesión.';
           } else {
             $('#pcai-selector-diagnostic').textContent = 'Se probaron candidatos derivados del DOM observado, pero falta evidencia para habilitar el modo automático.';
@@ -245,7 +280,7 @@
       if (contextSettingsVersion < 3) {
         contextWindow = 100;
         contextCharBudget = 12000;
-        await chrome.storage.local.set({ contextWindow, contextCharBudget, contextSettingsVersion: 3 });
+        await storageSet({ contextWindow, contextCharBudget, contextSettingsVersion: 3 });
       } else {
         contextWindow = [8, 12, 20, 30, 40, 100].includes(Number(data.contextWindow)) ? Number(data.contextWindow) : 100;
         contextCharBudget = [3000, 6000, 8000, 12000].includes(Number(data.contextCharBudget)) ? Number(data.contextCharBudget) : 12000;
@@ -266,32 +301,54 @@
     }
   }
   async function api(path, options = {}) {
-    let response;
+    const method = String(options.method || 'GET').toUpperCase();
+    const headers = options.headers || {};
+    const idempotencyKey = Object.entries(headers).find(([name]) => name.toLowerCase() === 'idempotency-key')?.[1] || null;
+    const requestId = options.requestId || `${Date.now()}-${++apiRequestSequence}`;
+    const signal = options.signal;
+    if (signal?.aborted) {
+      const aborted = new Error('La solicitud fue cancelada.'); aborted.name = 'AbortError'; throw aborted;
+    }
+    const message = {
+      type: 'API_REQUEST', requestId, path, method,
+      ...(options.body !== undefined ? { body: options.body } : {}),
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+    };
+    let abortHandler = null;
     try {
-      response = await fetch(`${base}${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
-    } catch (cause) {
-      const error = SuggestionFlow.normalizeApiError(null);
-      error.cause = cause;
-      throw error;
-    }
-    let body = null;
-    let invalidJson = false;
-    if (response.status !== 204) {
-      const raw = await response.text();
-      if (raw) {
-        try { body = JSON.parse(raw); }
-        catch (_) {
-          invalidJson = true;
-        }
+      const pending = chrome.runtime.sendMessage(message);
+      let reply;
+      if (signal) {
+        const aborted = new Promise((_, reject) => {
+          abortHandler = () => {
+            void chrome.runtime.sendMessage({ type: 'API_CANCEL', requestId }).catch(() => {});
+            const error = new Error('La solicitud fue cancelada.'); error.name = 'AbortError'; reject(error);
+          };
+          signal.addEventListener('abort', abortHandler, { once: true });
+        });
+        reply = await Promise.race([pending, aborted]);
+      } else reply = await pending;
+      if (!reply || reply.ok !== true) {
+        const error = SuggestionFlow.normalizeApiError({ error: reply?.error || { code: 'backend_unavailable_network' } }, reply?.httpStatus);
+        if (error.code === 'authentication_required') setConnectionNotice(true, 'El backend exige vincular esta extensión. Abre la conexión segura para continuar.');
+        throw error;
       }
+      if (reply.status === 401) setConnectionNotice(true, 'La extensión no está vinculada o el token fue revocado. Abre la conexión segura para recuperar el acceso.');
+      else if (reply.status === 403) setConnectionNotice(true, 'El backend rechazó el origen o el Host. Comprueba que esta sea la instalación emparejada.');
+      if (!reply.httpOk) throw SuggestionFlow.normalizeApiError(reply.body, reply.status);
+      const body = reply.body;
+      if (body && typeof body === 'object') body.__httpStatus = reply.status;
+      if (reply.status !== 401 && reply.status !== 403) setConnectionNotice(false);
+      return body;
+    } catch (cause) {
+      if (cause?.name === 'AbortError') throw cause;
+      const error = cause && typeof cause === 'object' && typeof cause.code === 'string'
+        ? cause : SuggestionFlow.normalizeApiError(null);
+      if (!(cause && typeof cause === 'object' && typeof cause.code === 'string')) error.cause = cause;
+      throw error;
+    } finally {
+      if (abortHandler) signal.removeEventListener('abort', abortHandler);
     }
-    if (!response.ok) {
-      if (invalidJson) throw SuggestionFlow.normalizeApiError({ error: { code: 'invalid_json', message: `El backend devolvió un cuerpo no JSON (HTTP ${response.status}).` } }, response.status);
-      throw SuggestionFlow.normalizeApiError(body, response.status);
-    }
-    if (invalidJson) throw SuggestionFlow.normalizeApiError({ error: { code: 'invalid_json' } }, response.status);
-    if (body && typeof body === 'object') body.__httpStatus = response.status;
-    return body;
   }
   function accountScopedPath(path) {
     if (!currentAccountId) throw new Error('Confirma una cuenta de modelo antes de consultar datos privados.');
@@ -303,11 +360,12 @@
     const counts = currentSnapshot?.counts || { total: currentSnapshot?.messages?.length || 0, incoming: 0, outgoing: 0 };
     $('#pcai-auto-diagnostic').textContent = [
       `Modo automático: ${mode === 'auto' ? 'activado' : 'desactivado'}`,
-      `Conversación: ${connected ? 'identificada' : 'no identificada'} · Alias: ${currentSnapshot?.alias || '—'}`,
+      `Conversación: ${connected ? 'identificada' : 'no identificada'}`,
       `Observador del DOM: ${detector?.isObserving() ? 'activo' : 'inactivo'}`,
       `Último evento: ${autoDiagnostic.event}`,
       `Mensajes: ${counts.total} total, ${counts.incoming} entrantes, ${counts.outgoing} propios`,
       `Último entrante: ${autoDiagnostic.lastIncoming}`,
+      `ID de solicitud: ${autoDiagnostic.requestId}`,
       `Generación: ${autoDiagnostic.generation}`,
       `Última petición backend: ${autoDiagnostic.http}${autoDiagnostic.backendError ? ` · ${autoDiagnostic.backendError}` : ''}`,
       `Último resultado LM Studio: ${autoDiagnostic.lmCount}`,
@@ -345,13 +403,11 @@
     getMode: () => mode,
     getAccountId: () => currentAccountId,
     getConversationKey: () => latestConversationKey,
-    getLatestIncomingFingerprint: () => {
-      const latest = SuggestionFlow.latestConversationMessage(currentSnapshot);
-      return latest?.direction === 'incoming' ? latest.fingerprint : null;
-    },
+    getInterlocutorAlias: () => currentSnapshot?.alias || null,
+    getLatestIncomingFingerprint: () => SuggestionFlow.latestIncomingIdentity(currentSnapshot),
     getContextWindow: () => contextWindow,
     getContextCharBudget: () => contextCharBudget,
-    request: (payload, signal) => api('/api/suggestions', { method: 'POST', signal, body: JSON.stringify(payload) }),
+    request: (payload, signal, requestId) => api('/api/suggestions', { method: 'POST', signal, requestId, body: JSON.stringify(payload) }),
     onLoading: ({ done } = {}) => {
       const generate = $('#pcai-generate');
       generate.disabled = done ? mode === 'off' : true;
@@ -360,9 +416,8 @@
       customGenerate.disabled = done ? mode === 'off' : true;
       customGenerate.textContent = done ? 'Generar respuesta personalizada' : 'Generando…';
       updateGenerateAvailability();
-      results.querySelectorAll?.('[data-pcai-state="loading"]').forEach((item) => item.remove());
+      results.querySelectorAll?.(done ? '[data-pcai-state="loading"]' : '[data-pcai-state]').forEach((item) => item.remove());
       if (!done) {
-        results.replaceChildren();
         const loading = document.createElement('p');
         loading.className = 'pcai-result-state';
         loading.dataset.pcaiState = 'loading';
@@ -420,6 +475,11 @@
       showTechnicalError(technicalSummary);
       if (automatic) detection.textContent = 'Falló la generación automática; puedes reintentar desde Respuestas sugeridas.';
     },
+    onDiagnostic: (record) => {
+      autoDiagnostic.generation = `${record.state}${record.reason ? ` · ${record.reason}` : ''} · ${record.duration_ms} ms`;
+      if (record.generation_id) autoDiagnostic.requestId = record.generation_id;
+      renderAutoDiagnostic();
+    },
   });
   async function check() {
     try {
@@ -430,7 +490,15 @@
         status.textContent += d.available ? ' · LM Studio disponible' : ' · LM Studio desconectado';
         status.className = d.available ? 'pcai-status is-ok' : 'pcai-status is-warn';
         if (!d.available && d.error) showTechnicalError(d.error);
-      } catch (error) { status.textContent += ' · LM Studio no disponible'; status.className = 'pcai-status is-warn'; showTechnicalError(error.message); }
+      } catch (error) {
+        if (error.httpStatus === 401) {
+          status.textContent = 'Backend local conectado · extensión sin vincular';
+          status.className = 'pcai-status is-warn';
+          setConnectionNotice(true, 'Vincula la extensión con el backend local para cargar cuentas y continuar.');
+        } else {
+          status.textContent += ' · LM Studio no disponible'; status.className = 'pcai-status is-warn'; showTechnicalError(error.message);
+        }
+      }
     } catch (error) {
       status.textContent = 'Backend local desconectado'; status.className = 'pcai-status is-error';
       showTechnicalError(error.message);
@@ -602,8 +670,12 @@
     autoDiagnostic.generation = 'pendiente';
     renderAutoDiagnostic();
     if (autoTimer !== null) clearTimeout(autoTimer);
-    autoTimer = setTimeout(() => {
+    autoTimer = setTimeout(async () => {
       autoTimer = null;
+      // A newer automatic event cancels the active request; wait until its
+      // abort has settled before starting the coalesced latest target.
+      await suggestionFlow?.whenIdle();
+      if (mode !== 'auto') return;
       const queued = [...pendingAutoPayloads.values()];
       pendingAutoPayloads.clear();
       for (const item of queued) {
@@ -631,7 +703,7 @@
       if (result.state === 'stale') processedAutomaticKeys.delete(key);
       if (result.state === 'success') {
         const persistentKeys = [...processedAutomaticKeys].filter((item) => item.includes('\u001fid:')).slice(-1200);
-        void chrome.storage.local.set({ processedAutomaticKeys: persistentKeys });
+        void storageSet({ processedAutomaticKeys: persistentKeys }).catch(() => {});
       }
     }
     if (result.state === 'unidentified') detection.textContent = 'No se generó: no hay un alias fiable para la conversación activa.';
@@ -641,15 +713,11 @@
   function renderSnapshot(snapshot) {
     const previousKey = latestConversationKey;
     const hadSnapshot = currentSnapshot !== null;
-    const previousLatest = SuggestionFlow.latestConversationMessage(currentSnapshot);
-    const previousTargetFingerprint = previousLatest?.direction === 'incoming' ? previousLatest.fingerprint : null;
     const nextKey = snapshot.conversationKey || null;
+    const conversationChanged = Boolean(hadSnapshot && previousKey !== nextKey);
+    if (hadSnapshot && SuggestionFlow.shouldCancelForSnapshotChange(currentSnapshot, snapshot)) abortPending();
     latestConversationKey = nextKey;
     currentSnapshot = snapshot;
-    const nextLatest = SuggestionFlow.latestConversationMessage(snapshot);
-    const nextTargetFingerprint = nextLatest?.direction === 'incoming' ? nextLatest.fingerprint : null;
-    const conversationChanged = Boolean(hadSnapshot && previousKey !== nextKey);
-    if (hadSnapshot && !conversationChanged && previousTargetFingerprint !== nextTargetFingerprint) abortPending();
     if (conversationChanged) {
       autoDiagnostic.lastIncoming = 'no detectado';
       autoDiagnostic.generation = 'pendiente';
@@ -794,6 +862,12 @@
       detection.textContent = 'Detección y generación desactivadas.';
       $('#pcai-generate').disabled = true;
       return;
+    }
+    if (mode !== 'auto') {
+      suggestionFlow?.cancelAutomatic();
+      if (autoTimer !== null) clearTimeout(autoTimer);
+      autoTimer = null;
+      pendingAutoPayloads.clear();
     }
     updateGenerateAvailability();
     const missing = detector?.requiredMissing() || ['conversation', 'alias', 'message', 'incoming', 'outgoing'];
@@ -1165,7 +1239,7 @@
         accountId: currentAccountId, profileId: editingProfileId, step: wizardStep,
         editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)),
       };
-      void chrome.storage.local.set({ pcaiSetupProgress: progress }).catch(() => {
+      void storageSet({ pcaiSetupProgress: progress }).catch(() => {
         wizardStatus('No se pudo guardar la copia local del progreso. Tus selecciones siguen en pantalla; pulsa Continuar para guardarlas en el backend.', true);
       });
     }, 250);
@@ -1188,7 +1262,7 @@
     const saved = await api(path, { method: editingProfileId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
     editingProfileId = saved.id;
     wizardDraft = profileDraft(saved);
-    await chrome.storage.local.set({ pcaiSetupProgress: { accountId: currentAccountId, profileId: editingProfileId, step: complete ? 8 : Math.min(8, step + 1), editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)) } });
+    await storageSet({ pcaiSetupProgress: { accountId: currentAccountId, profileId: editingProfileId, step: complete ? 8 : Math.min(8, step + 1), editing: wizardEditing, draft: JSON.parse(JSON.stringify(wizardDraft)) } });
     return saved;
   }
   function startAccountObserver() {
@@ -1230,11 +1304,11 @@
   async function activateAccount(account) {
     currentAccountId = account.id;
     currentAccount = account;
-    await chrome.storage.local.set({ pcaiLastAccountId: account.id });
+    await storageSet({ pcaiLastAccountId: account.id });
     updateHeader();
     const data = await api(`/api/accounts/${encodeURIComponent(account.id)}/profiles`);
     profileSnapshot = data;
-    const resume = await chrome.storage.local.get(['pcaiSetupProgress']);
+    const resume = await storageGet(['pcaiSetupProgress']);
     const savedProgress = resume.pcaiSetupProgress;
     if (savedProgress?.accountId === account.id && (savedProgress.profileId || savedProgress.draft)) {
       const pending = data.profiles.find((item) => item.id === savedProgress.profileId);
@@ -1250,7 +1324,7 @@
       editingProfileId = null;
       profileSnapshot = data;
       accountReady = true;
-      await chrome.storage.local.remove?.('pcaiSetupProgress');
+      await storageRemove(['pcaiSetupProgress']);
       await loadProfiles();
       return;
     }
@@ -1262,7 +1336,7 @@
     setPanelOpen(true);
   }
   async function recoverPendingAccountCreation() {
-    const stored = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+    const stored = await storageGet(['pcaiPendingAccountCreation']);
     const pending = stored.pcaiPendingAccountCreation;
     if (!pending?.key || !pending?.payload) return;
     try {
@@ -1271,11 +1345,11 @@
       });
       if (!account?.id || !account.confirmed) return;
       modelAccounts = [...modelAccounts.filter((item) => item.id !== account.id), account];
-      await chrome.storage.local.set({
+      await storageSet({
         pcaiLastAccountId: account.id,
         pcaiSetupProgress: { accountId: account.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) },
       });
-      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+      await storageRemove(['pcaiPendingAccountCreation']);
     } catch (error) {
       console.warn?.('[PERSONAL_CHAT_AI] No se pudo recuperar una solicitud local de cuenta; se conserva para reintentar.');
     }
@@ -1306,7 +1380,7 @@
     let saved;
     if (previous) saved = await api(`/api/accounts/${encodeURIComponent(previous.id)}`, { method: 'PUT', body: JSON.stringify(accountPayload) });
     else {
-      const pendingResult = await chrome.storage.local.get(['pcaiPendingAccountCreation']);
+      const pendingResult = await storageGet(['pcaiPendingAccountCreation']);
       let pending = pendingResult.pcaiPendingAccountCreation;
       if (pending?.key && pending.payload && JSON.stringify(pending.payload) !== JSON.stringify(accountPayload)) {
         throw new Error('Hay una creación de cuenta pendiente con otra identidad. Reintenta primero con el nombre confirmado originalmente para recuperar su UUID.');
@@ -1316,11 +1390,11 @@
         crypto.getRandomValues(bytes);
         const key = [...bytes].map((value) => value.toString(16).padStart(2, '0')).join('');
         pending = { key, payload: accountPayload };
-        await chrome.storage.local.set({ pcaiPendingAccountCreation: pending });
+        await storageSet({ pcaiPendingAccountCreation: pending });
       }
       saved = await api('/api/accounts', { method: 'POST', headers: { 'Idempotency-Key': pending.key }, body: JSON.stringify(pending.payload) });
-      await chrome.storage.local.set({ pcaiLastAccountId: saved.id, pcaiSetupProgress: { accountId: saved.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) } });
-      await chrome.storage.local.remove?.('pcaiPendingAccountCreation');
+      await storageSet({ pcaiLastAccountId: saved.id, pcaiSetupProgress: { accountId: saved.id, profileId: null, step: 3, editing: false, draft: profileDraft(blankDraft()) } });
+      await storageRemove(['pcaiPendingAccountCreation']);
     }
     if (!saved?.id || !saved.confirmed) throw new Error('El backend no confirmó la identidad de la cuenta.');
     modelAccounts = [...modelAccounts.filter((item) => item.id !== saved.id), saved];
@@ -1328,7 +1402,7 @@
     wizardDraft.account_id = saved.id;
     currentAccountId = saved.id;
     currentAccount = saved;
-    await chrome.storage.local.set({ pcaiLastAccountId: saved.id });
+    await storageSet({ pcaiLastAccountId: saved.id });
     await activateAccount(saved);
     if (accountReady) return;
     wizardStep = Math.max(3, wizardStep === 2 ? 3 : wizardStep);
@@ -1348,7 +1422,7 @@
       identityDetection = AccountDetector?.detectAccount ? AccountDetector.detectAccount(document) : { status: 'unavailable', candidates: [], reason: 'detector_module_missing' };
       logIdentityDiagnostic(identityDetection);
       detectedAccountMatch = globalThis.PCAIAccountSetup?.matchDetectedAccount(modelAccounts, identityDetection) || null;
-      const saved = await chrome.storage.local.get(['pcaiLastAccountId', 'pcaiSetupProgress']);
+      const saved = await storageGet(['pcaiLastAccountId', 'pcaiSetupProgress']);
       startAccountObserver();
       const detectedNameMatchesSaved = detectedAccountMatch?.status === 'platform_match'
         && detectedAccountMatch.account.artist_name?.toLocaleLowerCase() === identityDetection.artistName?.toLocaleLowerCase();
@@ -1421,7 +1495,7 @@
         await saveWizardProfile(8, true);
         const confirmed = await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles`);
         if (!globalThis.PCAIAccountSetup.profileIsReady(confirmed)) throw new Error('El backend todavía no confirma una configuración completa. Revisa los pasos pendientes.');
-        await chrome.storage.local.remove?.('pcaiSetupProgress');
+        await storageRemove(['pcaiSetupProgress']);
         profileSnapshot = confirmed;
         accountReady = true;
         results.replaceChildren();
@@ -1442,11 +1516,11 @@
   $('#pcai-wizard-back').onclick = () => { if (wizardStep > 1) { syncWizardDraft(); wizardStep -= 1; renderWizard(); wizardStatus(''); } };
   $('#pcai-wizard-cancel').onclick = async () => {
     try {
-      const progress = await chrome.storage.local.get(['pcaiSetupProgress']);
+      const progress = await storageGet(['pcaiSetupProgress']);
       if (progress.pcaiSetupProgress?.editing && progress.pcaiSetupProgress.profileId) {
         await api(`/api/accounts/${encodeURIComponent(currentAccountId)}/profiles/${encodeURIComponent(progress.pcaiSetupProgress.profileId)}`, { method: 'DELETE' });
       }
-      await chrome.storage.local.remove?.('pcaiSetupProgress');
+      await storageRemove(['pcaiSetupProgress']);
       editingProfileId = null;
       await loadProfiles();
     } catch (error) { wizardStatus(`No se pudo cancelar la edición: ${error.message}`, true); }
@@ -1485,9 +1559,19 @@
       const hostPermissions = chrome.runtime?.getManifest?.().host_permissions || [];
       if (!BackendConfig.isCoveredByHostPermissions(nextUrl, hostPermissions)) throw new Error('Chrome no ha concedido permiso de conexión para esta URL local. Recarga la extensión y vuelve a intentarlo.');
       base = nextUrl;
-      await chrome.storage.local.set({ backendUrl: base });
+      await storageSet({ backendUrl: base });
       await check();
     } catch (e) { status.textContent = e.message; }
+  };
+  $('#pcai-connect-button').onclick = async () => {
+    try {
+      await extensionMessage({ type: 'OPEN_CONNECTION' });
+      status.textContent = 'Abre la página de conexión de PERSONAL_CHAT_AI para vincular el backend.';
+      status.className = 'pcai-status is-warn';
+    } catch (error) {
+      status.textContent = error.message || 'No se pudo abrir la conexión segura.';
+      status.className = 'pcai-status is-error';
+    }
   };
   $('#pcai-test-selectors').onclick = () => {
     const candidate = formSelectors();
@@ -1508,7 +1592,7 @@
     const signature = JSON.stringify(nextSelectors);
     if (signature !== JSON.stringify(selectors)) verifiedSelectorSignature = null;
     selectors = nextSelectors;
-    await chrome.storage.local.set({ selectors });
+    await storageSet({ selectors });
     configureDetector();
     if (mode !== 'off') applyMode();
     $('#pcai-selector-diagnostic').textContent = verifiedSelectorSignature === signature
@@ -1518,7 +1602,7 @@
   $('#pcai-mode').onchange = async () => {
     mode = modeSelect.value;
     modeBadge.textContent = mode === 'auto' ? 'Automático' : mode === 'off' ? 'Desactivado' : 'Manual';
-    await chrome.storage.local.set({ mode });
+    await storageSet({ mode });
     applyMode();
     renderAutoDiagnostic();
   };
@@ -1526,13 +1610,13 @@
     const selected = Number($('#pcai-context-window').value);
     contextWindow = [8, 12, 20, 30, 40, 100].includes(selected) ? selected : 100;
     $('#pcai-context-window').value = String(contextWindow);
-    await chrome.storage.local.set({ contextWindow, contextSettingsVersion: 3 });
+    await storageSet({ contextWindow, contextSettingsVersion: 3 });
   });
   $('#pcai-context-char-budget').addEventListener('change', async () => {
     const selected = Number($('#pcai-context-char-budget').value);
     contextCharBudget = [3000, 6000, 8000, 12000].includes(selected) ? selected : 12000;
     $('#pcai-context-char-budget').value = String(contextCharBudget);
-    await chrome.storage.local.set({ contextCharBudget, contextSettingsVersion: 3 });
+    await storageSet({ contextCharBudget, contextSettingsVersion: 3 });
   });
   for (const key of ['conversation', 'alias', 'message', 'incoming', 'outgoing', 'system', 'text', 'timestamp']) {
     $(`#pcai-pick-${key}`).onclick = () => beginElementPicker(key);
@@ -1567,7 +1651,7 @@
     const candidate = typedMessage || latestIncoming?.text || '';
     if (!candidate) { detection.textContent = 'Escribe un mensaje o abre un chat con un mensaje entrante.'; showSuggestionState('Falta el mensaje que se debe responder.', false); return; }
     const manualAlias = alias.value.trim();
-    if (typedMessage && manualAlias) await chrome.storage.local.set({ interlocutor: manualAlias });
+    if (typedMessage && manualAlias) await storageSet({ interlocutor: manualAlias });
     void requestSuggestion(candidate, currentSnapshot, false, manualAlias || null, false, typedMessage ? null : latestIncoming?.fingerprint, !typedMessage, $('#pcai-context-extra').value.trim());
   };
   $('#pcai-save-note').onclick = async () => {

@@ -71,6 +71,7 @@ function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false, 
   let preferenceFailurePending = preferenceError;
   let timerSequence = 0;
   const timers = new Map();
+  let context;
   const accountDetector = {
     detectAccount: () => detection || { status: 'candidate', artistName: 'Synthetic owner', platformUserId: 'owner-1', identitySource: 'dom', candidateCount: 1 },
     observeAccount: (document, onChange) => { view.identityChanged = onChange; return { stop() {}, scan() {} }; },
@@ -81,17 +82,39 @@ function panel({ retryOutcomes = [], generationOutcomes = [], realFlow = false, 
     onboarding_complete: Boolean(profiles.find((profile) => profile.id === active && profile.account_id === accountId)?.onboarding_complete),
     profiles: structuredClone(profiles.filter((profile) => profile.account_id === accountId)),
   });
-  const context = vm.createContext({
+  const runtime = { getManifest: () => JSON.parse(fs.readFileSync(require.resolve('../extension/manifest.json'), 'utf8')) };
+  const localStorage = {
+    get: async (keys) => { if (preferenceFailurePending) { preferenceFailurePending = false; throw new Error('Synthetic preference failure'); } const list = Array.isArray(keys) ? keys : [keys]; return Object.fromEntries(list.filter((key) => key in localStore).map((key) => [key, localStore[key]])); },
+    set: async (value) => { if (storageSetFailures > 0) { storageSetFailures -= 1; throw new Error('Synthetic storage write failure'); } Object.assign(localStore, value); },
+    remove: async (keys) => { for (const key of Array.isArray(keys) ? keys : [keys]) delete localStore[key]; },
+  };
+  runtime.sendMessage = async (message) => {
+    if (message.type === 'PREFS_GET') return { ok: true, values: await localStorage.get(message.keys) };
+    if (message.type === 'PREFS_SET') { await localStorage.set(message.values); return { ok: true, saved: true }; }
+    if (message.type === 'PREFS_REMOVE') { await localStorage.remove(message.keys); return { ok: true, removed: true }; }
+    if (message.type === 'OPEN_CONNECTION') return { ok: true };
+    if (message.type === 'API_CANCEL') return { ok: true, cancelled: true };
+    if (message.type === 'API_REQUEST') {
+      const base = localStore.backendUrl || 'http://127.0.0.1:8000';
+      const headers = { Authorization: 'Bearer synthetic-worker-token' };
+      if (message.body !== undefined) headers['Content-Type'] = 'application/json';
+      if (message.idempotencyKey) headers['Idempotency-Key'] = message.idempotencyKey;
+      const response = await context.fetch(`${base}${message.path}`, {
+        method: message.method, headers, ...(message.body !== undefined ? { body: message.body } : {}),
+      });
+      const body = response.status === 204 ? null : JSON.parse(await response.text());
+      return { ok: true, httpOk: response.ok, status: response.status, body };
+    }
+    return { ok: false, error: { code: 'operation_not_allowed', message: 'Not allowed' } };
+  };
+  context = vm.createContext({
     window: {}, document: { body, documentElement: body, createElement: (tag) => new Element(tag), querySelectorAll: () => [] },
     location: { hostname: 'stripchat.com' },
     PCAIConversationDetector: detectorError ? class { constructor() { throw new Error('Synthetic detector failure'); } } : undefined,
     PCAIBackendConfig: require('../extension/backend-config.js'), PCAIAccountDetector: accountDetector, PCAIAccountSetup: require('../extension/account-setup.js'),
     URL, AbortController, crypto: require('node:crypto').webcrypto, PCAISuggestionFlow: Flow, confirm: (message) => { view.confirmations.push(message); return confirmDecision; },
     setTimeout: (callback) => { const id = ++timerSequence; timers.set(id, callback); return id; }, clearTimeout: (id) => timers.delete(id), console,
-    chrome: { runtime: { getManifest: () => JSON.parse(fs.readFileSync(require.resolve('../extension/manifest.json'), 'utf8')) }, storage: { local: {
-      get: async (keys) => { if (preferenceFailurePending) { preferenceFailurePending = false; throw new Error('Synthetic preference failure'); } const list = Array.isArray(keys) ? keys : [keys]; return Object.fromEntries(list.filter((key) => key in localStore).map((key) => [key, localStore[key]])); },
-      set: async (value) => { if (storageSetFailures > 0) { storageSetFailures -= 1; throw new Error('Synthetic storage write failure'); } Object.assign(localStore, value); }, remove: async (key) => { delete localStore[key]; },
-    } } },
+    chrome: { runtime, storage: { local: localStorage } },
     navigator: { clipboard: { writeText: async (text) => { view.copied = text; } } },
     fetch: async (url, options = {}) => {
       const parsedUrl = new URL(url);
@@ -166,6 +189,38 @@ test('real flow and panel leave loading after 502, show exact reason and enable 
   const calls = f.view.calls.filter((item) => item.path === '/api/suggestions');
   assert.equal(calls.length, 2);
   assert.ok(calls.every((item) => item.payload.target_message === 'I missed talking to you, daddy.'));
+});
+
+test('a failed regeneration preserves the last valid suggestion and retry remains available', async () => {
+  const f = panel({ realFlow: true, generationOutcomes: [
+    { status: 200, body: { language: 'en', original_response: 'A valid earlier greeting.', spanish_translation: 'Un saludo válido anterior.' } },
+    { status: 502, body: { error: { code: 'generation_validation_failed', reason_code: 'repeated_response', message: 'La respuesta se repitió.' }, diagnostics: { duplicate_source: 'previous_unsubmitted_draft' } } },
+    { status: 200, body: { language: 'en', original_response: 'A recovered greeting.', spanish_translation: 'Un saludo recuperado.' } },
+  ] });
+  await new Promise((resolve) => setImmediate(resolve));
+  f.get('message').value = 'Hey, how are you?';
+  f.get('alias').value = 'Synthetic';
+
+  await f.get('generate-custom').onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  const originalCard = f.get('results').querySelectorAll('.pcai-suggestion')[0];
+  assert.ok(originalCard);
+
+  await f.get('generate-custom').onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(originalCard.removed, undefined);
+  assert.equal(f.get('results').querySelectorAll('.pcai-suggestion').length, 1);
+  assert.ok(f.get('results').querySelectorAll('[data-pcai-state]').some((item) => item.textContent !== 'Reintentar'));
+  assert.equal(f.get('generate-custom').disabled, false);
+  assert.equal(f.view.coordinator.pending.size, 0);
+
+  const retry = f.get('results').children.find((item) => !item.removed && item.textContent === 'Reintentar');
+  assert.ok(retry);
+  await retry.onclick();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.get('results').querySelectorAll('.pcai-suggestion').length, 1);
+  assert.equal(f.get('results').querySelectorAll('.pcai-suggestion')[0].children[1].value, 'A recovered greeting.');
+  assert.equal(f.view.coordinator.pending.size, 0);
 });
 
 test('Mi asistente edits a separate account-scoped draft and activates it only after backend confirmation', async () => {
@@ -243,6 +298,7 @@ test('new detected identity creates once, survives double click, and reuses UUID
   const creates = f.view.calls.filter((call) => call.path === '/api/accounts' && call.method === 'POST');
   assert.equal(creates.length, 1);
   assert.match(creates[0].headers['Idempotency-Key'], /^[a-f0-9]{32}$/);
+  assert.equal(f.get('wizard-title').textContent, 'Elige tu personalidad', 'detected identity confirmation must advance from onboarding step 2 to step 3');
   assert.equal(f.localStore.pcaiLastAccountId, 'account-new');
   assert.equal(f.localStore.pcaiSetupProgress.accountId, 'account-new');
   assert.equal(f.localStore.pcaiPendingAccountCreation, undefined);
@@ -267,7 +323,11 @@ test('confirming identity leaves the personality step enabled and persists the s
   f.get('wizard-next').onclick();
   for (let i = 0; i < 8; i++) await new Promise((resolve) => setImmediate(resolve));
 
-  assert.equal(f.get('wizard-title').textContent, 'Elige tu personalidad');
+  assert.equal(f.get('wizard-title').textContent, 'Elige tu personalidad', 'identity confirmation must advance from step 2 to step 3');
+  assert.equal(f.localStore.pcaiSetupProgress.accountId, 'account-new');
+  const accountCreate = f.view.calls.find((call) => call.path === '/api/accounts' && call.method === 'POST');
+  assert.match(accountCreate?.headers['Idempotency-Key'] || '', /^[a-f0-9]{32}$/);
+  assert.equal(f.localStore.pcaiPendingAccountCreation, undefined);
   assert.equal(f.get('wizard-next').disabled, false, 'Continuar debe habilitarse después de confirmar la identidad');
   f.get('wizard-view').groups['[data-wizard-list="personality"]:checked'] = [{ value: 'Dominante y segura' }];
   f.get('wizard-view').handlers.change();

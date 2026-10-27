@@ -64,6 +64,10 @@ v1.2.0 usa una base de datos nueva y no importa los datos de v1.1 al arrancar. P
 
 La automatización se limita a preparar sugerencias. Revisa, edita y envía cada mensaje manualmente.
 
+## Prueba aislada de la rama candidata v1.3.0 (no publicada)
+
+La instalación descrita arriba es la Release estable v1.2.0. Para probar `feature/v1.3.0-security-hardening`, usa una carpeta de trabajo, una base SQLite, estado de autenticación y perfil de Chrome separados; no reutilices `.env`, `data/`, credenciales ni preferencias de la instalación estable. Arranca el backend y carga la extensión desde la misma rama. La extensión candidata requiere emparejamiento local y no es compatible con el backend v1.2.0 sin autenticación. Sigue la [guía de conexión autenticada](CHROME_AUTH_V1_3.md). La usuaria confirmó regeneración Manual y Automático, generación real, persistencia al recargar Stripchat y persistencia de autenticación y generación después de reiniciar Chrome. Aún debe validarse la recuperación manual de credenciales y una generación real de más de 30 segundos durante el reinicio del service worker.
+
 ## Primera configuración v1.2.0
 
 Después de cargar la extensión, abre Stripchat e inicia sesión. El onboarding presenta cualquier nombre detectado para confirmación; si no hay una señal clara, puedes escribirlo. Elige una cuenta local existente de forma explícita o confirma la creación de una nueva. Completa los ocho pasos; hasta que el backend confirme la configuración, la generación permanece bloqueada. Consulta la [guía de usuario](USER_GUIDE.md) y las notas de [cuentas y perfiles](ACCOUNT_PROFILE_STORAGE_V1_2.md).

@@ -32,6 +32,14 @@ test('manifest grants local loopback host access and loads the URL config before
   assert.ok(manifest.host_permissions.includes('http://127.0.0.1/*'));
   assert.ok(!manifest.host_permissions.some((pattern) => /8765/.test(pattern)));
   assert.ok(manifest.content_scripts[0].js.indexOf('backend-config.js') < manifest.content_scripts[0].js.indexOf('content.js'));
+  assert.equal(manifest.minimum_chrome_version, '109');
+  assert.ok(manifest.permissions.includes('offscreen'));
+  assert.equal(manifest.background.service_worker, 'background.js');
+  assert.equal(manifest.action.default_popup, 'connection.html');
+  assert.equal(manifest.options_page, 'connection.html');
+  for (const file of [manifest.background.service_worker, manifest.action.default_popup, 'connection.css', 'connection.js', 'offscreen.html', 'offscreen.js', 'offscreen-fetch-worker.js', ...manifest.content_scripts[0].js, ...manifest.content_scripts[0].css]) {
+    assert.ok(fs.existsSync(require('node:path').join(require('node:path').resolve(__dirname, '..'), 'extension', file)), `missing extension resource: ${file}`);
+  }
 });
 
 test('environment example, backend defaults and Windows launchers use one port source', () => {

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Conexión segura · PERSONAL_CHAT_AI</title>
+    <link rel="stylesheet" href="connection.css">
+    <script src="backend-config.js" defer></script>
+    <script src="connection.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card" aria-labelledby="page-title">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span>PERSONAL_CHAT_AI</span></div>
+        <p class="eyebrow">CONEXIÓN LOCAL</p>
+        <h1 id="page-title">Vincula tu asistente</h1>
+        <p class="intro">La extensión se conecta únicamente con el backend de tu equipo. El código temporal se usa una vez y el token no se entrega al chat de Stripchat.</p>
+
+        <div id="connection-state" class="connection-state" role="status" aria-live="polite">Comprobando el backend local…</div>
+
+        <form id="backend-form" class="form-section">
+          <label for="backend-url">Dirección del backend</label>
+          <div class="input-row"><input id="backend-url" type="url" value="http://127.0.0.1:8000" autocomplete="url" required><button type="submit" class="secondary">Guardar</button></div>
+          <small>Solo se permiten direcciones HTTP de 127.0.0.1 autorizadas por el manifiesto.</small>
+        </form>
+
+        <form id="pair-form" class="form-section">
+          <label for="pairing-code">Código temporal de emparejamiento</label>
+          <div class="input-row"><input id="pairing-code" type="password" inputmode="text" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="64" placeholder="Pega el código de la consola" required><button id="pair-button" type="submit" class="primary">Vincular</button></div>
+          <small>El campo se vacía al iniciar el intento. El código no se guarda en preferencias.</small>
+        </form>
+
+        <div class="actions"><button id="refresh-button" type="button" class="text-button">Comprobar conexión</button></div>
+        <p id="page-message" class="page-message" role="status" aria-live="polite"></p>
+
+        <details class="instructions">
+          <summary>¿Dónde obtengo el código?</summary>
+          <ol>
+            <li>Inicia el backend local.</li>
+            <li>En una consola abierta en la carpeta del proyecto, ejecuta <code>python -m backend.auth_admin pair</code>.</li>
+            <li>Pega aquí el código antes de que pasen cinco minutos.</li>
+          </ol>
+          <p>Si ya habías vinculado esta extensión y perdiste su token, usa <code>python -m backend.auth_admin rotate</code>. El comando solicita confirmación y revoca el token anterior.</p>
+          <p class="security-note">No pegues el código en Stripchat, DevTools, una URL ni una conversación.</p>
+        </details>
+        <footer>Las sugerencias siguen bajo tu revisión y envío manual.</footer>
+      </section>
+    </main>
+  </body>
+</html>

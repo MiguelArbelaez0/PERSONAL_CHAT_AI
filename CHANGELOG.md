@@ -1,3 +1,17 @@
+# v1.3.0 — rama de desarrollo, no publicada
+
+Este registro describe trabajo en `feature/v1.3.0-security-hardening`; no es una Release ni una declaración de estabilidad.
+
+- Emparejamiento explícito mediante código temporal, bearer local y recuperación por rotación o revocación.
+- Extensión Manifest V3 con autenticación mediada por service worker y Offscreen Document para las solicitudes largas de generación y reintento de traducción.
+- Recuperación idempotente de cuentas y pruebas adicionales de autenticación, aislamiento por cuenta/visitante, generación, regeneración y conservación de la última sugerencia válida.
+- La revisión del 26 de octubre de 2026 ejecutó 353 pruebas Python y 155 JavaScript, `pip check`, sintaxis, manifiesto y `git diff --check`; Gitleaks no encontró secretos en los cambios examinados.
+- `pip-audit` se ejecutó en un entorno Python 3.14 aislado y no encontró vulnerabilidades conocidas en `requirements.txt`. Bandit reportó cuatro hallazgos B105 de baja severidad y uno B608 de severidad media/baja confianza; la inspección los identificó como falsos positivos: `Bearer` es el valor del esquema de autorización, `None` representa campos vacíos del estado y la consulta de migración selecciona solo nombres de columna de una lista fija filtrada por el esquema. No hubo hallazgos Bandit de severidad alta.
+- El 27 de octubre de 2026, la usuaria confirmó en Chrome regeneración consecutiva en Manual y Automático, generación real con LM Studio, persistencia de cuenta, personalidad y memoria tras recargar Stripchat, y persistencia de autenticación y generación tras reiniciar Chrome. Quedan pendientes revocación/recuperación manual y generación real superior a 30 segundos con reinicio del service worker.
+- En prueba real con LM Studio y datos sintéticos, cuatro análisis independientes de Qwen3 4B cumplieron el parser. De dos solicitudes completas, una generó y tradujo correctamente; la otra falló de forma recuperable con `repetitive_question`. Los dos `missing_context_analysis` observados anteriormente no se reprodujeron. Sin metadatos de la respuesta original no se puede decidir si fueron salida vacía/truncada del modelo o salida no reconocida por el parser.
+- Pendiente para considerar una RC: repetir el flujo actualizado en Chrome real con cuenta/chat sintéticos, comprobar reinicio del service worker durante una generación real superior a 30 segundos y completar las pruebas manuales de recuperación/autenticación. Las simulaciones automatizadas no cuentan como verificación manual.
+- El manifiesto MV3 y FastAPI declaran `1.3.0` para la preparación de la candidata. La Release no está publicada y la etiqueta estable `v1.2.0` permanece intacta.
+
 # v1.2.0 — versión estable
 
 La Release estable v1.2.0 está publicada en GitHub. Los registros posteriores a la sección de v1.1.0 documentan etapas de desarrollo fechadas anteriores a esa publicación; cualquier estado de aprobación o publicación indicado allí corresponde únicamente al momento descrito y no al estado actual.

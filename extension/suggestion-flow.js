@@ -35,10 +35,11 @@
       return normalized;
     }
 
-    constructor({ request, getMode, getConversationKey, getLatestIncomingFingerprint, getContextWindow, getContextCharBudget, getAccountId, onLoading, onSuccess, onEmpty, onError }) {
+    constructor({ request, getMode, getConversationKey, getInterlocutorAlias, getLatestIncomingFingerprint, getContextWindow, getContextCharBudget, getAccountId, onLoading, onSuccess, onEmpty, onError, onDiagnostic }) {
       this.request = request;
       this.getMode = getMode;
       this.getConversationKey = getConversationKey;
+      this.getInterlocutorAlias = getInterlocutorAlias || (() => null);
       this.getLatestIncomingFingerprint = getLatestIncomingFingerprint || (() => null);
       this.getContextWindow = getContextWindow || (() => 100);
       this.getContextCharBudget = getContextCharBudget || (() => 12000);
@@ -47,13 +48,25 @@
       this.onSuccess = onSuccess || (() => {});
       this.onEmpty = onEmpty || (() => {});
       this.onError = onError || (() => {});
+      this.onDiagnostic = onDiagnostic || (() => {});
       this.pending = new Set();
+      this.pendingAutomatic = new Set();
       this.inFlightKeys = new Set();
+      this.idleWaiters = new Set();
+      this.generationSequence = 0;
     }
 
     cancelPending() {
       for (const controller of this.pending) controller.abort();
-      this.pending.clear();
+    }
+
+    cancelAutomatic() {
+      for (const controller of this.pendingAutomatic) controller.abort();
+    }
+
+    whenIdle() {
+      if (!this.pending.size) return Promise.resolve();
+      return new Promise((resolve) => this.idleWaiters.add(resolve));
     }
 
     static latestIncoming(snapshot) {
@@ -64,9 +77,22 @@
       return [...(snapshot?.messages || [])].reverse().find((item) => item.direction !== 'system' && String(item.text || '').trim()) || null;
     }
 
+    static latestIncomingIdentity(snapshot) {
+      const item = SuggestionFlow.latestIncoming(snapshot);
+      if (!item) return null;
+      return item.fingerprint || String(item.text || '').replace(/\s+/g, ' ').trim() || null;
+    }
+
+    static shouldCancelForSnapshotChange(previous, next) {
+      if ((previous?.conversationKey || null) !== (next?.conversationKey || null)) return true;
+      const normalizeAlias = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      if (normalizeAlias(previous?.alias) !== normalizeAlias(next?.alias)) return true;
+      return SuggestionFlow.latestIncomingIdentity(previous) !== SuggestionFlow.latestIncomingIdentity(next);
+    }
+
     static isLatestIncoming(snapshot, fingerprint) {
-      const latest = SuggestionFlow.latestConversationMessage(snapshot);
-      return Boolean(latest && latest.direction === 'incoming' && latest.fingerprint === fingerprint);
+      const latest = SuggestionFlow.latestIncoming(snapshot);
+      return Boolean(latest && fingerprint && latest.fingerprint === fingerprint);
     }
 
     static normalizeTimestamp(value) {
@@ -136,14 +162,49 @@
       if (automatic && !alias) return { state: 'unidentified' };
       const conversationKey = snapshot?.conversationKey || this.getConversationKey();
       const requestKey = `${conversationKey || ''}\u001f${targetFingerprint || text}`;
-      if (this.inFlightKeys.has(requestKey)) return { state: 'duplicate' };
+      if (this.inFlightKeys.has(requestKey)) {
+        this.reportDiagnostic({ mode: automatic ? 'auto' : 'manual', state: 'duplicate', duration_ms: 0, reason: 'same_target_in_flight' });
+        return { state: 'duplicate' };
+      }
+      const targetIsCurrent = () => {
+        if (!targetIsIncoming || !targetFingerprint) return true;
+        const latestIncoming = this.getLatestIncomingFingerprint();
+        return latestIncoming == null || latestIncoming === targetFingerprint;
+      };
+      const accountIdAtStart = this.getAccountId();
+      const visitorAtStart = snapshot?.alias || null;
+      const generationId = `g${Date.now().toString(36)}-${(++this.generationSequence).toString(36)}`;
+      const startedAt = globalThis.performance?.now?.() ?? Date.now();
+      let terminalState = 'error';
+      let terminalReason = 'unexpected_failure';
+      const finish = (state, reason, extra = {}) => {
+        terminalState = state;
+        terminalReason = reason;
+        return { state, ...extra };
+      };
+      const reportStaleReason = (data = null) => {
+        if (conversationKey && conversationKey !== this.getConversationKey()) return 'conversation_changed';
+        if (accountIdAtStart !== this.getAccountId()) return 'account_changed';
+        const activeVisitor = this.getInterlocutorAlias();
+        if (visitorAtStart && normalizeAlias(visitorAtStart) !== normalizeAlias(activeVisitor)) return 'visitor_changed';
+        if (data?.model_account_id && accountIdAtStart && data.model_account_id !== accountIdAtStart) return 'account_mismatch';
+        if (data?.conversation_id && conversationKey && data.conversation_id !== conversationKey) return 'conversation_mismatch';
+        if (typeof data?.interlocutor === 'string' && normalizeAlias(data.interlocutor) !== normalizeAlias(alias)) return 'visitor_mismatch';
+        if (targetFingerprint && data?.target_message_id && data.target_message_id !== targetFingerprint) return 'target_mismatch';
+        if (!targetIsCurrent()) return 'newer_incoming_message';
+        if (automatic && this.getMode() !== 'auto') return 'automatic_mode_disabled';
+        if (controller.signal.aborted) return 'cancelled';
+        return '';
+      };
+      const normalizeAlias = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
       this.inFlightKeys.add(requestKey);
       const controller = new AbortController();
       this.pending.add(controller);
-      this.onLoading({ automatic, alias });
+      if (automatic) this.pendingAutomatic.add(controller);
       let responseReceived = false;
       try {
-        const normalizeAlias = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+        this.reportDiagnostic({ generation_id: generationId, mode: automatic ? 'auto' : 'manual', state: 'started', duration_ms: 0, reason: '' });
+        this.onLoading({ automatic, alias });
         const contextSnapshot = !automatic && aliasOverride && normalizeAlias(aliasOverride) !== normalizeAlias(snapshot?.alias)
           ? null : snapshot;
         const context = SuggestionFlow.prepareContextDetails(contextSnapshot, text, {
@@ -172,21 +233,16 @@
           client_context_window: this.getContextWindow(),
           client_context_truncated_by_window: context.truncatedByWindow,
           client_context_truncated_by_characters: context.truncatedByCharacters,
-        }, controller.signal);
+        }, controller.signal, generationId);
         responseReceived = true;
-        if (controller.signal.aborted || (conversationKey && conversationKey !== this.getConversationKey())
-          || (this.getAccountId() && data?.model_account_id && data.model_account_id !== this.getAccountId())
-          || (data?.conversation_id && conversationKey && data.conversation_id !== conversationKey)
-          || (typeof data?.interlocutor === 'string' && normalizeAlias(data.interlocutor) !== normalizeAlias(alias))
-          || (targetFingerprint && data?.target_message_id && data.target_message_id !== targetFingerprint)
-          || (targetIsIncoming && targetFingerprint && this.getLatestIncomingFingerprint() !== targetFingerprint)
-          || (automatic && this.getMode() !== 'auto')) return { state: 'stale' };
+        const staleReason = reportStaleReason(data);
+        if (staleReason) return finish('stale', staleReason);
         const originalResponse = typeof data?.original_response === 'string' ? data.original_response.trim() : '';
         if (!originalResponse) {
           const error = new Error('LM Studio no devolvió una respuesta original. Puedes reintentar.');
           error.httpStatus = data?.__httpStatus || null;
           this.onError({ automatic, alias, error, httpStatus: error.httpStatus });
-          return { state: 'error' };
+          return finish('error', 'empty_response');
         }
         const language = typeof data.language === 'string' ? data.language : data?.diagnostics?.detected_language || '';
         const spanishTranslation = language === 'es' || typeof data.spanish_translation !== 'string'
@@ -197,23 +253,36 @@
           notice: typeof data.notice === 'string' ? data.notice : '',
           httpStatus: data.__httpStatus || null, diagnostics: data?.diagnostics || null,
         });
-        return { state: 'success', count: 1 };
+        return finish('success', 'completed', { count: 1 });
       } catch (error) {
-        if (error?.name === 'AbortError' || controller.signal.aborted) return { state: 'stale' };
-        if (conversationKey && conversationKey !== this.getConversationKey()) return { state: 'stale' };
-        if (targetIsIncoming && targetFingerprint && this.getLatestIncomingFingerprint() !== targetFingerprint) return { state: 'stale' };
+        const staleReason = reportStaleReason();
+        if (staleReason) return finish('stale', staleReason);
         const normalized = responseReceived
           ? SuggestionFlow.normalizeApiError({ error: { code: 'render_error' } })
           : error instanceof Error
           ? SuggestionFlow.normalizeApiError({ error: { code: error.code, reason_code: error.reasonCode, message: error.message }, diagnostics: error.diagnostics }, error.httpStatus)
           : SuggestionFlow.normalizeApiError(error, error?.httpStatus);
         this.onError({ automatic, alias, error: normalized, httpStatus: normalized.httpStatus });
-        return { state: 'error' };
+        return finish('error', normalized.code || 'request_failed');
       } finally {
         this.pending.delete(controller);
+        this.pendingAutomatic.delete(controller);
         this.inFlightKeys.delete(requestKey);
-        if (!this.pending.size) this.onLoading({ done: true });
+        if (!this.pending.size) {
+          try { this.onLoading({ done: true }); } catch (_) { terminalReason = terminalReason || 'loading_state_render_failed'; }
+          for (const resolve of this.idleWaiters) resolve();
+          this.idleWaiters.clear();
+        }
+        const endedAt = globalThis.performance?.now?.() ?? Date.now();
+        this.reportDiagnostic({
+          generation_id: generationId, mode: automatic ? 'auto' : 'manual', state: terminalState,
+          duration_ms: Math.max(0, Math.round(endedAt - startedAt)), reason: terminalReason,
+        });
       }
+    }
+
+    reportDiagnostic(record) {
+      try { this.onDiagnostic(record); } catch (_) { /* Diagnostics must not change generation behavior. */ }
     }
   }
 

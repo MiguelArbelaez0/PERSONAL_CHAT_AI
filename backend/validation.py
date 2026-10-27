@@ -3,13 +3,19 @@ import re
 from collections import OrderedDict, deque
 from difflib import SequenceMatcher
 
-from backend.answers import _is_duplicate, _normalize
+from backend.answers import _is_duplicate, _is_repeated_draft, _normalize
 from backend.language import classify_language, has_language_conflict
 from backend.roles import ROLE_GREETING as _ROLE_GREETING, incoming_address
 
 
 _FUNCTION_WORDS = set("i you we me my your a an the to of for and but so it is am are was be have just m re ve ll d je tu et de la le un une el en que te me por para eu voce com uma".split())
 _COURTESY_WORDS = set("hi hey hello there thanks thank doing well good oui vais bien merci bonsoir bonjour estoy gracias hola estou bem obrigado obrigada oi ola".split())
+_COMMON_SHARED_EXPRESSIONS = {
+    "good to hear from you", "it s good to hear from you", "nice to hear from you", "it s nice to hear from you",
+    "glad to hear from you", "great to hear from you", "lovely to hear from you", "good hearing from you",
+    "nice hearing from you", "good to see you", "it s good to see you", "nice to see you", "glad you reached out",
+    "thanks for asking", "thank you for asking", "thanks for checking in", "thank you for checking in",
+}
 _COMPLETED_EVENT = re.compile(
     r"\b(?:(?:i|we)\s+(?:(?:ve|have|had|just|already|recently)\s+)*(?:had|chatted|talked|spoke|met|went|visited|ate|finished|promised)\b|"
     r"just\s+(?:had|finished|met|talked)\b|"
@@ -68,10 +74,13 @@ def remove_unsupported_clauses(text: str, incoming: str, *, context="", notes=()
     return result if result != text and len(_normalize(result).split()) >= 3 else None
 
 
-def _shared_content_phrase(left, right, minimum=4):
+def _shared_content_phrase(left, right, minimum=5, min_content_words=2):
     a, b = _normalize(left).split(), _normalize(right).split()
     block = SequenceMatcher(None, a, b, autojunk=False).find_longest_match()
-    return block.size >= minimum and len(set(a[block.a:block.a + block.size]) - _FUNCTION_WORDS - _COURTESY_WORDS) >= 2
+    phrase = " ".join(a[block.a:block.a + block.size])
+    if phrase in _COMMON_SHARED_EXPRESSIONS:
+        return False
+    return block.size >= minimum and len(set(a[block.a:block.a + block.size]) - _FUNCTION_WORDS - _COURTESY_WORDS) >= min_content_words
 
 
 def _help_acknowledgment(text):
@@ -83,7 +92,7 @@ def _help_acknowledgment(text):
 def response_duplicate_source(text, incoming, previous=()):
     if _is_duplicate(text, incoming):
         return "target_incoming"
-    if any(_is_duplicate(text, item) for item in previous):
+    if any(_is_repeated_draft(text, item) for item in previous):
         return "previous_unsubmitted_draft"
     return None
 
@@ -96,7 +105,7 @@ def response_rejection(text, incoming, expected_language, previous=(), *, contex
         return "contextually_irrelevant"
     if response_duplicate_source(text, incoming, previous):
         return "repeated_response"
-    if _shared_content_phrase(text, incoming, minimum=5) or any(
+    if _shared_content_phrase(text, incoming, minimum=5, min_content_words=2) or any(
         len(_normalize(clause).split()) >= 4 and _normalize(clause) in _normalize(text)
         for clause in re.split(r"[.!?;\n]+", incoming) if clause.strip()
     ):

@@ -26,11 +26,11 @@ La extensión detecta señales visibles de la cuenta autenticada y solicita conf
 
 ## Bloqueo de exposición de red
 
-El backend solo inicia con `BACKEND_HOST=127.0.0.1`; valores externos o ambiguos se rechazan. El acceso remoto no está soportado en esta versión. La API no implementa autenticación y confía en el sistema local y en sus controles de origen CORS. Consulta [SECURITY.md](SECURITY.md).
+En la versión estable v1.2.0, el backend solo inicia con `BACKEND_HOST=127.0.0.1`; valores externos o ambiguos se rechazan. El acceso remoto no está soportado y la API no implementa autenticación. La rama candidata v1.3.0 añade bearer local y emparejamiento; consulta [SECURITY.md](SECURITY.md) para distinguir ambos contratos.
 
 ## Versiones
 
-El manifiesto y FastAPI declaran `1.2.0`. La versión estable v1.2.0 está publicada en [GitHub Releases](https://github.com/MiguelArbelaez0/PERSONAL_CHAT_AI/releases/tag/v1.2.0); v1.1.0 es la versión estable anterior. La API conserva el contrato `1.0` para las solicitudes existentes.
+La versión estable publicada en GitHub es v1.2.0; v1.1.0 es la versión estable anterior. En la rama de trabajo `feature/v1.3.0-security-hardening`, el manifiesto MV3 y FastAPI declaran `1.3.0` para preparar una candidata aún no publicada. La API conserva el contrato `1.0` para las solicitudes existentes.
 
 ## Cuentas y perfiles en v1.2
 
