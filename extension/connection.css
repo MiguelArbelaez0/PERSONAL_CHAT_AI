@@ -20,6 +20,11 @@ h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); line-height: 1.14; letter-spa
 .connection-state[data-state="error"] { border-color: #f1d0d4; color: #9e3545; background: #fff5f6; }
 .connection-state[data-state="warning"] { border-color: #f0e0b5; color: #795a15; background: #fffaf0; }
 .form-section { margin-top: 22px; }
+.native-section { padding: 16px; border: 1px solid #ece8f7; border-radius: 15px; background: linear-gradient(140deg, #fbfaff, #fff8fc); }
+.native-section h2 { margin: 0 0 7px; color: #37344b; font-size: 14px; }
+.native-section p { margin: 0; color: #686579; font-size: 12px; line-height: 1.55; }
+.native-actions { margin-top: 12px; }
+.native-actions button { flex: 1; min-height: 42px; }
 label { display: block; margin-bottom: 8px; color: #37344b; font-size: 13px; font-weight: 750; }
 .input-row { display: flex; gap: 9px; }
 input { min-width: 0; width: 100%; padding: 12px 13px; border: 1px solid #dcd9e8; border-radius: 11px; outline: none; color: #29263b; background: #fff; font: inherit; font-size: 13px; transition: border-color .15s, box-shadow .15s; }

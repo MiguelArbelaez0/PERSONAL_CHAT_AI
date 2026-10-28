@@ -210,10 +210,27 @@ def create_app(config: Settings = settings, llm=None, memory=None) -> FastAPI:
     @app.get("/api/diagnostics/lm-studio")
     async def diagnostics():
         try:
-            models = await client.models()
-            return {"available": True, "models": models, "configured_model": config.lm_studio_model or None}
+            inventory_fn = getattr(client, "model_inventory", None)
+            if inventory_fn:
+                inventory = await inventory_fn()
+                chat_models = [item.id for item in inventory if item.model_type == "llm"]
+                details = [item.public_dict() for item in inventory]
+            else:  # Preserve compatibility with existing injected clients and tests.
+                chat_models = await client.models()
+                details = []
+            configured = config.lm_studio_model or None
+            return {
+                "available": True,  # Existing contract: the LM Studio API answered.
+                "models": chat_models,
+                "configured_model": configured,
+                "conversation_model_available": bool(chat_models),
+                "selected_model_available": bool(configured and configured in chat_models),
+                "model_details": details,
+            }
         except LMStudioError as exc:
-            return {"available": False, "models": [], "error": str(exc)}
+            return {"available": False, "models": [], "configured_model": config.lm_studio_model or None,
+                    "conversation_model_available": False, "selected_model_available": False,
+                    "error": str(exc), "reason_code": exc.reason_code or "unavailable"}
 
     def resolve_account_id(account_id: str | None) -> str:
         if account_id:

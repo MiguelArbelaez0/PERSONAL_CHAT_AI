@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PERSONAL_CHAT_AI",
+  "version": "1.4.0",
+  "identifier": "com.personalchatai.desktop",
+  "build": {
+    "frontendDist": "ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "PERSONAL_CHAT_AI",
+        "width": 1040,
+        "height": 720,
+        "minWidth": 840,
+        "minHeight": 620,
+        "center": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "resources": {
+      "backend-dist/personal-chat-ai-backend": "backend",
+      "target/release/pcai_native_host.exe": "native-host/pcai_native_host.exe"
+    },
+    "windows": {
+      "bundleVCRuntime": true,
+      "allowDowngrades": false,
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Spanish"],
+        "installerHooks": "packaging/nsis_hooks.nsh"
+      }
+    }
+  }
+}

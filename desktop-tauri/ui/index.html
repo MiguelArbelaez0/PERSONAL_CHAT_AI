@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f6ff" />
+    <title>PERSONAL_CHAT_AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#inicio" aria-label="PERSONAL_CHAT_AI, inicio">
+          <span class="brand-mark" aria-hidden="true">✦</span>
+          <span>PERSONAL<span class="brand-accent">_CHAT_AI</span></span>
+        </a>
+        <span class="prototype-pill"><span class="pill-dot"></span> PRIMEROS PASOS</span>
+      </header>
+
+      <section class="welcome-grid" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> TU ESPACIO, A TU MANERA</p>
+          <h1 id="welcome-title">Tu asistente personal,<br /><span>sin complicaciones.</span></h1>
+          <p class="intro">Un lugar sencillo para preparar tu asistente y tener tus herramientas a mano. Tú decides qué usar y cuándo.</p>
+
+          <div class="status-card" id="status-card" data-state="checking" aria-live="polite">
+            <span class="status-icon" id="status-icon" aria-hidden="true"><span class="spinner"></span></span>
+            <div class="status-text">
+              <strong id="status-title">Preparando tu espacio…</strong>
+              <span id="status-message">Un momento, estamos comprobando que todo esté en orden.</span>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="button button-primary" id="start-button" type="button" disabled>
+              <span id="start-label">Iniciar</span><span class="button-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="button button-secondary" id="repair-button" type="button" hidden>Solucionar</button>
+          </div>
+          <p class="quiet-note">El servicio local se prepara automáticamente. Desde aquí puedes abrir Chrome para completar la vinculación.</p>
+
+          <section class="llm-card" aria-labelledby="llm-title">
+            <div class="llm-card-heading">
+              <span class="llm-mark" aria-hidden="true">✧</span>
+              <div>
+                <p class="chrome-eyebrow">CONFIGURACIÓN DE IA</p>
+                <h2 id="llm-title">Tu modelo de conversación</h2>
+              </div>
+            </div>
+            <div class="llm-progress" aria-live="polite"><span id="llm-step-count">Paso 1 de 6</span><strong id="llm-step-title">Bienvenida</strong><progress id="llm-progress-bar" max="6" value="1">1 de 6</progress></div>
+            <p class="llm-status" id="llm-status" data-state="checking" aria-live="polite">Comprobando LM Studio…</p>
+
+            <section class="llm-step" data-step="0" aria-labelledby="llm-welcome-title">
+              <h3 id="llm-welcome-title">Vamos a preparar tu IA</h3>
+              <p class="llm-step-copy">Comprobaremos LM Studio, elegiremos un modelo de conversación y enviaremos una prueba breve sin usar tus chats ni recuerdos.</p>
+            </section>
+
+            <section class="llm-step" data-step="1" hidden aria-labelledby="llm-detect-title">
+              <h3 id="llm-detect-title">Detectar LM Studio</h3>
+              <p class="llm-step-copy">La comprobación busca el servidor local en la dirección elegida. Si no responde, no podemos saber solo con esto si la aplicación está instalada.</p>
+              <div class="llm-actions"><button class="button button-secondary" id="llm-refresh-button" type="button">Comprobar de nuevo</button></div>
+              <details class="llm-advanced">
+                <summary>Configuración avanzada</summary>
+                <label class="llm-label" for="llm-port-input">Puerto local de LM Studio</label>
+                <div class="llm-port-row"><input id="llm-port-input" class="llm-select" inputmode="numeric" type="number" min="1" max="65535" value="1234" aria-describedby="llm-port-help"><button class="button button-secondary" id="llm-port-save-button" type="button">Guardar puerto</button></div>
+                <p class="llm-note" id="llm-port-help">Solo se permiten conexiones a este equipo. Nunca se acepta una dirección de red externa.</p>
+              </details>
+              <div id="llm-recovery-panel" class="llm-recovery" hidden>
+                <p class="llm-step-copy">La configuración local está dañada. Podemos crear una nueva y guardar primero una copia de la anterior.</p>
+                <button class="button button-secondary" id="llm-recovery-button" type="button">Recuperar configuración</button>
+              </div>
+              <p class="llm-download-note">¿Aún no tienes LM Studio? <a href="https://lmstudio.ai/download" target="_blank" rel="noopener noreferrer">Consulta su descarga oficial</a>.</p>
+            </section>
+
+            <section class="llm-step" data-step="2" hidden aria-labelledby="llm-model-detect-title">
+              <h3 id="llm-model-detect-title">Buscar modelos de conversación</h3>
+              <p class="llm-step-copy">Esta lista muestra los modelos instalados que LM Studio identifica como modelos de lenguaje. Los modelos de embeddings no se mostrarán.</p>
+              <p class="llm-model-details" id="llm-model-summary"></p>
+              <ul class="llm-model-list" id="llm-model-list"></ul>
+              <p class="llm-download-note">Para explorar modelos, revisar su ficha y licencia, y descargar uno, abre LM Studio y usa su pestaña Discover. PERSONAL_CHAT_AI no inicia descargas porque la API local no entrega antes de descargarlas la licencia ni el espacio requerido y no documenta cancelación REST. <a href="https://lmstudio.ai/models" target="_blank" rel="noopener noreferrer">Explorar el catálogo oficial</a> · <a href="https://lmstudio.ai/download" target="_blank" rel="noopener noreferrer">Descargar LM Studio</a>.</p>
+            </section>
+
+            <section class="llm-step" data-step="3" hidden aria-labelledby="llm-select-title">
+              <h3 id="llm-select-title">Elegir tu modelo</h3>
+              <label class="llm-label" for="llm-model-select">Modelo conversacional</label>
+              <select id="llm-model-select" class="llm-select" disabled><option value="">Actualiza la lista para consultar modelos</option></select>
+              <p class="llm-model-details" id="llm-model-details"></p>
+              <p class="llm-step-copy">Si el modelo no está cargado, puedes solicitar su carga. La app no descargará ni cerrará modelos automáticamente.</p>
+              <div class="llm-actions"><button class="button button-primary" id="llm-save-button" type="button" disabled>Guardar selección</button></div>
+            </section>
+
+            <section class="llm-step" data-step="4" hidden aria-labelledby="llm-test-title">
+              <h3 id="llm-test-title">Verificar una respuesta</h3>
+              <p class="llm-step-copy">La prueba envía una instrucción sintética y breve. No utiliza ni guarda conversaciones, visitantes o recuerdos.</p>
+              <div class="llm-actions"><button class="button button-primary" id="llm-test-button" type="button" disabled>Probar generación</button></div>
+            </section>
+
+            <section class="llm-step" data-step="5" hidden aria-labelledby="llm-finish-title">
+              <h3 id="llm-finish-title">Resumen de configuración</h3>
+              <ul class="llm-summary">
+                <li><span>Aplicación</span><strong id="llm-summary-backend">Pendiente de comprobar</strong></li>
+                <li><span>Motor de IA</span><strong id="llm-summary-server">Pendiente</strong></li>
+                <li><span>Modelo</span><strong id="llm-summary-model">Sin seleccionar</strong></li>
+                <li><span>Generación</span><strong id="llm-summary-test">Sin verificar</strong></li>
+                <li><span>Chrome</span><strong id="llm-summary-chrome">Se comprueba por separado</strong></li>
+              </ul>
+              <p class="llm-step-copy">El estado de Chrome es independiente. Esta configuración no envía mensajes a Stripchat.</p>
+            </section>
+
+            <div class="llm-wizard-actions">
+              <button class="button button-secondary" id="llm-back-button" type="button" disabled>Anterior</button>
+              <button class="button button-secondary" id="llm-cancel-button" type="button" hidden>Cancelar</button>
+              <button class="button button-primary" id="llm-next-button" type="button">Comenzar</button>
+            </div>
+          </section>
+
+          <section class="chrome-card" aria-labelledby="chrome-title">
+            <div class="chrome-card-heading">
+              <span class="chrome-mark" aria-hidden="true">◎</span>
+              <div>
+                <p class="chrome-eyebrow">TU ESPACIO, TAMBIÉN EN CHROME</p>
+                <h2 id="chrome-title">Conectar con Chrome</h2>
+              </div>
+            </div>
+            <p class="chrome-status" id="chrome-status" data-state="checking" aria-live="polite">Comprobando la conexión…</p>
+            <p class="chrome-description">Abre la página de extensiones para vincular PERSONAL_CHAT_AI. La extensión te pedirá confirmación; tus credenciales no se mostrarán.</p>
+            <div class="chrome-actions">
+              <button class="button button-primary" id="chrome-connect-button" type="button">Conectar</button>
+              <button class="button button-secondary" id="chrome-disconnect-button" type="button" hidden>Desconectar</button>
+            </div>
+          </section>
+        </div>
+
+        <aside class="welcome-art" aria-label="Ilustración decorativa de bienvenida">
+          <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+          <div class="art-glow"></div>
+          <div class="art-card">
+            <div class="art-card-top"><span class="mini-brand"><span>✦</span> PERSONAL_CHAT_AI</span><span class="online-dot"></span></div>
+            <div class="assistant-avatar"><span>✦</span></div>
+            <p class="art-greeting">Un nuevo comienzo</p>
+            <h2>Hecho para ti.</h2>
+            <div class="art-divider"></div>
+            <div class="art-feature"><span class="feature-icon">♡</span><span>Personal, sencillo y bajo tu control</span></div>
+            <div class="art-feature"><span class="feature-icon feature-icon-pink">✧</span><span>Tú eliges cada paso</span></div>
+          </div>
+          <span class="sparkle sparkle-a">✦</span><span class="sparkle sparkle-b">✧</span><span class="sparkle sparkle-c">·</span>
+          <div class="art-caption"><span class="caption-line"></span> UN ESPACIO CREADO CONTIGO</div>
+        </aside>
+      </section>
+
+      <footer class="footer"><span>PERSONAL_CHAT_AI <span class="footer-separator">·</span> Prototipo de escritorio v1.4</span><span>Tu espacio permanece bajo tu control</span></footer>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </main>
+  </body>
+</html>

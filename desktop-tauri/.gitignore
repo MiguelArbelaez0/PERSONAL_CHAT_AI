@@ -1,0 +1,8 @@
+/target/
+/node_modules/
+/ui-dist/
+/gen/schemas/
+/backend-dist/
+/native-host/*.exe
+/native-host/native-messaging-host.json
+/packaging/build/

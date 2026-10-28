@@ -6,6 +6,7 @@
 
   const config = globalThis.PCAIBackendConfig;
   const AUTH_KEY = 'pcaiAuthBearer';
+  const NATIVE_HOST = 'com.personalchatai.desktop';
   const MAX_MESSAGE_BYTES = 256 * 1024;
   const MAX_BODY_BYTES = 64 * 1024;
   const MAX_RESPONSE_BYTES = 512 * 1024;
@@ -401,6 +402,43 @@
     }
   }
 
+  async function nativeHostRequest(type) {
+    if (!['pair', 'rotate', 'revoke'].includes(type)
+      || typeof chrome.runtime.sendNativeMessage !== 'function') {
+      return fail('native_host_unavailable', 'No está disponible la conexión con PERSONAL_CHAT_AI para Windows.');
+    }
+    try {
+      const reply = await chrome.runtime.sendNativeMessage(NATIVE_HOST, { type });
+      if (!plainObject(reply) || reply.ok !== true) {
+        return fail(reply?.code || 'native_host_failed', 'No se pudo completar la conexión con la aplicación.');
+      }
+      if (type === 'revoke') return reply.revoked === true
+        ? { ok: true, revoked: true }
+        : fail('native_host_failed', 'No se pudo desconectar la extensión.');
+      if (typeof reply.pairingCode !== 'string' || !/^[A-Za-z0-9_-]{40,64}$/.test(reply.pairingCode)) {
+        return fail('native_host_failed', 'La aplicación no confirmó la conexión.');
+      }
+      // The one-use code stays in this trusted worker; the returned message never includes it.
+      const paired = await pairExtension(reply.pairingCode);
+      return paired.ok ? { ok: true, connected: true } : paired;
+    } catch (_) {
+      return fail('native_host_unavailable', 'No encontramos la conexión de Windows. Comprueba la instalación de PERSONAL_CHAT_AI.');
+    }
+  }
+
+  async function nativePairExtension(rotate = false) {
+    const result = await nativeHostRequest(rotate ? 'rotate' : 'pair');
+    if (!result.ok) return result;
+    return connectionStatus();
+  }
+
+  async function nativeRevokeExtension() {
+    const result = await nativeHostRequest('revoke');
+    if (!result.ok) return result;
+    await chrome.storage.local.remove(AUTH_KEY);
+    return { ok: true, disconnected: true };
+  }
+
   async function connectionStatus() {
     try {
       const health = await performFetch({ method: 'GET', path: '/api/health', timeoutMs: 5000 });
@@ -446,6 +484,13 @@
       catch (_) { return fail('connection_page_unavailable', 'No se pudo abrir la pantalla de conexión.'); }
     }
     if (message.type === 'PAIR' && kind === 'connection' && exactKeys(message, ['type', 'pairingCode'])) return pairExtension(message.pairingCode);
+    if (message.type === 'NATIVE_PAIR' && kind === 'connection' && exactKeys(message, ['type'], ['rotate'])) {
+      if (message.rotate !== undefined && typeof message.rotate !== 'boolean') {
+        return fail('invalid_message', 'La solicitud de conexión no es válida.');
+      }
+      return nativePairExtension(message.rotate === true);
+    }
+    if (message.type === 'NATIVE_REVOKE' && kind === 'connection' && exactKeys(message, ['type'])) return nativeRevokeExtension();
     if (message.type === 'CONNECTION_STATUS' && kind === 'connection' && exactKeys(message, ['type'])) return connectionStatus();
     return fail('operation_not_allowed', 'La operación solicitada no está permitida.', 403);
   }
@@ -458,7 +503,7 @@
     return true;
   });
 
-  const exposed = { validateApiRequest, senderKind, handleMessage, pairExtension, connectionStatus, AUTH_KEY, PREF_KEYS };
+  const exposed = { validateApiRequest, senderKind, handleMessage, pairExtension, nativePairExtension, nativeRevokeExtension, connectionStatus, AUTH_KEY, PREF_KEYS };
   globalThis.PCAIBackground = exposed;
   if (typeof module !== 'undefined' && module.exports) module.exports = exposed;
 })();

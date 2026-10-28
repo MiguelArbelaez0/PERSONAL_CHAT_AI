@@ -1,0 +1,19 @@
+[package]
+name = "personal-chat-ai-desktop"
+version = "1.4.0"
+description = "Prototipo de escritorio de PERSONAL_CHAT_AI"
+edition = "2021"
+default-run = "personal-chat-ai-desktop"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tauri = { version = "2", features = [] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.56"

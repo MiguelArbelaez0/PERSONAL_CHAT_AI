@@ -12,7 +12,7 @@ const contentSender = { id: extensionId, url: contentUrl, origin: 'https://es.st
 const connectionSender = { id: extensionId, url: `${extensionOrigin}/connection.html`, origin: extensionOrigin };
 const token = 'synthetic-worker-bearer-never-return-this-value';
 
-function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetchHandler, storageAccessFailure = false, fastTimers = false } = {}) {
+function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetchHandler, nativeHandler, storageAccessFailure = false, fastTimers = false } = {}) {
   const listeners = [];
   const calls = [];
   const bridgeMessages = [];
@@ -20,6 +20,7 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
   let offscreenExists = false;
   const accessLevels = [];
   const optionsOpened = [];
+  const nativeCalls = [];
   const local = {
     async setAccessLevel(value) { accessLevels.push(value.accessLevel); if (storageAccessFailure) throw new Error('synthetic storage permission failure'); },
     async get(keys) {
@@ -36,6 +37,11 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
       getManifest: () => ({ host_permissions: ['http://127.0.0.1/*'] }),
       getURL: (file) => `${extensionOrigin}/${file}`,
       async getContexts() { return offscreenExists ? [{ contextType: 'OFFSCREEN_DOCUMENT', documentUrl: `${extensionOrigin}/offscreen.html` }] : []; },
+      async sendNativeMessage(host, message) {
+        nativeCalls.push({ host, message });
+        if (nativeHandler) return nativeHandler(host, message);
+        return { ok: true, pairingCode: 'N'.repeat(43) };
+      },
       onMessage: { addListener: (listener) => listeners.push(listener) },
       openOptionsPage: async () => { optionsOpened.push(true); },
       async sendMessage(message) {
@@ -85,7 +91,7 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
   async function send(message, sender = contentSender) {
     return new Promise((resolve) => listener(message, sender, resolve));
   }
-  return { send, calls, bridgeMessages, offscreenOptions, storage, accessLevels, optionsOpened, module: module.exports, listener };
+  return { send, calls, bridgeMessages, offscreenOptions, nativeCalls, storage, accessLevels, optionsOpened, module: module.exports, listener };
 }
 
 test('pairing is extension-page-only, stores the bearer privately, and never returns it', async () => {
@@ -102,6 +108,43 @@ test('pairing is extension-page-only, stores the bearer privately, and never ret
   const badSender = await worker.send({ type: 'PAIR', pairingCode: 'p'.repeat(43) }, contentSender);
   assert.equal(badSender.ok, false);
   assert.equal(badSender.error.code, 'operation_not_allowed');
+});
+
+test('native pairing is initiated only by the trusted connection page and never exposes its code or bearer', async () => {
+  const worker = createWorker();
+  const reply = await worker.send({ type: 'NATIVE_PAIR' }, connectionSender);
+  assert.equal(reply.ok, true);
+  assert.equal(reply.state, 'connected');
+  assert.equal(worker.storage.pcaiAuthBearer, token);
+  assert.equal(JSON.stringify(worker.nativeCalls), JSON.stringify([{ host: 'com.personalchatai.desktop', message: { type: 'pair' } }]));
+  assert.equal(JSON.stringify(reply).includes(token), false);
+  assert.equal(JSON.stringify(reply).includes('N'.repeat(43)), false);
+
+  const rejected = await worker.send({ type: 'NATIVE_PAIR' }, contentSender);
+  assert.equal(rejected.ok, false);
+  assert.equal(worker.nativeCalls.length, 1);
+});
+
+test('native recovery and disconnect require explicit connection-page operations', async () => {
+  const worker = createWorker({ nativeHandler: async (_host, request) => {
+    if (request.type === 'revoke') return { ok: true, revoked: true };
+    return { ok: true, pairingCode: 'R'.repeat(43) };
+  } });
+  const connected = await worker.send({ type: 'NATIVE_PAIR', rotate: true }, connectionSender);
+  assert.equal(connected.state, 'connected');
+  assert.equal(JSON.stringify(worker.nativeCalls[0].message), JSON.stringify({ type: 'rotate' }));
+  const disconnected = await worker.send({ type: 'NATIVE_REVOKE' }, connectionSender);
+  assert.equal(disconnected.disconnected, true);
+  assert.equal(worker.storage.pcaiAuthBearer, undefined);
+  const malformed = await worker.send({ type: 'NATIVE_PAIR', rotate: 'yes' }, connectionSender);
+  assert.equal(malformed.ok, false);
+  assert.equal(worker.nativeCalls.length, 2);
+});
+
+test('manifest requests the exact native messaging permission without broadening host access', () => {
+  const manifest = JSON.parse(fs.readFileSync(require.resolve('../extension/manifest.json'), 'utf8'));
+  assert.ok(manifest.permissions.includes('nativeMessaging'));
+  assert.deepEqual(manifest.host_permissions, ['http://127.0.0.1/*']);
 });
 
 test('protected API calls use the bearer, strip token fields, and survive worker restart', async () => {

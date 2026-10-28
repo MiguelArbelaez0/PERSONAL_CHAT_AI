@@ -6,7 +6,7 @@ const BackendConfig = require('../extension/backend-config.js');
 
 function connectionPage() {
   const elements = new Map();
-  for (const id of ['#connection-state', '#page-message', '#pairing-code', '#pair-button', '#refresh-button', '#backend-url', '#backend-form', '#pair-form']) {
+  for (const id of ['#connection-state', '#page-message', '#pairing-code', '#pair-button', '#refresh-button', '#native-connect-button', '#native-disconnect-button', '#backend-url', '#backend-form', '#pair-form']) {
     elements.set(id, { value: '', textContent: '', dataset: {}, disabled: false, handlers: {}, addEventListener(type, handler) { this.handlers[type] = handler; }, querySelector() { return elements.get('#pair-button'); } });
   }
   const calls = [];
@@ -16,6 +16,8 @@ function connectionPage() {
       sendMessage: async (message) => {
         calls.push(message);
         if (message.type === 'PAIR') return { ok: true, connected: true };
+        if (message.type === 'NATIVE_PAIR') return { ok: true, state: 'connected' };
+        if (message.type === 'NATIVE_REVOKE') return { ok: true, disconnected: true };
         if (message.type === 'CONNECTION_STATUS') return { ok: true, state: 'connected' };
         return { ok: true };
       },
@@ -28,7 +30,7 @@ function connectionPage() {
   };
   const context = vm.createContext({
     document: { querySelector: (selector) => elements.get(selector) },
-    chrome, PCAIBackendConfig: BackendConfig, URL,
+    chrome, PCAIBackendConfig: BackendConfig, URL, window: { confirm: () => true },
   });
   vm.runInContext(fs.readFileSync(require.resolve('../extension/connection.js'), 'utf8'), context);
   return { elements, calls, storage };
@@ -48,4 +50,16 @@ test('connection page clears the one-time code before sending and never persists
   assert.equal(JSON.stringify(page.storage).includes('synthetic-one-time-code'), false);
   assert.equal(JSON.stringify(page.calls).includes('access_token'), false);
   assert.equal(page.elements.get('#page-message').textContent, 'Extensión vinculada. El token quedó guardado en almacenamiento privado de la extensión.');
+});
+
+test('connection page uses native pairing without asking the user to handle a code or token', async () => {
+  const page = connectionPage();
+  await new Promise((resolve) => setImmediate(resolve));
+  const button = page.elements.get('#native-connect-button');
+  button.textContent = 'Conectar';
+  await button.handlers.click();
+  assert.ok(page.calls.some((call) => call.type === 'NATIVE_PAIR'));
+  assert.equal(JSON.stringify(page.calls).includes('pairingCode'), false);
+  assert.equal(JSON.stringify(page.storage).includes('token'), false);
+  assert.equal(page.elements.get('#page-message').textContent, 'Chrome quedó vinculado con PERSONAL_CHAT_AI.');
 });
