@@ -22,8 +22,12 @@ const REGISTRY_PARENT: &str = "Software\\Google\\Chrome\\NativeMessagingHosts";
 const REGISTRY_KEY: &str =
     "Software\\Google\\Chrome\\NativeMessagingHosts\\com.personalchatai.desktop";
 const COMPILED_EXTENSION_ID: Option<&str> = option_env!("PCAI_CHROME_EXTENSION_ID");
+const COMPILED_EXTENSION_BUILD_MODE: Option<&str> = option_env!("PCAI_CHROME_EXTENSION_BUILD_MODE");
 const COMPILED_BACKEND_INTEGRITY_SHA256: Option<&str> =
     option_env!("PCAI_BACKEND_INTEGRITY_SHA256");
+const DEVELOPMENT_EXTENSION_ID: &str = "opegkncolnoekkhemhadjffodfpopknn";
+const DISTRIBUTION_EXTENSION_ID: &str = "faclobdnhaephlneakdciincfakfdiam";
+const DEVELOPMENT_DATA_DIRECTORY: &str = "desktop-integration-v140";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Operation {
@@ -36,11 +40,15 @@ fn valid_extension_id(id: &str) -> bool {
     id.len() == 32 && id.bytes().all(|byte| (b'a'..=b'p').contains(&byte))
 }
 
-fn is_reserved_development_extension_id(id: &str) -> bool {
-    matches!(
-        id,
-        "edbbjombinoidoopkhhkghaffoijjfjj" | "opegkncolnoekkhemhadjffdofppoknn"
-    )
+fn extension_id_allowed_for_build(id: &str, build_mode: &str) -> bool {
+    if !valid_extension_id(id) {
+        return false;
+    }
+    match build_mode {
+        "development" | "development-installed" => id == DEVELOPMENT_EXTENSION_ID,
+        "distribution" => id == DISTRIBUTION_EXTENSION_ID,
+        _ => false,
+    }
 }
 
 fn approved_origin(manifest_bytes: &[u8]) -> Result<String, &'static str> {
@@ -123,11 +131,25 @@ fn app_root() -> Result<PathBuf, &'static str> {
     let local = env::var_os("LOCALAPPDATA")
         .map(PathBuf::from)
         .ok_or("app_data_unavailable")?;
-    Ok(app_root_from_localappdata(&local))
+    Ok(app_root_for_build(
+        &local,
+        &env::temp_dir(),
+        COMPILED_EXTENSION_BUILD_MODE,
+    ))
 }
 
 fn app_root_from_localappdata(local_app_data: &Path) -> PathBuf {
     local_app_data.join("PERSONAL_CHAT_AI_DATA")
+}
+
+fn app_root_for_build(local_app_data: &Path, temp_root: &Path, mode: Option<&str>) -> PathBuf {
+    if mode == Some("development") {
+        temp_root
+            .join("PERSONAL_CHAT_AI")
+            .join(DEVELOPMENT_DATA_DIRECTORY)
+    } else {
+        app_root_from_localappdata(local_app_data)
+    }
 }
 
 fn backend_executable(host_dir: &Path) -> Result<PathBuf, &'static str> {
@@ -152,27 +174,46 @@ fn manifest_bytes(host_executable: &Path, extension_id: &str) -> Result<Vec<u8>,
     if !valid_extension_id(extension_id) {
         return Err("extension_id_invalid");
     }
-    let host_path = fs::canonicalize(host_executable).map_err(|_| "host_not_configured")?;
+    let canonical_host_path =
+        fs::canonicalize(host_executable).map_err(|_| "host_not_configured")?;
+    // Rust canonicalize() returns Windows verbatim paths (\\?\...), which some
+    // native-messaging consumers cannot pass to process creation consistently.
+    let host_path = chrome_manifest_path(&canonical_host_path);
     let manifest = json!({
         "name": HOST_NAME,
         "description": "Conexión local entre PERSONAL_CHAT_AI y Chrome",
-        "path": host_path.to_string_lossy(),
+        "path": host_path,
         "type": "stdio",
         "allowed_origins": [format!("chrome-extension://{extension_id}/")]
     });
     serde_json::to_vec_pretty(&manifest).map_err(|_| "manifest_write_failed")
 }
 
+fn chrome_manifest_path(path: &Path) -> String {
+    let value = path.to_string_lossy();
+    if let Some(without_verbatim_prefix) = value.strip_prefix("\\\\?\\") {
+        if let Some(unc_path) = without_verbatim_prefix.strip_prefix("UNC\\") {
+            return format!("\\\\{unc_path}");
+        }
+        return without_verbatim_prefix.to_string();
+    }
+    value.into_owned()
+}
+
 fn configured_extension_id() -> Result<&'static str, &'static str> {
-    COMPILED_EXTENSION_ID
-        .filter(|id| valid_extension_id(id) && !is_reserved_development_extension_id(id))
+    let id = COMPILED_EXTENSION_ID.ok_or("extension_id_not_configured")?;
+    let mode = COMPILED_EXTENSION_BUILD_MODE.ok_or("extension_id_not_configured")?;
+    extension_id_allowed_for_build(id, mode)
+        .then_some(id)
         .ok_or("extension_id_not_configured")
 }
 
 fn manifest_path_for(host_executable: &Path) -> Result<PathBuf, &'static str> {
     let host_path = fs::canonicalize(host_executable).map_err(|_| "host_not_configured")?;
     let host_dir = host_path.parent().ok_or("host_not_configured")?;
-    Ok(host_dir.join(HOST_MANIFEST))
+    Ok(PathBuf::from(chrome_manifest_path(
+        &host_dir.join(HOST_MANIFEST),
+    )))
 }
 
 fn write_manifest_if_missing(
@@ -218,8 +259,15 @@ struct RegistrySnapshot {
 }
 
 fn registry_binding_is_owned(snapshot: &RegistrySnapshot, expected: &str) -> bool {
-    snapshot.default_value.as_deref() == Some(expected)
-        && !snapshot.has_other_values
+    snapshot.default_value.as_deref().is_some_and(|current| {
+        let current = chrome_manifest_path(Path::new(current));
+        let expected = chrome_manifest_path(Path::new(expected));
+        #[cfg(windows)]
+        let same_path = current.eq_ignore_ascii_case(&expected);
+        #[cfg(not(windows))]
+        let same_path = current == expected;
+        same_path
+    }) && !snapshot.has_other_values
         && !snapshot.has_subkeys
 }
 
@@ -512,14 +560,37 @@ mod tests {
     }
 
     #[test]
-    fn distribution_refuses_the_known_temporary_and_personal_profile_ids() {
-        assert!(is_reserved_development_extension_id(
-            "edbbjombinoidoopkhhkghaffoijjfjj"
+    fn development_and_distribution_ids_are_separated() {
+        assert!(extension_id_allowed_for_build(
+            DEVELOPMENT_EXTENSION_ID,
+            "development"
         ));
-        assert!(is_reserved_development_extension_id(
-            "opegkncolnoekkhemhadjffdofppoknn"
+        assert!(!extension_id_allowed_for_build(
+            DEVELOPMENT_EXTENSION_ID,
+            "distribution"
         ));
-        assert!(!is_reserved_development_extension_id(TEST_ID));
+        assert!(extension_id_allowed_for_build(
+            DISTRIBUTION_EXTENSION_ID,
+            "distribution"
+        ));
+        assert!(!extension_id_allowed_for_build(
+            DISTRIBUTION_EXTENSION_ID,
+            "development"
+        ));
+        assert!(extension_id_allowed_for_build(
+            DEVELOPMENT_EXTENSION_ID,
+            "development-installed"
+        ));
+        assert!(!extension_id_allowed_for_build(
+            DISTRIBUTION_EXTENSION_ID,
+            "development-installed"
+        ));
+        assert!(!extension_id_allowed_for_build(TEST_ID, "development"));
+        assert!(!extension_id_allowed_for_build(TEST_ID, "distribution"));
+        assert!(!extension_id_allowed_for_build(
+            DEVELOPMENT_EXTENSION_ID,
+            ""
+        ));
     }
 
     #[test]
@@ -547,6 +618,17 @@ mod tests {
             &foreign_value,
             r"C:\Program Files\PERSONAL_CHAT_AI\native-messaging-host.json"
         ));
+        let verbatim_path = RegistrySnapshot {
+            default_value: Some(
+                r"\\?\C:\Program Files\PERSONAL_CHAT_AI\native-messaging-host.json".into(),
+            ),
+            has_other_values: false,
+            has_subkeys: false,
+        };
+        assert!(registry_binding_is_owned(
+            &verbatim_path,
+            r"C:\Program Files\PERSONAL_CHAT_AI\native-messaging-host.json"
+        ));
     }
 
     #[test]
@@ -560,6 +642,29 @@ mod tests {
 
         assert!(!auth_path.starts_with(install_dir));
         assert!(auth_path.starts_with(host_storage));
+    }
+
+    #[test]
+    fn development_pairing_uses_the_same_isolated_data_root_as_tauri_debug() {
+        let local = PathBuf::from(r"C:\Synthetic\LocalAppData");
+        let temp = PathBuf::from(r"C:\Synthetic\Temp");
+        assert_eq!(
+            app_root_for_build(&local, &temp, Some("development")),
+            temp.join("PERSONAL_CHAT_AI")
+                .join(DEVELOPMENT_DATA_DIRECTORY)
+        );
+        assert_eq!(
+            app_root_for_build(&local, &temp, Some("distribution")),
+            local.join("PERSONAL_CHAT_AI_DATA")
+        );
+        assert_eq!(
+            app_root_for_build(&local, &temp, Some("development-installed")),
+            local.join("PERSONAL_CHAT_AI_DATA")
+        );
+        assert_eq!(
+            app_root_for_build(&local, &temp, None),
+            local.join("PERSONAL_CHAT_AI_DATA")
+        );
     }
 
     #[test]
@@ -579,13 +684,18 @@ mod tests {
 
         let bytes = manifest_bytes(&host, TEST_ID).unwrap();
         let manifest: Value = serde_json::from_slice(&bytes).unwrap();
+        let registry_manifest_path = manifest_path_for(&host).unwrap();
+        assert!(!registry_manifest_path
+            .to_string_lossy()
+            .starts_with("\\\\?\\"));
+        assert_eq!(registry_manifest_path, host_dir.join(HOST_MANIFEST));
         assert_eq!(manifest["name"], HOST_NAME);
         assert_eq!(manifest["type"], "stdio");
         assert_eq!(manifest["allowed_origins"].as_array().unwrap().len(), 1);
         assert_eq!(manifest["allowed_origins"][0], TEST_ORIGIN);
         assert_eq!(
-            PathBuf::from(manifest["path"].as_str().unwrap()),
-            fs::canonicalize(host).unwrap()
+            manifest["path"].as_str().unwrap(),
+            chrome_manifest_path(&fs::canonicalize(host).unwrap())
         );
         let _ = fs::remove_dir_all(root);
     }

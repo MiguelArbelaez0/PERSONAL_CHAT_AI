@@ -19,12 +19,12 @@ if (-not (Test-Path -LiteralPath $outputDirectory -PathType Container)) {
 }
 
 $manifest = [ordered]@{
-    name = 'com.personalchatai.desktop'
+    allowed_origins = @("chrome-extension://$ExtensionId/")
     description = 'Conexión local entre PERSONAL_CHAT_AI y Chrome'
+    name = 'com.personalchatai.desktop'
     path = $hostPath
     type = 'stdio'
-    allowed_origins = @("chrome-extension://$ExtensionId/")
 }
-$json = $manifest | ConvertTo-Json -Depth 4
+$json = ($manifest | ConvertTo-Json -Depth 4) -replace "`r`n", "`n"
 [IO.File]::WriteAllText($outputFullPath, $json, [Text.UTF8Encoding]::new($false))
 Write-Output 'Manifiesto Native Messaging generado para un único ID exacto. No se modificó el Registro.'

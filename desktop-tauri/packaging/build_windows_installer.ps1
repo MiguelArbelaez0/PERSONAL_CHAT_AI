@@ -14,12 +14,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $moduleRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+$officialExtensionId = 'faclobdnhaephlneakdciincfakfdiam'
 $forbiddenIds = @(
     'edbbjombinoidoopkhhkghaffoijjfjj',
-    'opegkncolnoekkhemhadjffdofppoknn'
+    'opegkncolnoekkhemhadjffdofppoknn',
+    'opegkncolnoekkhemhadjffodfpopknn'
 )
 if ($ProductionExtensionId -in $forbiddenIds) {
     throw 'El ID indicado pertenece a una instalación o prueba de desarrollo y no puede usarse en el instalador de distribución.'
+}
+if ($ProductionExtensionId -ne $officialExtensionId) {
+    throw 'El instalador de esta versión debe usar el ID oficial confirmado de Chrome Web Store.'
 }
 
 if (-not $ExtensionManifestPath) {
@@ -85,10 +90,12 @@ if ($backendIntegrityHash -notmatch '^[0-9a-f]{64}$') {
 $hostSource = Join-Path $moduleRoot 'target\release\pcai_native_host.exe'
 
 $previousExtensionId = $env:PCAI_CHROME_EXTENSION_ID
+$previousBuildMode = $env:PCAI_CHROME_EXTENSION_BUILD_MODE
 $previousBackendHash = $env:PCAI_BACKEND_INTEGRITY_SHA256
 $previousPath = $env:PATH
 try {
     $env:PCAI_CHROME_EXTENSION_ID = $ProductionExtensionId
+    $env:PCAI_CHROME_EXTENSION_BUILD_MODE = 'distribution'
     $env:PCAI_BACKEND_INTEGRITY_SHA256 = $backendIntegrityHash
     $env:PATH = "$cargoBin;$env:PATH"
     Push-Location $moduleRoot
@@ -110,6 +117,8 @@ try {
     $env:PATH = $previousPath
     if ($null -eq $previousExtensionId) { Remove-Item Env:PCAI_CHROME_EXTENSION_ID -ErrorAction SilentlyContinue }
     else { $env:PCAI_CHROME_EXTENSION_ID = $previousExtensionId }
+    if ($null -eq $previousBuildMode) { Remove-Item Env:PCAI_CHROME_EXTENSION_BUILD_MODE -ErrorAction SilentlyContinue }
+    else { $env:PCAI_CHROME_EXTENSION_BUILD_MODE = $previousBuildMode }
     if ($null -eq $previousBackendHash) { Remove-Item Env:PCAI_BACKEND_INTEGRITY_SHA256 -ErrorAction SilentlyContinue }
     else { $env:PCAI_BACKEND_INTEGRITY_SHA256 = $previousBackendHash }
 }

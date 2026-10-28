@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const test = require('node:test');
 const BackendConfig = require('../extension/backend-config.js');
 
-function connectionPage() {
+function connectionPage({ nativeError = null } = {}) {
   const elements = new Map();
   for (const id of ['#connection-state', '#page-message', '#pairing-code', '#pair-button', '#refresh-button', '#native-connect-button', '#native-disconnect-button', '#backend-url', '#backend-form', '#pair-form']) {
     elements.set(id, { value: '', textContent: '', dataset: {}, disabled: false, handlers: {}, addEventListener(type, handler) { this.handlers[type] = handler; }, querySelector() { return elements.get('#pair-button'); } });
@@ -16,7 +16,9 @@ function connectionPage() {
       sendMessage: async (message) => {
         calls.push(message);
         if (message.type === 'PAIR') return { ok: true, connected: true };
-        if (message.type === 'NATIVE_PAIR') return { ok: true, state: 'connected' };
+        if (message.type === 'NATIVE_PAIR') return nativeError
+          ? { ok: false, error: { code: nativeError.code, message: nativeError.message } }
+          : { ok: true, state: 'connected' };
         if (message.type === 'NATIVE_REVOKE') return { ok: true, disconnected: true };
         if (message.type === 'CONNECTION_STATUS') return { ok: true, state: 'connected' };
         return { ok: true };
@@ -62,4 +64,20 @@ test('connection page uses native pairing without asking the user to handle a co
   assert.equal(JSON.stringify(page.calls).includes('pairingCode'), false);
   assert.equal(JSON.stringify(page.storage).includes('token'), false);
   assert.equal(page.elements.get('#page-message').textContent, 'Chrome quedó vinculado con PERSONAL_CHAT_AI.');
+});
+
+test('connection page displays the sanitized Native Messaging diagnostic from the worker', async () => {
+  const page = connectionPage({ nativeError: {
+    code: 'native_host_not_found',
+    message: 'Chrome no encuentra el componente de conexión. Repara la instalación de PERSONAL_CHAT_AI.',
+  } });
+  await new Promise((resolve) => setImmediate(resolve));
+  const button = page.elements.get('#native-connect-button');
+  button.textContent = 'Conectar';
+  await button.handlers.click();
+  assert.equal(
+    page.elements.get('#page-message').textContent,
+    'Chrome no encuentra el componente de conexión. Repara la instalación de PERSONAL_CHAT_AI.',
+  );
+  assert.equal(JSON.stringify(page.storage).includes('token'), false);
 });

@@ -23,6 +23,7 @@ const LM_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(6);
 const LM_GENERATION_TIMEOUT: Duration = Duration::from_secs(60);
 const LM_MODEL_LOAD_TIMEOUT: Duration = Duration::from_secs(180);
 const LM_STUDIO_LOAD_CONTEXT_TOKENS: u64 = 8192;
+const DEVELOPMENT_DATA_DIRECTORY: &str = "desktop-integration-v140";
 const COMPILED_BACKEND_INTEGRITY_SHA256: Option<&str> =
     option_env!("PCAI_BACKEND_INTEGRITY_SHA256");
 
@@ -170,13 +171,16 @@ fn production_storage_root(local_app_data: &Path) -> PathBuf {
     local_app_data.join("PERSONAL_CHAT_AI_DATA")
 }
 
+fn development_storage_root(temp_root: &Path) -> PathBuf {
+    temp_root
+        .join("PERSONAL_CHAT_AI")
+        .join(DEVELOPMENT_DATA_DIRECTORY)
+}
+
 fn diagnostic_root() -> Result<PathBuf, &'static str> {
     #[cfg(debug_assertions)]
     {
-        return Ok(std::env::temp_dir()
-            .join("PERSONAL_CHAT_AI")
-            .join(format!("desktop-backend-test-{}", std::process::id()))
-            .join("LocalAppData"));
+        return Ok(development_storage_root(&std::env::temp_dir()));
     }
 
     #[cfg(not(debug_assertions))]
@@ -1715,6 +1719,22 @@ mod tests {
         assert!(!app_data.starts_with(&install_dir));
         assert!(app_data.starts_with(&storage_root));
         let _ = fs::remove_dir_all(test_root);
+    }
+
+    #[test]
+    fn development_app_storage_is_stable_temporary_and_separate_from_production() {
+        let temp_root = PathBuf::from(r"C:\Synthetic\Temp");
+        let local_app_data = PathBuf::from(r"C:\Synthetic\LocalAppData");
+        let development = development_storage_root(&temp_root);
+        let production = production_storage_root(&local_app_data);
+        assert_eq!(
+            development,
+            temp_root
+                .join("PERSONAL_CHAT_AI")
+                .join(DEVELOPMENT_DATA_DIRECTORY)
+        );
+        assert_ne!(development, production);
+        assert!(development.starts_with(temp_root));
     }
 
     #[test]

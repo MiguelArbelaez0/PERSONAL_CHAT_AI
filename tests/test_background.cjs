@@ -12,7 +12,7 @@ const contentSender = { id: extensionId, url: contentUrl, origin: 'https://es.st
 const connectionSender = { id: extensionId, url: `${extensionOrigin}/connection.html`, origin: extensionOrigin };
 const token = 'synthetic-worker-bearer-never-return-this-value';
 
-function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetchHandler, nativeHandler, storageAccessFailure = false, fastTimers = false } = {}) {
+function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetchHandler, nativeHandler, nativeLastError, storageAccessFailure = false, fastTimers = false } = {}) {
   const listeners = [];
   const calls = [];
   const bridgeMessages = [];
@@ -21,6 +21,8 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
   const accessLevels = [];
   const optionsOpened = [];
   const nativeCalls = [];
+  const consoleMessages = [];
+  const runtime = { lastError: null };
   const local = {
     async setAccessLevel(value) { accessLevels.push(value.accessLevel); if (storageAccessFailure) throw new Error('synthetic storage permission failure'); },
     async get(keys) {
@@ -34,13 +36,24 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
   const chrome = {
     runtime: {
       id: extensionId,
+      get lastError() { return runtime.lastError; },
       getManifest: () => ({ host_permissions: ['http://127.0.0.1/*'] }),
       getURL: (file) => `${extensionOrigin}/${file}`,
       async getContexts() { return offscreenExists ? [{ contextType: 'OFFSCREEN_DOCUMENT', documentUrl: `${extensionOrigin}/offscreen.html` }] : []; },
-      async sendNativeMessage(host, message) {
+      sendNativeMessage(host, message, callback) {
         nativeCalls.push({ host, message });
-        if (nativeHandler) return nativeHandler(host, message);
-        return { ok: true, pairingCode: 'N'.repeat(43) };
+        const response = nativeLastError
+          ? Promise.reject(new Error(nativeLastError))
+          : Promise.resolve(nativeHandler ? nativeHandler(host, message) : { ok: true, pairingCode: 'N'.repeat(43) });
+        if (typeof callback === 'function') {
+          response.then((value) => callback(value), (error) => {
+            runtime.lastError = { message: nativeLastError || error?.message || 'Native host has exited.' };
+            callback(undefined);
+            runtime.lastError = null;
+          });
+          return undefined;
+        }
+        return response;
       },
       onMessage: { addListener: (listener) => listeners.push(listener) },
       openOptionsPage: async () => { optionsOpened.push(true); },
@@ -83,7 +96,8 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
     : setTimeout;
   const context = vm.createContext({
     chrome, fetch, URL, URLSearchParams, AbortController, TextEncoder, TextDecoder,
-    Response, setTimeout: workerSetTimeout, clearTimeout, console, module,
+    Response, setTimeout: workerSetTimeout, clearTimeout,
+    console: { warn: (...values) => consoleMessages.push(values) }, module,
     PCAIBackendConfig: BackendConfig,
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'extension', 'background.js'), 'utf8'), context);
@@ -91,7 +105,7 @@ function createWorker({ storage = { backendUrl: 'http://127.0.0.1:8000' }, fetch
   async function send(message, sender = contentSender) {
     return new Promise((resolve) => listener(message, sender, resolve));
   }
-  return { send, calls, bridgeMessages, offscreenOptions, nativeCalls, storage, accessLevels, optionsOpened, module: module.exports, listener };
+  return { send, calls, bridgeMessages, offscreenOptions, nativeCalls, consoleMessages, storage, accessLevels, optionsOpened, module: module.exports, listener };
 }
 
 test('pairing is extension-page-only, stores the bearer privately, and never returns it', async () => {
@@ -123,6 +137,45 @@ test('native pairing is initiated only by the trusted connection page and never 
   const rejected = await worker.send({ type: 'NATIVE_PAIR' }, contentSender);
   assert.equal(rejected.ok, false);
   assert.equal(worker.nativeCalls.length, 1);
+});
+
+test('native messaging lastError is classified safely for startup, authorization, protocol, and disconnect failures', async (t) => {
+  const cases = [
+    ['Specified native messaging host not found.', 'native_host_not_found'],
+    ['Failed to start native messaging host.', 'native_host_start_failed'],
+    ['Access to the specified native messaging host is forbidden.', 'native_origin_forbidden'],
+    ['Error when communicating with the native messaging host.', 'native_message_invalid'],
+    ['Native host has exited.', 'native_host_disconnected'],
+  ];
+  for (const [nativeLastError, expectedCode] of cases) {
+    await t.test(expectedCode, async () => {
+      const worker = createWorker({ nativeLastError });
+      const reply = await worker.send({ type: 'NATIVE_PAIR' }, connectionSender);
+      assert.equal(reply.ok, false);
+      assert.equal(reply.error.code, expectedCode);
+      assert.equal(reply.error.message.includes(nativeLastError), false);
+      assert.deepEqual(worker.consoleMessages, [['[PERSONAL_CHAT_AI] Native Messaging:', expectedCode]]);
+      assert.equal(JSON.stringify(reply).includes(token), false);
+    });
+  }
+});
+
+test('invalid native replies and rejected pairing codes produce distinct safe diagnostics', async () => {
+  const malformed = createWorker({ nativeHandler: async () => ({ ok: true, pairingCode: 'synthetic-secret-code' }) });
+  const badReply = await malformed.send({ type: 'NATIVE_PAIR' }, connectionSender);
+  assert.equal(badReply.error.code, 'native_message_invalid');
+  assert.equal(JSON.stringify(badReply).includes('synthetic-secret-code'), false);
+
+  const rejected = createWorker({
+    nativeHandler: async () => ({ ok: true, pairingCode: 'Q'.repeat(43) }),
+    fetchHandler: async (url) => url.endsWith('/api/auth/pair')
+      ? new Response(JSON.stringify({ error: { code: 'pairing_code_invalid' } }), { status: 401 })
+      : new Response(JSON.stringify({ status: 'ok' }), { status: 200 }),
+  });
+  const denied = await rejected.send({ type: 'NATIVE_PAIR' }, connectionSender);
+  assert.equal(denied.error.code, 'pairing_rejected');
+  assert.equal(JSON.stringify(denied).includes('Q'.repeat(43)), false);
+  assert.equal(JSON.stringify(rejected.consoleMessages).includes('Q'.repeat(43)), false);
 });
 
 test('native recovery and disconnect require explicit connection-page operations', async () => {

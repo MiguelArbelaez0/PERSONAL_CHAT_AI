@@ -14,7 +14,7 @@ Este módulo integra el backend FastAPI existente como un proceso auxiliar local
 
 ## Datos y aislamiento
 
-En una compilación de desarrollo, el backend usa un directorio temporal bajo `%TEMP%\PERSONAL_CHAT_AI\desktop-backend-test-*`. En una instalación por usuaria, Tauri coloca los binarios en `%LOCALAPPDATA%\PERSONAL_CHAT_AI`; para proteger datos al desinstalar, perfiles, memorias, autenticación, bases y conocimiento se guardan aparte en `%LOCALAPPDATA%\PERSONAL_CHAT_AI_DATA\PERSONAL_CHAT_AI`.
+En una compilación de desarrollo, la app y el host local comparten datos temporales bajo `%TEMP%\PERSONAL_CHAT_AI\desktop-integration-v140`. En una instalación por usuaria, Tauri coloca los binarios en `%LOCALAPPDATA%\PERSONAL_CHAT_AI`; para proteger datos al desinstalar, perfiles, memorias, autenticación, bases y conocimiento se guardan aparte en `%LOCALAPPDATA%\PERSONAL_CHAT_AI_DATA\PERSONAL_CHAT_AI`.
 
 La desinstalación conserva deliberadamente ese directorio de datos. La eliminación de perfiles, memoria o bases no forma parte del desinstalador y requerirá una acción separada, explícita y confirmada en una fase posterior.
 
@@ -116,7 +116,7 @@ Si Chrome perdió el token local y el backend todavía conserva la vinculación,
 
 Chrome exige que el manifiesto del host incluya el ID exacto de la extensión y que el host se registre bajo `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.personalchatai.desktop` (o la clave equivalente soportada por Chromium). `allowed_origins` no admite comodines. La validación manual utilizó un ID de prueba propio de la copia cargada en un perfil temporal. Ese ID no debe reutilizarse como ID de producción ni codificarse como valor predeterminado.
 
-`packaging/build_windows_installer.ps1` exige un ID de distribución explícito, rechaza los IDs de perfil/prueba conocidos, compila el host con ese ID y verifica la compilación antes de invocar Tauri NSIS. También produce un inventario SHA-256 de todos los archivos del backend y fija su hash en la aplicación y el host. El instalador genera el manifiesto para su ruta instalada y registra en HKCU únicamente la clave propia. Si encuentra una clave o manifiesto ajenos, se niega a sobrescribirlos; la desinstalación solo retira la clave si todavía apunta exactamente al manifiesto de PERSONAL_CHAT_AI. Los hooks apuntan a `$INSTDIR\native-host\pcai_native_host.exe`. Un intento anterior confirmó que la ruta de hook previa (`resources\native-host`) era incorrecta; los hooks corregidos están compilados en el nuevo instalador, pero aún no se han validado mediante una instalación limpia. Actualmente no hay clave propia de Native Messaging en HKCU.
+`packaging/build_windows_installer.ps1` exige el ID oficial de distribución, rechaza los IDs de desarrollo conocidos, compila el host en modo distribución y verifica la compilación antes de invocar Tauri NSIS. También produce un inventario SHA-256 de todos los archivos del backend y fija su hash en la aplicación y el host. El instalador genera el manifiesto para su ruta instalada y registra en HKCU únicamente la clave propia. Si encuentra una clave o manifiesto ajenos, se niega a sobrescribirlos; la desinstalación solo retira la clave si todavía apunta exactamente al manifiesto de PERSONAL_CHAT_AI. Los hooks apuntan a `$INSTDIR\native-host\pcai_native_host.exe`. Un intento anterior confirmó que la ruta de hook previa (`resources\native-host`) era incorrecta; los hooks corregidos están compilados en el instalador, pero aún no se han validado mediante una instalación limpia. La revisión de solo lectura del 2026-10-28 encontró que la clave existente apunta a un manifiesto ausente de una instalación anterior; no se reparó.
 
 **ID de distribución:** la propietaria confirmó el ID del artículo de Chrome Web Store `faclobdnhaephlneakdciincfakfdiam`, que se suministra explícitamente al empaquetador. El artículo se mantuvo como borrador; no se publicó a revisión en esta fase. No se generó ni se leyó ninguna clave privada. La vía alternativa `ManifestPublicKey` comprueba que el ID deriva de la clave pública de `manifest.key`; los IDs de perfiles habituales y de prueba están reservados y el script los rechaza. Consulta la documentación oficial de [Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging) y de la [clave del manifiesto para conservar un ID durante el desarrollo](https://developer.chrome.com/docs/extensions/reference/manifest/key).
 
@@ -150,3 +150,43 @@ Las pruebas automatizadas usan un ID sintético, estado de autenticación tempor
 La extensión conserva también el mecanismo manual de emparejamiento de versiones anteriores como recuperación. No es el flujo normal previsto para usuarias finales.
 
 La conexión manual observada en un perfil temporal no basta para distribuir el producto. Aunque el ID de distribución está confirmado y existe un instalador compilado, aún falta validar en Windows limpio el registro y retirada del host, recuperación ante instalaciones interrumpidas, actualización desde v1.3.0 y conservación de datos en la desinstalación. La integración de generación y traducción desde la aplicación Windows también requiere una prueba funcional propia.
+
+## Conectar la extensión local durante el desarrollo
+
+La copia descomprimida confirmada para este equipo usa el ID `opegkncolnoekkhemhadjffodfpopknn`. El ID oficial de distribución continúa siendo `faclobdnhaephlneakdciincfakfdiam`. Son modos de compilación separados: el host local contiene un único origen autorizado para el ID de desarrollo; el instalador solo admite el ID oficial. No se usan comodines ni se incluyen ambos IDs en el manifiesto local.
+
+Desde PowerShell, en la raíz del repositorio, prepara el host de desarrollo (requiere que el backend empaquetado exista):
+
+```powershell
+.\desktop-tauri\packaging\build_native_host.ps1 `
+  -Mode Development `
+  -ExtensionId 'opegkncolnoekkhemhadjffodfpopknn'
+```
+
+El host y su copia del backend se generan bajo `desktop-tauri/target/native-host-development/`; compilar no registra nada en Windows. Ejecuta el diagnóstico de solo lectura:
+
+```powershell
+.\tools\PROBAR_PERSONAL_CHAT_AI.ps1
+```
+
+En Chrome, carga o recarga directamente la carpeta `extension/` mediante **Cargar descomprimida** y confirma que Chrome muestra exactamente el ID local. La aplicación Tauri de desarrollo y el host de desarrollo comparten almacenamiento sintético temporal en `%TEMP%\PERSONAL_CHAT_AI\desktop-integration-v140`, separado del almacenamiento de distribución en `%LOCALAPPDATA%\PERSONAL_CHAT_AI_DATA`.
+
+La clave Native Messaging de HKCU puede apuntar a una instalación anterior. El diagnóstico muestra si su manifiesto existe. Solo después de revisar el resultado y autorizar por separado el cambio de HKCU se puede ejecutar:
+
+```powershell
+.\tools\PROBAR_PERSONAL_CHAT_AI.ps1 `
+  -RepairNativeMessaging `
+  -ObservedExtensionId 'opegkncolnoekkhemhadjffodfpopknn'
+```
+
+La reparación solicita escribir `REPARAR`, exige que la ruta antigua ausente coincida con la ubicación registrada de PERSONAL_CHAT_AI y se bloquea ante otros valores, subclaves o una ruta distinta. Si falla el registro nuevo, intenta restaurar el valor anterior sin sobrescribir un cambio concurrente. Esta opción no se ejecutó en el equipo principal. Después de autorizarla, inicia la aplicación de desarrollo con `cargo run` desde `desktop-tauri` y pulsa **Conectar** en la página de la extensión. La conexión real aún debe confirmarse manualmente; las pruebas automatizadas no la sustituyen.
+
+Si se prueba la extensión local con una aplicación Tauri Release ya instalada o ejecutada desde `target/release`, compila el modo `DevelopmentInstalled`. Mantiene únicamente el ID local, pero usa la misma raíz `%LOCALAPPDATA%\PERSONAL_CHAT_AI_DATA` que la aplicación Release y su backend. No uses el modo `Development` para emparejar con esa aplicación: su autenticación queda aislada bajo `%TEMP%`. El modo `DevelopmentInstalled` tampoco registra ni cambia la clave de Chrome.
+
+```powershell
+.\desktop-tauri\packaging\build_native_host.ps1 `
+  -Mode DevelopmentInstalled `
+  -ExtensionId 'opegkncolnoekkhemhadjffodfpopknn'
+```
+
+Los errores de Native Messaging se muestran en la página de conexión con una explicación segura. La consola del service worker registra únicamente un código diagnóstico fijo; nunca imprime códigos temporales, tokens, credenciales ni mensajes del backend. El diagnóstico local señala si el valor existente de HKCU usa el prefijo extendido `\\?\`; su aceptación debe confirmarse en Chrome. El host escribe rutas convencionales en registros nuevos. No cambia una vinculación existente sin autorización explícita.

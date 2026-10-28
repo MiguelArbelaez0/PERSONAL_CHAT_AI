@@ -35,6 +35,85 @@
     ok: false, error: { code, message }, httpStatus: Number(httpStatus) || null,
   });
 
+  const NATIVE_ERROR_MESSAGES = Object.freeze({
+    native_host_not_found: 'Chrome no encuentra el componente de conexión. Repara la instalación de PERSONAL_CHAT_AI.',
+    native_host_start_failed: 'Windows no pudo iniciar el componente de conexión. Comprueba la instalación de PERSONAL_CHAT_AI.',
+    native_origin_forbidden: 'La instalación de Chrome no está autorizada para esta conexión.',
+    native_message_invalid: 'El componente de conexión devolvió una respuesta inválida. Repara la instalación de PERSONAL_CHAT_AI.',
+    native_host_disconnected: 'El componente de conexión se cerró antes de terminar. Puedes volver a intentarlo.',
+    native_host_error: 'No se pudo completar la comunicación con PERSONAL_CHAT_AI.',
+    native_host_configuration: 'La configuración de conexión de PERSONAL_CHAT_AI no es válida. Repara la instalación.',
+    backend_unavailable: 'La aplicación de Windows no pudo acceder a su servicio local. Ábrela de nuevo e inténtalo.',
+    pairing_rejected: 'La aplicación rechazó la vinculación. Pulsa Conectar para generar un intento nuevo.',
+  });
+
+  function nativeErrorCode(error) {
+    const source = String(error?.message || error || '').toLowerCase();
+    if (/host.{0,30}(not found|does not exist)|specified native messaging host not found/.test(source)) return 'native_host_not_found';
+    if (/forbidden|not allowed|access denied/.test(source)) return 'native_origin_forbidden';
+    if (/failed to start|could not start|unable to start|error starting/.test(source)) return 'native_host_start_failed';
+    if (/has exited|disconnected|connection.*closed|closed.*connection/.test(source)) return 'native_host_disconnected';
+    if (/communicat|invalid response|invalid message|unexpected.*response/.test(source)) return 'native_message_invalid';
+    return 'native_host_error';
+  }
+
+  function nativeHostReplyCode(code) {
+    switch (code) {
+      case 'origin_forbidden': return 'native_origin_forbidden';
+      case 'invalid_message':
+      case 'operation_not_allowed': return 'native_message_invalid';
+      case 'host_not_configured':
+      case 'extension_id_not_configured':
+      case 'manifest_conflict': return 'native_host_configuration';
+      case 'backend_unavailable':
+      case 'backend_integrity_failed': return 'backend_unavailable';
+      case 'pairing_unavailable': return 'pairing_rejected';
+      default: return 'native_host_error';
+    }
+  }
+
+  function nativeFailure(code) {
+    const safeCode = Object.hasOwn(NATIVE_ERROR_MESSAGES, code) ? code : 'native_host_error';
+    // Log only a fixed diagnostic code; never log native messages, credentials, or payloads.
+    console.warn('[PERSONAL_CHAT_AI] Native Messaging:', safeCode);
+    return fail(safeCode, NATIVE_ERROR_MESSAGES[safeCode]);
+  }
+
+  function sendNativeMessage(message) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (response) => {
+        if (settled) return;
+        settled = true;
+        const lastError = chrome.runtime.lastError;
+        if (lastError) {
+          const error = new Error('Native Messaging failed');
+          error.code = nativeErrorCode(lastError.message);
+          reject(error);
+        } else {
+          resolve(response);
+        }
+      };
+      try {
+        const pending = chrome.runtime.sendNativeMessage(NATIVE_HOST, message, finish);
+        // Promise support keeps the wrapper usable in MV3 and in older test doubles.
+        if (pending && typeof pending.then === 'function') {
+          pending.then((response) => finish(response), (error) => {
+            if (settled) return;
+            settled = true;
+            const failure = new Error('Native Messaging failed');
+            failure.code = nativeErrorCode(error);
+            reject(failure);
+          });
+        }
+      } catch (error) {
+        const failure = new Error('Native Messaging failed');
+        failure.code = nativeErrorCode(error);
+        reject(failure);
+      }
+    });
+  }
+
   function byteLength(value) {
     return new TextEncoder().encode(value).length;
   }
@@ -392,7 +471,7 @@
       if (!result.httpOk || result.status !== 200 || result.body?.token_type !== 'Bearer'
         || typeof result.body?.access_token !== 'string' || result.body.access_token.length < 40 || result.body.access_token.length > 128) {
         const code = result.body?.error?.code === 'pairing_code_invalid' ? 'pairing_code_invalid' : 'pairing_failed';
-        return fail(code, code === 'pairing_code_invalid' ? 'El código expiró, ya se utilizó o no es válido. Genera uno nuevo desde la consola.' : 'No se pudo completar el emparejamiento.');
+        return fail(code, code === 'pairing_code_invalid' ? 'La vinculación temporal expiró o fue rechazada. Pulsa Conectar para intentarlo de nuevo.' : 'No se pudo completar el emparejamiento.');
       }
       await chrome.storage.local.set({ [AUTH_KEY]: result.body.access_token });
       return { ok: true, connected: true };
@@ -408,21 +487,27 @@
       return fail('native_host_unavailable', 'No está disponible la conexión con PERSONAL_CHAT_AI para Windows.');
     }
     try {
-      const reply = await chrome.runtime.sendNativeMessage(NATIVE_HOST, { type });
+      const reply = await sendNativeMessage({ type });
       if (!plainObject(reply) || reply.ok !== true) {
-        return fail(reply?.code || 'native_host_failed', 'No se pudo completar la conexión con la aplicación.');
+        if (!plainObject(reply)) return nativeFailure('native_message_invalid');
+        return nativeFailure(nativeHostReplyCode(reply.code));
       }
       if (type === 'revoke') return reply.revoked === true
         ? { ok: true, revoked: true }
-        : fail('native_host_failed', 'No se pudo desconectar la extensión.');
+        : nativeFailure('native_message_invalid');
       if (typeof reply.pairingCode !== 'string' || !/^[A-Za-z0-9_-]{40,64}$/.test(reply.pairingCode)) {
-        return fail('native_host_failed', 'La aplicación no confirmó la conexión.');
+        return nativeFailure('native_message_invalid');
       }
       // The one-use code stays in this trusted worker; the returned message never includes it.
       const paired = await pairExtension(reply.pairingCode);
+      if (!paired.ok) {
+        const code = paired.error?.code === 'pairing_code_invalid' ? 'pairing_rejected'
+          : paired.error?.code === 'backend_unavailable_network' ? 'backend_unavailable' : 'native_host_error';
+        return nativeFailure(code);
+      }
       return paired.ok ? { ok: true, connected: true } : paired;
-    } catch (_) {
-      return fail('native_host_unavailable', 'No encontramos la conexión de Windows. Comprueba la instalación de PERSONAL_CHAT_AI.');
+    } catch (error) {
+      return nativeFailure(error?.code || nativeErrorCode(error));
     }
   }
 
